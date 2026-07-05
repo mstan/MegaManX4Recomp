@@ -7,8 +7,20 @@
 # MegaManX4Recomp builds against the shared master checkout (junction
 # psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
 # TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
-branch=master
-sha=80f4ed66a54cd81bdcdb4d9ca69b28f7d5fc5ff7
+branch=fix/data-as-code
+sha=a0ee2ae8af5809a6a489d40f4965b636c0300683
+# 2026-07-05 UPDATE — MMX4 now REQUIRES the data-as-code recompiler fix to boot.
+#   a0ee2ae (branch fix/data-as-code, off master 80f4ed6): control-flow-aware
+#   function boundaries — recovers ~4600 real funcs the old heuristic stubbed as
+#   data (incl. func_800EE3A4). Without it MMX4 FAIL-FASTs at frame 277. WITH it,
+#   MMX4 boots HLE -> X4 entry -> plays the intro FMV (frame 6000+). New codegen
+#   hash 0x0f5548cf (was 0x7ea4ba61) -> regen MMX4 (psxrecomp-game built from this
+#   fix) before building. The fix is PARKED on fix/data-as-code, NOT yet on master
+#   (lands in the coordinated cascade). Known: ~2804 stubs remain (may hit a later
+#   gameplay stub); MMX4 full.c bloated 76->225MB from a separate parked alias
+#   issue (task #13); KEYBOARD INPUT not reaching the game (attract+DualSense pad
+#   fine) — open follow-up. To reproduce: build psxrecomp-game from fix/data-as-code,
+#   regen, build build-master; boots to intro FMV.
 # Created 2026-07-05: Scaffold MegaManX4Recomp (Mega Man X4, USA, SLUS-00561).
 #   Pinned at psxrecomp master tip 80f4ed6 (facelifted framework: OpenGL+Vulkan
 #   renderers, HLE boot tier, TCC overlay tier; overlay codegen hash 0x7ea4ba61).
