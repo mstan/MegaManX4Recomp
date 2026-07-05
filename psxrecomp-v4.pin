@@ -1,0 +1,19 @@
+# Pinned commit of github.com/mstan/psxrecomp (the shared framework) used to
+# build this repo. Bumping this is a deliberate, reviewable change — psxrecomp
+# is a separate repo evolving on its own cadence. Update via:
+#   git -C ../psxrecomp rev-parse master > /tmp/sha && \
+#     sed -i "s|^sha=.*|sha=$(cat /tmp/sha)|" psxrecomp-v4.pin
+#
+# MegaManX4Recomp builds against the shared master checkout (junction
+# psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
+# TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
+branch=master
+sha=80f4ed66a54cd81bdcdb4d9ca69b28f7d5fc5ff7
+# Created 2026-07-05: Scaffold MegaManX4Recomp (Mega Man X4, USA, SLUS-00561).
+#   Pinned at psxrecomp master tip 80f4ed6 (facelifted framework: OpenGL+Vulkan
+#   renderers, HLE boot tier, TCC overlay tier; overlay codegen hash 0x7ea4ba61).
+#   Mirrors the MegaManX5Recomp setup — same Capcom X-series 2D engine family
+#   at different addresses (entry 0x800DAE8C, load 0x80010000, text 0x11F800).
+#   X4 streams stage/engine code from ARC/*.ARC archives (vs X5/X6's single
+#   ROCK overlay); the overlay-cache pipeline captures the dirty-RAM regions
+#   generically. First recompile + build + smoke-boot done at scaffold time.

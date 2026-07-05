@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "psx_ghidra": {
+      "type": "sse",
+      "url": "http://localhost:8092/sse"
+    }
+  }
+}

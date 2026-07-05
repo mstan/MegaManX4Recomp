@@ -1,0 +1,89 @@
+[game]
+name = "Mega Man X4"
+id = "SLUS-00561"
+exe = "mmx4/SLUS_005.61"
+disc = "mmx4/Mega Man X4.cue"
+load_address = "0x80010000"
+entry_pc = "0x800DAE8C"
+text_size = "0x0011F800"
+stack_base = "0x801FFFF0"
+
+[recompiler]
+seeds = "seeds/ghidra_funcs.txt"
+out_dir = "generated"
+strict = true
+
+[runtime]
+debug_port = 4525
+window_title = "MegaManX4Recomp"
+memcard_dir = "saves"
+# Disc speed + fast loads — the architecturally-correct model (see MMX6 game.toml
+# for the full rationale). Keep AUTHENTIC guest CD timing (disc_speed="1x") so
+# nothing breaks, and get fast loads by fast-forwarding the whole guest timeline
+# during loads (turbo_loads). Speeding the guest-visible CD device is unsafe for
+# timing-sensitive Psy-Q titles like the Mega Man X engine.
+disc_speed   = "1x"     # authentic guest CD timing (never breaks game timing)
+turbo_loads  = true     # fast-forward the machine during CD loads (the real speed lever)
+# HLE BIOS tier, DEFAULT-ON for X4 (mirrors X5/X6): kernel B0 event family served
+# host-side + the boot shell-skip — boots straight past the PSX logo into the
+# game (kernel init still runs the real recompiled BIOS; unimplemented services
+# fall through to LLE). Set false (or PSX_BIOS_HLE=0) to compare against the
+# authentic LLE boot.
+bios_hle = true
+# Overlay acceleration: compile dirty-RAM overlays (X4 streams its stage/engine
+# code from ARC archives — CAPCOM.ARC / COLxx_*.ARC — into RAM and executes it;
+# the overlay cache captures those dirty-RAM regions generically, same pipeline
+# as MMX6's ROCK overlay). Captures -> compile_overlays.py -> DLLs in
+# <exe>/cache/SLUS-00561/ -> loader rescans + loads. Priority: static > gcc shard
+# > tcc shard > interp. backend "auto" = gcc if a gcc toolchain is present, else
+# the bundled toolchain-free tcc.
+overlay_cache = true
+overlay_backend = "auto"
+# Compile RECIPE only (compiler + tool paths). The WRITE cache + READ captures are
+# injected by the runtime (PSX_OVERLAY_CACHE_DIR / PSX_OVERLAY_CAPTURES) so they
+# can never drift from the loader's canonical <exe>/cache + <exe>/overlay_captures.json.
+overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
+
+[video]
+# Native presentation. X4 ships 4:3 (authentic). Experimental 16:9 widescreen for
+# the 2D engine is an opt-in porting effort (see MMX6 WIDESCREEN once the X4 BG
+# renderer is RE'd); the launcher's "Widescreen (EXPERIMENTAL)" toggle flips this
+# to "16:9" in settings.toml. Off by default.
+aspect_ratio = "4:3"
+
+# auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
+# initial bring-up baseline; enabled during the enhancement-porting phase once the
+# X4 MDEC player loop is understood (X4 ships STR/CAPCOM20.STR + per-stage OP/X/Z
+# opening movies).
+auto_skip_fmv = false
+
+# Experimental 16:9 for the pure-2D sprite engine — same mechanism as MMX6:
+# full_2d treats every in-game frame as gameplay so the native-wide present path
+# engages when [video] aspect_ratio is flipped to "16:9" by the launcher's
+# Widescreen toggle (settings.toml). Inert at 4:3. Runtime-only (no regen).
+[widescreen]
+full_2d = true
+
+# Controller defaults. The Mega Man X engine probes the pad with the DualShock
+# config command (0x43) at init. Present a DualShock (analog) by default to be
+# safe; revisit once X4 input is characterized. The launcher's per-player
+# controller-mode selector overrides this (persisted to settings.toml).
+[controller]
+default_analog = true
+deadzone       = 12000
+allow_hybrid   = false
+
+# ── Audit-specific config (consumed by psxrecomp tools/*.py and tests) ──
+[audit]
+# Dynamic discovery — functions are found by walking control flow from entry_pc.
+
+# Code region: text segment is contiguous from load_address for text_size bytes.
+[[audit.regions]]
+name        = "Text"
+rom_start   = "0x800"          # offset within the PS-X EXE file (skip header)
+rom_end     = "0x120000"       # rom_start + text_size (0x800 + 0x11F800)
+vaddr_base  = "0x80010000"
+
+# Address normalization: KSEG masking only (game loads contiguously, no remaps).
+[audit.normalize]
+kseg_mask = "0x1FFFFFFF"

@@ -1,0 +1,5 @@
+# Mega Man X4 (SLUS-00561, USA) — function-start seeds for the recompiler.
+# One 0x-prefixed KSEG0 address per line. Lines starting with # are ignored.
+# The recompiler also discovers functions dynamically from entry_pc, so this
+# only needs entries the walker can't reach (e.g. indirect/overlay targets).
+0x800DAE8C

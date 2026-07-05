@@ -1,0 +1,125 @@
+================================================================
+GHIDRA SETUP — MegaManX4Recomp
+================================================================
+
+Goal: import the Mega Man X4 (USA) boot executable into Ghidra so
+functions, labels and structs can feed ../seeds/ and ../annotations/.
+
+Game:    Mega Man X4 (USA)
+Serial:  SLUS-00561  (on-disc file SLUS_005.61)
+Region:  North America (NTSC-U)
+Volume:  MEGAMAN_X4 (Publisher CAPCOM CO.,LTD.)
+
+----------------------------------------------------------------
+CPU / processor
+----------------------------------------------------------------
+The PlayStation CPU is a MIPS R3000A (LSI CW33300 core):
+  - 32-bit, LITTLE-ENDIAN, MIPS I integer ISA
+  - No hardware FPU. Coprocessors are COP0 (system control) and
+    COP2 (the GTE geometry transform engine). Ghidra's default MIPS
+    decoder handles the integer ISA fine; GTE (cop2) ops show up as
+    coprocessor instructions — that is expected, not an error.
+
+  Ghidra language:  MIPS:LE:32:default
+  Compiler spec:    default
+  Endianness:       little
+  Address size:     32-bit
+
+----------------------------------------------------------------
+What to import
+----------------------------------------------------------------
+Import the HEADERLESS dump (the 2048-byte PS-EXE header is already
+stripped, so file offset 0 maps cleanly to the load address):
+
+  ghidra\SLUS_005.61_no_header.bin
+
+(Alternatively you can import the header-ful boot EXE
+ mmx4\SLUS_005.61 and set the import "File Offset" to 0x800.
+ The headerless dump is simpler and is what these notes assume.)
+
+----------------------------------------------------------------
+Load / memory layout (read from the PS-EXE header)
+----------------------------------------------------------------
+  Load address (base):  0x80010000   <-- file offset 0 maps here
+  Entry point (pc0):    0x800DAE8C
+  Initial $gp:          not preset (header gp0 = 0). Mega Man X4 sets
+                        $gp at runtime; if the MIPS analyzer wants a
+                        gp value, derive it from the lui/addiu $gp
+                        setup in the entry code at 0x800DAE8C.
+  Text size:            0x0011F800    (1,177,600 bytes)
+  End of text:          0x8012F800    (load_address + text_size)
+  Initial $sp (stack):  0x801FFFF0    (PS-EXE header; SYSTEM.CNF STACK = 801FFF00)
+
+PS1 address space, for context:
+  0x80000000-0x801FFFFF  KSEG0  cached; the 2 MB main RAM
+  0xA0000000-0xA01FFFFF  KSEG1  uncached mirror of the same RAM
+  0xBFC00000             BIOS ROM reset vector
+The boot EXE loads contiguously at 0x80010000. Mega Man X4 streams
+stage code/data from the disc at runtime (the ARC/*.ARC archives —
+CAPCOM.ARC / COLxx_*.ARC — loaded into RAM and executed, the dirty-RAM
+overlay analogue of X5/X6's ROCK overlay); those overlays are out of
+scope for the static EXE import and are handled by the recompiler's
+overlay cache pipeline.
+
+----------------------------------------------------------------
+Project creation
+----------------------------------------------------------------
+1. Launch Ghidra. File -> New Project -> Non-Shared Project.
+2. Name:     MegaManX4Recomp
+   Location: F:\Projects\psxrecomp\MegaManX4Recomp\ghidra\projects\
+   (the projects\ subdir is gitignored — Ghidra writes large,
+    machine-specific .gpr/.lock/.rep files there.)
+
+----------------------------------------------------------------
+Import steps
+----------------------------------------------------------------
+1. File -> Import File -> select  ghidra\SLUS_005.61_no_header.bin
+2. In the import dialog:
+     Format:    Raw Binary
+     Language:  click "..." , filter MIPS, pick  MIPS:LE:32:default
+     Options... -> Base Address:  0x80010000
+3. OK. Accept the auto-analysis defaults, and additionally ENABLE:
+     - "MIPS Constant Reference Analyzer"  (resolves lui/addiu and
+       $gp-relative address pairs — important on MIPS).
+4. Go to the entry point:  G -> 0x800DAE8C , then Disassemble /
+   Create Function if it is not already a function. That address is
+   the recompiler's entry_pc.
+
+----------------------------------------------------------------
+Feeding results back into the project
+----------------------------------------------------------------
+- Function starts you want the recompiler to seed: add their
+  addresses (one 0x-prefixed hex per line) to
+  ..\seeds\ghidra_funcs.txt
+- Notes on what a function does: add an  "0xADDRESS, note"  row to
+  ..\annotations\SLUS_005.61_annotations.csv  — the recompiler emits
+  these as comments above the matching function in the generated C.
+
+----------------------------------------------------------------
+Ghidra MCP server (optional, for Claude)
+----------------------------------------------------------------
+Run the GhidrAssistMCP plugin inside Ghidra
+(Window -> GhidrAssistMCP) on its SSE port, then copy
+.mcp.json.example -> .mcp.json (server name "psx_ghidra",
+http://localhost:8092/sse).
+
+----------------------------------------------------------------
+Version control
+----------------------------------------------------------------
+Tracked under ghidra/ :
+  - instructions.txt   (this file)
+  - scripts/           (Ghidra Python scripts, as workflows emerge)
+  - annotations/       (exported labels/comments, hand-curated)
+
+NOT tracked (gitignored / machine-specific):
+  - ghidra/projects/   (live Ghidra database)
+  - *.gpr  *.rep/  *.lock
+  - SLUS_005.61_no_header.bin   (derivative of copyrighted code;
+    *.bin is gitignored — see "Regenerating" below)
+
+----------------------------------------------------------------
+Regenerating the headerless dump
+----------------------------------------------------------------
+If the dump is missing, recreate it from the boot EXE (PowerShell):
+  $b = [IO.File]::ReadAllBytes("mmx4\SLUS_005.61")
+  [IO.File]::WriteAllBytes("ghidra\SLUS_005.61_no_header.bin", $b[2048..($b.Length-1)])
