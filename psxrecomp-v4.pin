@@ -8,7 +8,7 @@
 # psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
 # TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
 branch=master
-sha=0b958796cb39864072794f8a31c1783bb6b18dad
+sha=13a86e28fd266beab3964acf9b4dee8b94cf78d5
 # 2026-07-05 UPDATE 2 — repinned to master 0b95879: the data-as-code recompiler
 #   fix landed on master as 85987f2 (byte-identical recompiler tree to
 #   fix/data-as-code a0ee2ae — verified `git diff master fix/data-as-code --
