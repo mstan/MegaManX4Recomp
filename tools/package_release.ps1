@@ -94,10 +94,10 @@ Write-Host "Bundled launcher assets: launcher.rml + $fontCount font(s) + $imgCou
 name = "Mega Man X4"
 id = "SLUS-00561"
 exe = "mmx4/SLUS_005.61"
-disc = "mmx4/Mega Man X4 (USA).cue"
+disc = "mmx4/Mega Man X4.cue"
 load_address = "0x80010000"
-entry_pc = "0x8005894C"
-text_size = "0x00082000"
+entry_pc = "0x800DAE8C"
+text_size = "0x0011F800"
 stack_base = "0x801FFFF0"
 
 # Required block; used only by the developer recompiler tool, not at runtime.
@@ -130,6 +130,12 @@ turbo_loads = true
 # disc (see README).
 overlay_cache = true
 
+# HLE-accelerated boot (the validated configuration for X4 this release): kernel
+# services are served host-side and the BIOS shell is skipped, booting straight
+# into the game; everything else still runs the real recompiled BIOS. Set false
+# to boot the authentic full BIOS sequence instead (unvalidated for X4).
+bios_hle = true
+
 # ---- Visual quality -----------------------------------------------------
 [video]
 # supersampling: render at this multiple of native resolution and downsample,
@@ -140,37 +146,38 @@ supersampling = 2
 antialiasing  = true
 # texture_filtering: "nearest" = native PSX look; "bilinear" = smooths textures.
 texture_filtering = "nearest"
-# renderer: "software" = CPU renderer (this release's default). "opengl" =
-# hardware GPU renderer. Software is shipped as the default because the OpenGL
-# backend exhibits intermittent black-frame flicker in this build (see ISSUES.md
-# #2); software is clean. OpenGL is still selectable in the launcher for anyone
-# who prefers it. Also set in the launcher (Settings -> Renderer).
+# renderer: "software" = CPU renderer (this release's default, the validated
+# path for X4). "opengl" = hardware GPU renderer, selectable in the launcher
+# (Settings -> Renderer) for anyone who prefers it.
 renderer = "software"
-# auto_skip_fmv: skip full-motion videos (the CAPCOM20 / OP_U opening movies).
-# Off by default so you see the now-working intro cutscene. When on, a video is
-# skipped the instant it starts. Toggleable in the launcher (Settings -> "Skip
-# FMVs").
+# auto_skip_fmv: skip full-motion videos (the X vs. Zero opening cinematics).
+# Off by default so you see the intro. When on, a video is skipped the instant
+# it starts. Toggleable in the launcher (Settings -> "Skip FMVs").
 auto_skip_fmv = false
-# aspect_ratio: "4:3" (native). X4 ships 4:3 only this release; true 16:9
-# widescreen is not wired up yet (see ISSUES.md #3).
+# aspect_ratio: "4:3" (native). X4 ships 4:3 only this release; widescreen is
+# not offered for this title (see [widescreen] below and ISSUES.md #2).
 aspect_ratio = "4:3"
 
 # ---- Controller ---------------------------------------------------------
-# default_analog: MMX4 will not poll buttons until it detects an analog pad, so
-# present a DualShock by default. Per-player toggle in the launcher. deadzone:
-# analog stick dead-band (0..32767; ~12000 = 37%), also adjustable in the launcher.
+# X4 predates the DualShock and its pad driver REJECTS analog pads (with one
+# presented, the title screen ignores Start entirely) - exactly like the real
+# console. The runtime therefore presents the plain digital pad X4 expects;
+# lock_mode hides the launcher's pad-mode selector because there is exactly one
+# mode the game supports. deadzone: stick dead-band for stick->d-pad mapping
+# (0..32767; ~12000 = 37%), adjustable in the launcher.
 [controller]
-default_analog = true
+default_mode = "digital"
 deadzone = 12000
-# MMX4 requires a DualShock, so the launcher hides the "Hybrid" pad mode and
-# offers only Analog / D-Pad.
 allow_hybrid = false
+lock_mode = true
 
 # ---- Widescreen ---------------------------------------------------------
-# full_2d treats every in-game frame as gameplay so the wide present path could
-# engage, but the true wider-FOV 2D background widen is NOT wired for X4 this
-# release (no [widescreen.bg2d] block). Inert at 4:3, which is what X4 ships.
+# Widescreen is NOT offered for X4 this release (offer=false): the launcher's
+# Widescreen toggle is hidden and the display aspect is clamped to native 4:3.
+# full_2d stays declared for the eventual port (same pure-2D mechanism as MMX6)
+# but is inert while offer=false.
 [widescreen]
+offer   = false
 full_2d = true
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
@@ -311,11 +318,13 @@ select = back
 @"
 MegaManX4Recomp $Version
 
-Mega Man X4 boots from the PlayStation BIOS and plays - through the opening
-(including the intro cutscenes, which now decode and play), into stages, with
-working controller input and memory-card save/load, and no known crashes. It has
-not yet been verified all the way to the end, so treat this first release as a
-very playable preview rather than a certified full playthrough.
+Mega Man X4 boots and plays - the intro cinematics decode and play, the title
+screen and menus respond, the attract demos run, and you can start a game -
+with working (digital) controller input and no known crashes on the covered
+path. This is an early first release cut days after first boot: it has NOT
+been verified deep into stages, and an unvisited area may halt the program
+with an "unknown dispatch" report (that is by design - please report where
+you were; see ISSUES.md #1).
 
 This package does not include the Mega Man X4 disc, the PlayStation BIOS, save
 data, or any game assets - you supply those from your own collection, and
@@ -352,10 +361,12 @@ automatically. Do NOT post overlay_captures.json publicly - it contains
 snapshots of the game's own code read from your disc. See README.md for details.
 
 Keyboard and Xbox-style controller defaults are documented in README.md.
-Controller mappings are configurable in input.ini.
+Controller mappings are configurable in input.ini; keyboard bindings in
+keybinds.ini (also live-rebindable in the launcher's Controls page).
 
-Memory cards are stored in the saves directory; save and load work with standard
-PS1 .mcd images.
+Memory cards are stored in the saves directory as standard PS1 .mcd images.
+In-game save/load has not yet been verified end-to-end in this build (see
+ISSUES.md #3).
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "START_HERE.txt")
 
 if (Test-Path $ZipPath) {

@@ -1,0 +1,54 @@
+# MegaManX4Recomp — Issues
+
+Current state (v0.0.1-alpha): the game boots and plays — intro cinematics
+decode, the title screen and menus respond, attract demos run, and a game can
+be started — with working (digital) controller input and no known crashes on
+the covered path. It has not been verified deep into stages or to the end.
+
+---
+
+## #1 — Early preview: uncovered code regions halt loudly — OPEN
+
+X4's boot EXE still has ~2,804 regions the recompiler currently classifies as
+data (down from 7,373 before the control-flow-aware extent fix). If gameplay
+reaches one that is actually code, the program **fail-fasts with an
+"unknown dispatch" report** rather than silently misbehaving — that is by
+design. The covered path (intro → title → attract → game start) is clean. If
+you hit a halt, note where you were and what you did; each report pins the
+exact address the recompiler needs to classify.
+
+One unreproduced silent exit was observed minutes into a long attract-cycle
+soak during bring-up (no fail-fast banner); it has not recurred and is
+presumed stale. Tracked here until a reproduction exists.
+
+---
+
+## #2 — Widescreen (true 2D wide field of view) not yet ported — OPEN (enhancement)
+
+X4 ships **4:3 only** this release, and unlike X5/X6 the launcher's Widescreen
+toggle is **hidden** for this title (`game.toml [widescreen] offer = false`) —
+the runtime also clamps the display aspect to 4:3, so a stale `settings.toml`
+can't engage it. `full_2d = true` stays declared for the eventual port (X4 is
+the same pure-2D sprite engine family as MMX6, whose bg2d tile-widen mechanism
+is the porting template), but the X4 background renderer has not been RE'd for
+its hook sites yet.
+
+---
+
+## #3 — Memory-card save/load not verified end-to-end — OPEN
+
+The SIO/memory-card hardware layer is exercised and healthy at boot (the game's
+card probes complete normally), but an actual in-game save + reload cycle has
+not been verified in this build. X5/X6 save/load work on the same framework
+path, so this is expected to work — it needs a verification pass, not new
+machinery.
+
+---
+
+## #4 — Generated full.c bloat (~225 MB) slows source builds — OPEN (dev-only)
+
+A recompiler alias-promotion pass mints ~40 overlapping alias bodies over X4's
+ARC filename/pointer tables, tripling the generated `full.c` (76 → 225 MB) and
+pushing the single-TU compile to ~40 minutes. Dead code — correctness is
+unaffected, players are unaffected; it only slows source builds. Needs a
+recompiler-side fix (tracked in the framework), then a regen.

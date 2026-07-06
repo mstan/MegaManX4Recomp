@@ -57,11 +57,14 @@ aspect_ratio = "4:3"
 # opening movies).
 auto_skip_fmv = false
 
-# Experimental 16:9 for the pure-2D sprite engine — same mechanism as MMX6:
-# full_2d treats every in-game frame as gameplay so the native-wide present path
-# engages when [video] aspect_ratio is flipped to "16:9" by the launcher's
-# Widescreen toggle (settings.toml). Inert at 4:3. Runtime-only (no regen).
+# Widescreen is NOT offered for X4 yet (offer=false): the launcher hides its
+# Widescreen toggle and the runtime clamps the display aspect to 4:3, so the
+# game ships native 4:3 only. full_2d stays declared for the eventual port —
+# same pure-2D mechanism as MMX6 (treat every in-game frame as gameplay so the
+# native-wide present path engages) — but is inert while offer=false / 4:3.
+# Runtime-only (no regen).
 [widescreen]
+offer   = false
 full_2d = true
 
 # Controller: HARDCODED digital. X4 predates the DualShock (US Sept 1997 vs
