@@ -64,16 +64,19 @@ auto_skip_fmv = false
 [widescreen]
 full_2d = true
 
-# Controller defaults. X4 predates the DualShock (US Sept 1997 vs DualShock
-# Nov 1997): its libpad never sends the 0x43 config probe and REJECTS pad id
-# 0x73 — with an analog pad presented, the title screen ignores START entirely
-# (verified via the SIO byte ring: buttons byte 0xF7 delivered, game ignores).
-# Present a plain digital pad (id 0x41). The launcher's per-player
-# controller-mode selector overrides this (persisted to settings.toml).
+# Controller: HARDCODED digital. X4 predates the DualShock (US Sept 1997 vs
+# DualShock Nov 1997): its libpad never sends the 0x43 config probe and REJECTS
+# pad id 0x73 — with an analog pad presented, the title screen ignores START
+# entirely (verified via the SIO byte ring: buttons byte 0xF7 delivered, game
+# ignores). Digital (id 0x41) is the ONLY pad type the game supports, so
+# lock_mode hides the launcher's whole pad-mode selector (same pattern as
+# Tomba 2) and forces every port to default_mode — there is no valid choice to
+# offer. allow_hybrid=false is redundant under lock_mode but documents intent.
 [controller]
 default_mode   = "digital"
 deadzone       = 12000
 allow_hybrid   = false
+lock_mode      = true
 
 # ── Audit-specific config (consumed by psxrecomp tools/*.py and tests) ──
 [audit]
