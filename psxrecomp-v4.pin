@@ -7,8 +7,21 @@
 # MegaManX4Recomp builds against the shared master checkout (junction
 # psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
 # TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
-branch=fix/data-as-code
-sha=a0ee2ae8af5809a6a489d40f4965b636c0300683
+branch=master
+sha=0b958796cb39864072794f8a31c1783bb6b18dad
+# 2026-07-05 UPDATE 2 — repinned to master 0b95879: the data-as-code recompiler
+#   fix landed on master as 85987f2 (byte-identical recompiler tree to
+#   fix/data-as-code a0ee2ae — verified `git diff master fix/data-as-code --
+#   recompiler` empty), so the branch pin is obsolete. Same codegen hash
+#   0x0f5548cf. ALSO RESOLVED: the "keyboard input not reaching the game"
+#   follow-up below was never a keyboard/runtime bug — X4 predates the
+#   DualShock and its libpad rejects pad id 0x73 (analog); with
+#   [controller] default_analog=true NO input source (keyboard, DualSense,
+#   debug override) got past the title. game.toml now presents a digital pad
+#   (default_mode="digital", id 0x41); input verified working (FMV skip +
+#   title respond to keyboard START). SIO-ring evidence: poll answers
+#   01/42/00.. -> FF/73/5A/F7/FF with START held — buttons delivered, game
+#   discarded them under id 0x73.
 # 2026-07-05 UPDATE — MMX4 now REQUIRES the data-as-code recompiler fix to boot.
 #   a0ee2ae (branch fix/data-as-code, off master 80f4ed6): control-flow-aware
 #   function boundaries — recovers ~4600 real funcs the old heuristic stubbed as

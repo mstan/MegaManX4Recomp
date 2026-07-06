@@ -64,12 +64,14 @@ auto_skip_fmv = false
 [widescreen]
 full_2d = true
 
-# Controller defaults. The Mega Man X engine probes the pad with the DualShock
-# config command (0x43) at init. Present a DualShock (analog) by default to be
-# safe; revisit once X4 input is characterized. The launcher's per-player
+# Controller defaults. X4 predates the DualShock (US Sept 1997 vs DualShock
+# Nov 1997): its libpad never sends the 0x43 config probe and REJECTS pad id
+# 0x73 — with an analog pad presented, the title screen ignores START entirely
+# (verified via the SIO byte ring: buttons byte 0xF7 delivered, game ignores).
+# Present a plain digital pad (id 0x41). The launcher's per-player
 # controller-mode selector overrides this (persisted to settings.toml).
 [controller]
-default_analog = true
+default_mode   = "digital"
 deadzone       = 12000
 allow_hybrid   = false
 
