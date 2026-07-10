@@ -8,7 +8,20 @@
 # psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
 # TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
 branch=master
-sha=13a86e28fd266beab3964acf9b4dee8b94cf78d5
+sha=2ba81d5d7bbe51bc36e153496ae233a4e0e0986a
+# 2026-07-10 UPDATE — repinned to master 2ba81d5 (merge of
+#   feat/audio-mmx4-attract): MMX4 attract-demo audio fix, two framework
+#   defects, user-ear-validated on the ice-stage demo. (1) cdrom read stream
+#   froze disc time while a controller INT was unacked -> XA sectors ~1.5%
+#   late -> SPU cd_ring starved 5-6x/s (6 Hz music dropout); now the disc
+#   clock never pauses and data-ready INT1s pend one deep (Beetle
+#   SetAIP/CheckAIP model). (2) SPU END-without-REPEAT blocks kept the
+#   envelope alive and decoded past the terminator; X4 parks finished SFX
+#   voices on +28672-DC filler with ~infinite release -> mix railed at
+#   +32767 ("static" during ice-block hits, 38-41% samples clipped). Now
+#   jumps to repeat + forces env=0 (Beetle spu.cpp:333,341-352) -> 0.00%
+#   clipped. Runtime-only: NO regen required (codegen untouched);
+#   build-master carries the validated exe.
 # 2026-07-05 UPDATE 2 — repinned to master 0b95879: the data-as-code recompiler
 #   fix landed on master as 85987f2 (byte-identical recompiler tree to
 #   fix/data-as-code a0ee2ae — verified `git diff master fix/data-as-code --
