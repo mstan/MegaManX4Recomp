@@ -49,7 +49,7 @@ misbehave silently (see ISSUES.md #1).
 | Stage gameplay | Starts; not yet verified broadly (see ISSUES.md #1) |
 | Memory-card save / load | Card probing works; save/load not yet verified end-to-end |
 | Renderers | Software (default) **and** OpenGL, selectable in the launcher |
-| Widescreen 16:9 | Not in this release (4:3 only; toggle hidden) |
+| Widescreen 16:9 | Experimental opt-in; true wider 2D field of view (4:3 remains default) |
 
 See `ISSUES.md` for notes and the remaining follow-ups.
 
@@ -59,6 +59,13 @@ These are the framework features that are already working in this build:
 
 - **Two renderers.** A CPU software rasterizer (this release's default) and a
   GPU-authoritative OpenGL backend, both selectable in the launcher.
+- **Opt-in true widescreen.** The experimental 16:9 mode widens X4's background
+  tile window plus actor activation, despawn, and draw-cull bounds; authentic
+  4:3 remains the default. Player health/weapon HUD pieces anchor to the true
+  wide left edge, while enemy/boss health pieces anchor to the wide right edge.
+  The generated dispatcher uses optimizer-independent binary lookup, avoiding
+  the severe `-O0` slowdown caused by X4's nearly 60,000 dispatch entries.
+  Release builds additionally compile out developer tracing and telemetry.
 - **Fast loading (turbo loads).** While a load is in progress the whole machine
   fast-forwards at your PC's full speed, then drops back to normal the instant
   it finishes — so disc loads complete far faster while all of the game's
@@ -149,7 +156,7 @@ Most options are exposed in the launcher and persist to `settings.toml`. The
 underlying defaults live in `game.toml`:
 
 - `[video]` — `renderer` (`software` / `opengl`), `supersampling` (1–4),
-  `antialiasing`, `texture_filtering`, `aspect_ratio` (`4:3`),
+  `antialiasing`, `texture_filtering`, `aspect_ratio` (`4:3` / experimental `16:9`),
   `auto_skip_fmv`.
 - `[controller]` — `default_mode` (`digital`, locked — X4 supports exactly one
   pad type), `deadzone`.

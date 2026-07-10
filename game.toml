@@ -45,10 +45,9 @@ overlay_backend = "auto"
 overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
 
 [video]
-# Native presentation. X4 ships 4:3 (authentic). Experimental 16:9 widescreen for
-# the 2D engine is an opt-in porting effort (see MMX6 WIDESCREEN once the X4 BG
-# renderer is RE'd); the launcher's "Widescreen (EXPERIMENTAL)" toggle flips this
-# to "16:9" in settings.toml. Off by default.
+# Native presentation. X4 defaults to authentic 4:3. The launcher's experimental
+# widescreen toggle opts into the true 16:9 field of view configured below by
+# writing "16:9" to settings.toml; it remains off by default.
 aspect_ratio = "4:3"
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -57,15 +56,56 @@ aspect_ratio = "4:3"
 # opening movies).
 auto_skip_fmv = false
 
-# Widescreen is NOT offered for X4 yet (offer=false): the launcher hides its
-# Widescreen toggle and the runtime clamps the display aspect to 4:3, so the
-# game ships native 4:3 only. full_2d stays declared for the eventual port —
-# same pure-2D mechanism as MMX6 (treat every in-game frame as gameplay so the
-# native-wide present path engages) — but is inert while offer=false / 4:3.
-# Runtime-only (no regen).
+# Widescreen is offered as an experimental opt-in and still defaults to 4:3.
+# full_2d enables native-wide presentation; the hooks below widen the scene.
+# The game remains native 4:3 unless the player selects the launcher toggle.
+# The hook path is the same pure-2D native-wide mechanism proven by MMX6.
+# All runtime helpers are identity at 4:3; codegen hooks require regeneration.
 [widescreen]
-offer   = false
+offer   = true
 full_2d = true
+
+# X4 builds the player health/weapon HUD and the right-side enemy/boss health
+# HUD in a dedicated double-buffered GP0 packet arena. Re-anchor only commands
+# from that arena: left-third pieces move to the true 16:9 left edge and
+# right-third pieces move to the true 16:9 right edge. Filtering is essential
+# because X4's world is also made of screen-space 2D primitives.
+nw_hud_corners   = true
+nw_hud_source_lo = "0x80139800"
+nw_hud_source_hi = "0x8013a000"
+
+# Widen screen-derived object visibility funnels when they occur in statically
+# recompiled code or streamed overlays. The detector requires paired horizontal
+# and vertical bounds, so unrelated uses of 320 are untouched. The runtime
+# margin is zero at 4:3 and the per-side 16:9 reveal width when enabled.
+[widescreen.cull]
+auto_screen_x = true
+screen_h_imms = ["0xf0"] # X4 render funnel uses the full 240-line display bound
+bias_sites = [
+  "0x8002b17c", "0x8002b1bc", # fixed 64px despawn/classifier margin
+  "0x8002b2a8", "0x8002b2e8", # fixed 32px activation/draw margin
+  "0x8002b3e0", "0x8002b420", # fixed 96px activation/draw margin
+]
+range_sites = [
+  "0x8002b1c4", # 320 + 2*64
+  "0x8002b2f0", # 320 + 2*32
+  "0x8002b428", # 320 + 2*96
+]
+a1_sites = [
+  "0x8002b1ec", # load-delay nop before copying caller horizontal margin
+  "0x8002b320", # move t0,a1 in the flag-setting classifier variant
+]
+
+# X4's three-layer background renderer at 0x80026AA0 draws 21 columns x 16 rows
+# from a 32-column ring. This is the X4/X5 inline-sltiu variant of the MMX6
+# mechanism: widen the loop bound, move its tile/screen start left, and stream
+# both leading edges far enough out to keep reveal columns populated.
+[widescreen.bg2d]
+count_site        = "0x80026c98" # sltiu v0,t2,0x15
+startcol_site     = "0x80026b20" # andi s5,v0,0x1f
+startx_site       = "0x80026b10" # subu s6,zero,v0
+stream_left_site  = "0x800272d0" # addiu a1,s1,-0x10
+stream_right_site = "0x800272e4" # addiu a1,s1,0x150 (320+16)
 
 # Controller: HARDCODED digital. X4 predates the DualShock (US Sept 1997 vs
 # DualShock Nov 1997): its libpad never sends the 0x43 config probe and REJECTS

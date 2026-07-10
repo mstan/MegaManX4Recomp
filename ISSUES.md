@@ -23,15 +23,18 @@ presumed stale. Tracked here until a reproduction exists.
 
 ---
 
-## #2 — Widescreen (true 2D wide field of view) not yet ported — OPEN (enhancement)
+## #2 — Widescreen (true 2D wide field of view) — RESOLVED (experimental opt-in)
 
-X4 ships **4:3 only** this release, and unlike X5/X6 the launcher's Widescreen
-toggle is **hidden** for this title (`game.toml [widescreen] offer = false`) —
-the runtime also clamps the display aspect to 4:3, so a stale `settings.toml`
-can't engage it. `full_2d = true` stays declared for the eventual port (X4 is
-the same pure-2D sprite engine family as MMX6, whose bg2d tile-widen mechanism
-is the porting template), but the X4 background renderer has not been RE'd for
-its hook sites yet.
+X4 now offers the launcher's experimental Widescreen toggle while retaining
+authentic 4:3 as the default. The port widens the three-layer background tile
+window and streamer, the shared actor activation/despawn funnels, and the
+screen-space draw cull. Sky Lagoon verification showed populated 16:9 margins,
+enemy sprites active beyond the native 320-pixel edge, safe packet occupancy,
+and zero dispatch misses. The player health/weapon and enemy/boss health HUD is
+source-filtered to its dedicated packet arena and re-anchored to the respective
+16:9 boundaries, without touching world sprites or the default 4:3 path. See
+`annotations/widescreen_bg2d_sites.md` for the reverse-engineered sites and
+runtime evidence.
 
 ---
 
