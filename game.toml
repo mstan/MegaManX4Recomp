@@ -69,10 +69,10 @@ full_2d = true
 # HUD in a dedicated double-buffered GP0 packet arena. Re-anchor only commands
 # from that arena: left-third pieces move to the true 16:9 left edge and
 # right-third pieces move to the true 16:9 right edge. Filtering is essential
-# because X4's world is also made of screen-space 2D primitives.
-nw_hud_corners   = true
-nw_hud_source_lo = "0x80139800"
-nw_hud_source_hi = "0x8013a000"
+# because X4's world is also made of screen-space 2D primitives, so the
+# unfiltered nw_hud_corners mode must stay off for this title.
+nw_left_hud_packet_lo = "0x80139800"
+nw_left_hud_packet_hi = "0x8013a000"
 
 # Widen screen-derived object visibility funnels when they occur in statically
 # recompiled code or streamed overlays. The detector requires paired horizontal
