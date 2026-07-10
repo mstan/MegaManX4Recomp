@@ -49,9 +49,11 @@ the recompiled PS1 BIOS.
   happens to you, please report where you were.
 - **Memory-card save/load not yet verified end-to-end** in this build (the
   card hardware layer is exercised and healthy).
-- **No widescreen this release.** X4 ships **4:3 only**; the launcher's
-  Widescreen toggle is hidden for this title until the 2D wide field-of-view is
-  ported (same mechanism as MMX6's).
+- **Widescreen is experimental and opt-in.** Authentic 4:3 remains the default;
+  enabling the launcher toggle widens X4's background, actor activation/despawn,
+  and draw-cull bounds for a true 16:9 field of view. Player health/weapon HUD
+  pieces move to the 16:9 left boundary and enemy/boss health pieces move to the
+  16:9 right boundary without changing their original layout.
 
 ## 📝 Setup
 
