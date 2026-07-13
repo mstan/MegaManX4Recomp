@@ -1,15 +1,25 @@
 param(
-    [string]$Version = "v0.0.1-alpha",
+    [string]$Version = "v0.0.2-alpha",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
     # head start; optional. X4's cache lives at build-release/cache/SLUS-00561.
-    [string]$CacheBuildDir = "build-release"
+    [string]$CacheBuildDir = "build-release",
+    # Framework checkout to build against. Defaults to the psxrecomp-v4 junction
+    # (-> the shared master checkout). Point this at a specific worktree to build
+    # against exactly the pinned commit when the main checkout is on another
+    # branch (e.g. -FrameworkRoot F:/Projects/psxrecomp/_wt-fw-master).
+    [string]$FrameworkRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
 
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
+if ([string]::IsNullOrWhiteSpace($FrameworkRoot)) {
+    $FrameworkRoot = Join-Path $Root "psxrecomp-v4"
+}
+$FrameworkRoot = (Resolve-Path $FrameworkRoot).Path
+Write-Host "Framework root: $FrameworkRoot"
 $BuildPath = Join-Path $Root $BuildDir
 $StageRoot = Join-Path $Root "release-stage"
 $Stage = Join-Path $StageRoot "MegaManX4Recomp-windows-x64"
@@ -38,12 +48,12 @@ function Invoke-Native {
 # X4 builds against its psxrecomp-v4 junction (-> the shared master framework
 # worktree), NOT the master ..\psxrecomp checkout. All framework paths go
 # through the junction at $Root so this game's framework pin is honored.
-$RecompDir = Resolve-Path (Join-Path $Root "psxrecomp-v4\recompiler\build")
+$RecompDir = Resolve-Path (Join-Path $FrameworkRoot "recompiler\build")
 Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_OF_PROCESSORS } "recompiler build"
 & (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
 if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
 
-Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSX_LAUNCHER=ON } "cmake configure"
+Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSX_LAUNCHER=ON -DPSXRECOMP_ROOT="$FrameworkRoot" } "cmake configure"
 Invoke-Native { cmake --build $BuildPath -j $env:NUMBER_OF_PROCESSORS } "cmake build"
 
 if (Test-Path $StageRoot) {
@@ -146,16 +156,16 @@ supersampling = 2
 antialiasing  = true
 # texture_filtering: "nearest" = native PSX look; "bilinear" = smooths textures.
 texture_filtering = "nearest"
-# renderer: "software" = CPU renderer (this release's default, the validated
-# path for X4). "opengl" = hardware GPU renderer, selectable in the launcher
+# renderer: "opengl" = hardware GPU renderer (this release's default, full-rate
+# presentation). "software" = CPU renderer, selectable in the launcher
 # (Settings -> Renderer) for anyone who prefers it.
-renderer = "software"
+renderer = "opengl"
 # auto_skip_fmv: skip full-motion videos (the X vs. Zero opening cinematics).
 # Off by default so you see the intro. When on, a video is skipped the instant
 # it starts. Toggleable in the launcher (Settings -> "Skip FMVs").
 auto_skip_fmv = false
-# aspect_ratio: "4:3" (native). X4 ships 4:3 only this release; widescreen is
-# not offered for this title (see [widescreen] below and ISSUES.md #2).
+# aspect_ratio: "4:3" (native). X4 defaults to authentic 4:3; the launcher's
+# EXPERIMENTAL Widescreen toggle opts into true 16:9 (see [widescreen] below).
 aspect_ratio = "4:3"
 
 # ---- Controller ---------------------------------------------------------
@@ -171,15 +181,24 @@ deadzone = 12000
 allow_hybrid = false
 lock_mode = true
 
-# ---- Widescreen ---------------------------------------------------------
-# Widescreen is NOT offered for X4 this release (offer=false): the launcher's
-# Widescreen toggle is hidden and the display aspect is clamped to native 4:3.
-# full_2d stays declared for the eventual port (same pure-2D mechanism as MMX6)
-# but is inert while offer=false.
-[widescreen]
-offer   = false
-full_2d = true
+# ---- Widescreen (EXPERIMENTAL) ------------------------------------------
+# X4 offers an experimental opt-in true-16:9 mode via the launcher's Widescreen
+# toggle; it defaults to 4:3. The exact validated hook config is spliced from
+# the dev game.toml below so the shipped config can never drift from what was
+# built and tested. All hooks are identity at 4:3.
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
+
+# Splice the real, validated [widescreen]* sections (offer=true + bg2d/cull/HUD
+# hooks) straight from the dev game.toml -- single source of truth, no drift.
+$realToml = Get-Content (Join-Path $Root "game.toml") -Raw
+$wsStart  = $realToml.IndexOf("[widescreen]")
+$wsEnd    = $realToml.IndexOf("[controller]", $wsStart)
+if ($wsStart -lt 0 -or $wsEnd -lt 0) { throw "Could not locate [widescreen]..[controller] in game.toml to splice" }
+$wsBlock  = $realToml.Substring($wsStart, $wsEnd - $wsStart).TrimEnd()
+Add-Content -Encoding ASCII (Join-Path $Stage "game.toml") $wsBlock
+if (-not (Select-String -Path (Join-Path $Stage "game.toml") -Pattern '^offer\s*=\s*true' -Quiet)) {
+    throw "Shipped game.toml is missing 'offer = true' after widescreen splice"
+}
 
 # Prebuilt overlay cache: native code for the game areas contributed so far.
 # The cache is namespaced per backend/arch/codegen-version:
@@ -188,8 +207,8 @@ full_2d = true
 # Ship .dll + .ranges only (skip the _patched.c intermediates and the reserved
 # sljit/ namespace, which has no on-disk blobs), and ONLY the dir matching THIS
 # build's codegen tag -- a stale-hash dir is dead weight the runtime never loads.
-$RecompTools = Resolve-Path (Join-Path $Root "psxrecomp-v4\tools")
-$RecompInc   = Resolve-Path (Join-Path $Root "psxrecomp-v4\runtime\include")
+$RecompTools = Resolve-Path (Join-Path $FrameworkRoot "tools")
+$RecompInc   = Resolve-Path (Join-Path $FrameworkRoot "runtime\include")
 $tagScript = Join-Path $env:TEMP ("psx_cgtag_{0}.py" -f $PID)
 @"
 import importlib.util
@@ -264,10 +283,10 @@ Copy-Item (Join-Path $RecompDir "psxrecomp-game.exe") $Toolchain
 foreach ($d in @("libgcc_s_seh-1.dll","libstdc++-6.dll","libwinpthread-1.dll")) {
     Copy-Item (Join-Path $MingwBin $d) $Toolchain
 }
-Copy-Item (Resolve-Path (Join-Path $Root "psxrecomp-v4\tools\compile_overlays.py")) $Toolchain
+Copy-Item (Join-Path $RecompTools "compile_overlays.py") $Toolchain
 $ToolInc = Join-Path $Toolchain "include"
 New-Item -ItemType Directory -Force $ToolInc | Out-Null
-Copy-Item (Join-Path (Resolve-Path (Join-Path $Root "psxrecomp-v4\runtime\include")) "*.h") $ToolInc
+Copy-Item (Join-Path $RecompInc "*.h") $ToolInc
 $tcMB = "{0:N0}" -f ((Get-ChildItem $Toolchain -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
 Write-Host "Bundled overlay toolchain (embedded python + tcc + recompiler): ~$tcMB MB"
 

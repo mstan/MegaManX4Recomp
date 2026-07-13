@@ -1,4 +1,20 @@
-# Mega Man X4 Recompiled — v0.0.1-alpha
+# Mega Man X4 Recompiled — v0.0.2-alpha
+
+## 🆕 New in v0.0.2
+
+- **Experimental Widescreen (true 16:9).** X4's opt-in wide field of view is now
+  available from the launcher's **Widescreen (EXPERIMENTAL)** toggle — it widens
+  the three-layer scrolling background and re-anchors the health/weapon HUD to
+  the true 16:9 edges, without disturbing world sprites. **4:3 remains the
+  default**; flip the toggle to try 16:9.
+- **OpenGL is now the default renderer** (full-rate hardware presentation).
+  Software is still one click away in the launcher (Settings → Renderer).
+- **A large batch of framework engine improvements** since v0.0.1 — full-rate
+  OpenGL presentation, audio reserve/transient hardening (the MMX4 attract-demo
+  audio fix and beyond), and byte-verified static + overlay dispatch. X4 was
+  re-recompiled and re-validated against the updated framework.
+
+---
 
 The first public cut, made days after first boot. Mega Man X4 boots and
 **plays** as a native Windows program — no emulator behind it — on the

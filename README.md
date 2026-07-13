@@ -31,8 +31,7 @@ Important files:
 
 ## Status
 
-**Early playable preview — `v0.0.1-alpha`.** This is the *first* public cut,
-made days after first boot. Mega Man X4 **boots and plays**: the intro
+**Early playable preview — `v0.0.2-alpha`.** Mega Man X4 **boots and plays**: the intro
 cinematics (X vs. Zero) decode and play, the title screen and menus respond,
 the attract demos run, and you can start a game — with working controller
 input and no known crashes on the covered path. It has **not** been verified
@@ -48,7 +47,7 @@ misbehave silently (see ISSUES.md #1).
 | Title / menus / attract | Works |
 | Stage gameplay | Starts; not yet verified broadly (see ISSUES.md #1) |
 | Memory-card save / load | Card probing works; save/load not yet verified end-to-end |
-| Renderers | Software (default) **and** OpenGL, selectable in the launcher |
+| Renderers | OpenGL (default) **and** Software, selectable in the launcher |
 | Widescreen 16:9 | Experimental opt-in; true wider 2D field of view (4:3 remains default) |
 
 See `ISSUES.md` for notes and the remaining follow-ups.
@@ -57,8 +56,8 @@ See `ISSUES.md` for notes and the remaining follow-ups.
 
 These are the framework features that are already working in this build:
 
-- **Two renderers.** A CPU software rasterizer (this release's default) and a
-  GPU-authoritative OpenGL backend, both selectable in the launcher.
+- **Two renderers.** A GPU-authoritative OpenGL backend (this release's default)
+  and a CPU software rasterizer, both selectable in the launcher.
 - **Opt-in true widescreen.** The experimental 16:9 mode widens X4's background
   tile window plus actor activation, despawn, and draw-cull bounds; authentic
   4:3 remains the default. Player health/weapon HUD pieces anchor to the true

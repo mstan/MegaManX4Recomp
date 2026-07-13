@@ -56,6 +56,10 @@ aspect_ratio = "4:3"
 # opening movies).
 auto_skip_fmv = false
 
+# Renderer default: OpenGL (hardware) — full-rate presentation on the current
+# framework. The launcher's Renderer setting still offers Software.
+renderer = "opengl"
+
 # Widescreen is offered as an experimental opt-in and still defaults to 4:3.
 # full_2d enables native-wide presentation; the hooks below widen the scene.
 # The game remains native 4:3 unless the player selects the launcher toggle.

@@ -1,6 +1,6 @@
 # MegaManX4Recomp — Issues
 
-Current state (v0.0.1-alpha): the game boots and plays — intro cinematics
+Current state (v0.0.2-alpha): the game boots and plays — intro cinematics
 decode, the title screen and menus respond, attract demos run, and a game can
 be started — with working (digital) controller input and no known crashes on
 the covered path. It has not been verified deep into stages or to the end.

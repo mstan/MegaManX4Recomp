@@ -8,7 +8,17 @@
 # psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
 # TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
 branch=master
-sha=2ba81d5d7bbe51bc36e153496ae233a4e0e0986a
+sha=dde268dc0fb9daf8fe6529f4aebfe80995350334
+# 2026-07-13 UPDATE (v0.0.2) — repinned to master dde268d: a large batch of
+#   framework engine improvements accumulated since 2ba81d5 (full-rate OpenGL
+#   presentation, audio reserve/transient hardening, byte-verified static+overlay
+#   dispatch, the widescreen framework work — 2D-scene pillarbox, present ring,
+#   curved-backdrop scoping — and the analog-stick/D-pad decouple fix, inert for
+#   digital-only X4). This release also UN-HIDES X4's own widescreen: the opt-in
+#   true-16:9 work merged after v0.0.1 (game.toml [widescreen] offer=true,
+#   bg2d/cull/HUD-arena hooks) is now shipped as an EXPERIMENTAL launcher toggle
+#   (default 4:3). BIOS + game C regenerated against this pin. Verified by
+#   playtest before release.
 # 2026-07-10 UPDATE — repinned to master 2ba81d5 (merge of
 #   feat/audio-mmx4-attract): MMX4 attract-demo audio fix, two framework
 #   defects, user-ear-validated on the ice-stage demo. (1) cdrom read stream
