@@ -74,24 +74,18 @@ if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
     Copy-Item (Join-Path $Root "RELEASE_NOTES.md") $Stage
 }
 
-# Launcher assets (RML + fonts + images). The PSX_LAUNCHER build stages these
-# next to the exe via a cmake POST_BUILD copy of the framework's launcher assets,
-# then this repo's launcher_art/ is copied on top (X4 disc art). They live flat
-# under $BuildPath (launcher.rml, fonts/, img/). A release without them shows a
-# blank/broken launcher. Assert + copy.
-$LauncherRml = Join-Path $BuildPath "launcher.rml"
-if (-not (Test-Path $LauncherRml)) {
-    throw "Launcher assets missing at $BuildPath (no launcher.rml) -- was the build configured with -DPSX_LAUNCHER=ON?"
+# Launcher assets: this build ships the shared recomp-ui Dear ImGui launcher
+# (RECOMP_LAUNCHER; see main.cpp + recomp-ui/recomp_ui.cmake), which loads from
+# <exe>/assets/ (fonts + img TGAs, including this repo's boxart baked in by
+# recomp_target_launcher_ui's POST_BUILD) -- NOT the legacy RmlUi launcher.rml.
+$AssetsSrc = Join-Path $BuildPath "assets"
+if (-not (Test-Path (Join-Path $AssetsSrc "img"))) {
+    throw "recomp-ui launcher assets missing at $AssetsSrc -- was the recomp-ui launcher built (recomp-ui junction present)?"
 }
-Copy-Item $LauncherRml $Stage
-foreach ($dir in @("fonts","img")) {
-    $src = Join-Path $BuildPath $dir
-    if (-not (Test-Path $src)) { throw "Launcher asset dir missing: $src" }
-    Copy-Item -Recurse -Force $src (Join-Path $Stage $dir)
-}
-$fontCount = (Get-ChildItem (Join-Path $Stage "fonts") -Filter *.ttf -ErrorAction SilentlyContinue).Count
-$imgCount  = (Get-ChildItem (Join-Path $Stage "img") -Filter *.png -ErrorAction SilentlyContinue).Count
-Write-Host "Bundled launcher assets: launcher.rml + $fontCount font(s) + $imgCount image(s)"
+Copy-Item -Recurse -Force $AssetsSrc (Join-Path $Stage "assets")
+$fontCount = (Get-ChildItem (Join-Path $Stage "assets/fonts") -Filter *.ttf -ErrorAction SilentlyContinue).Count
+$imgCount  = (Get-ChildItem (Join-Path $Stage "assets/img")   -Filter *.tga -ErrorAction SilentlyContinue).Count
+Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount image(s)"
 
 # Player-facing game.toml: same effective runtime settings as the dev config,
 # minus dev-only sections ([recompiler] inputs beyond the required block, the
