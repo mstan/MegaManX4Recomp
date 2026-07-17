@@ -19,11 +19,6 @@
 /isos/
 /saves/
 
-# Shared-tool junction (lives in the parent psxrecomp tree, not vendored here).
-# Both forms: trailing-slash ignores the dir, no-slash ignores the junction entry.
-/psxrecomp-v4/
-/psxrecomp-v4
-
 # Disc / image / memcard formats
 *.bin
 *.cue

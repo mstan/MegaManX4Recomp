@@ -34,9 +34,11 @@ This project inherits, in order:
   per-game `game.toml` config — never in `generated/*.c`. A fix that only this
   game needs is a smell; prefer a class fix that the next title inherits.
 - After every run, resolve all dispatch misses before any other debugging.
-- The framework version this project builds against is pinned in
-  `psxrecomp-v4.pin`. This repo builds against the shared `master` checkout
-  (junction `psxrecomp-v4` → `F:/Projects/psxrecomp/psxrecomp`), same as
-  TombaRecomp / MMX5 / MMX6.
+- The framework version this project builds against is recorded as the
+  `psxrecomp-v4` git submodule pointer (see `.gitmodules`); the former
+  `psxrecomp-v4.pin` file was retired in favor of the submodule (its changelog
+  is preserved in `docs/framework_pin_history.md`). Locally `psxrecomp-v4` is a
+  directory junction → `F:/Projects/psxrecomp/psxrecomp` (the shared `master`
+  checkout), same as TombaRecomp / MMX5 / MMX6.
 - The source disc is the Redump USA dump — hashes recorded in `DISC.md`; verify
   a future dump is byte-identical before blaming a regression.

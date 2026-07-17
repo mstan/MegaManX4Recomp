@@ -1,14 +1,19 @@
-# Pinned commit of github.com/mstan/psxrecomp (the shared framework) used to
-# build this repo. Bumping this is a deliberate, reviewable change — psxrecomp
-# is a separate repo evolving on its own cadence. Update via:
-#   git -C ../psxrecomp rev-parse master > /tmp/sha && \
-#     sed -i "s|^sha=.*|sha=$(cat /tmp/sha)|" psxrecomp-v4.pin
-#
-# MegaManX4Recomp builds against the shared master checkout (junction
-# psxrecomp-v4 -> F:/Projects/psxrecomp/psxrecomp), same pattern as
-# TombaRecomp / MegaManX5Recomp / MegaManX6Recomp.
-branch=master
-sha=dde268dc0fb9daf8fe6529f4aebfe80995350334
+# Framework pin history (historical)
+
+The `psxrecomp` framework used to be pinned via this hand-maintained
+`psxrecomp-v4.pin` file. That mechanism has been **replaced by a real git
+submodule**: the framework commit this repo builds against is now recorded as
+the `psxrecomp-v4` submodule pointer (see `.gitmodules`). Bump it the normal
+way:
+
+    git -C psxrecomp-v4 fetch && git -C psxrecomp-v4 checkout <new-sha>
+    git add psxrecomp-v4 && git commit -m "bump psxrecomp-v4 to <new-sha>"
+
+The notes below are kept only as a historical changelog of which framework
+build each MegaManX4Recomp release was cut against.
+
+---
+
 # 2026-07-13 UPDATE (v0.0.2) — repinned to master dde268d: a large batch of
 #   framework engine improvements accumulated since 2ba81d5 (full-rate OpenGL
 #   presentation, audio reserve/transient hardening, byte-verified static+overlay
