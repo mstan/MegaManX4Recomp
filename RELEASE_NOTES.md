@@ -82,3 +82,20 @@ the recompiled PS1 BIOS.
   launches.
 - The overlay cache grows as you play; please keep `overlay_captures.json`
   private — it contains game code read from your disc (see README).
+
+# Mega Man X4 Recompiled — v0.0.3-alpha
+
+This release replaces the old RmlUi launcher with the shared Dear ImGui
+`recomp-ui` launcher. BIOS/disc selection, settings, controls, memory cards,
+and the Launch button now use the DPI-independent shared layout, addressing
+the inaccessible/broken launcher reported in issue #3.
+
+## Launcher and packaging
+
+- Uses the current shared `recomp-ui` PSX profile and game-specific launcher
+  art.
+- Bundles the matching fonts and assets beside the executable.
+- Preserves the existing renderer, widescreen, controller, and runtime choices
+  while removing the fixed old launcher layout.
+
+All existing alpha caveats and game-compatibility notes above still apply.

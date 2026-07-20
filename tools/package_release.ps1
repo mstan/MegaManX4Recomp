@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "v0.0.2-alpha",
+    [string]$Version = "v0.0.3-alpha",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
