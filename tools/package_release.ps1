@@ -53,7 +53,7 @@ Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_
 & (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
 if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
 
-Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSX_LAUNCHER=ON -DPSXRECOMP_ROOT="$FrameworkRoot" } "cmake configure"
+Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSXRECOMP_ROOT="$FrameworkRoot" } "cmake configure"
 Invoke-Native { cmake --build $BuildPath -j $env:NUMBER_OF_PROCESSORS } "cmake build"
 
 if (Test-Path $StageRoot) {
@@ -77,7 +77,7 @@ if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
 # Launcher assets: this build ships the shared recomp-ui Dear ImGui launcher
 # (RECOMP_LAUNCHER; see main.cpp + recomp-ui/recomp_ui.cmake), which loads from
 # <exe>/assets/ (fonts + img TGAs, including this repo's boxart baked in by
-# recomp_target_launcher_ui's POST_BUILD) -- NOT the legacy RmlUi launcher.rml.
+# recomp_target_launcher_ui's POST_BUILD).
 $AssetsSrc = Join-Path $BuildPath "assets"
 if (-not (Test-Path (Join-Path $AssetsSrc "img"))) {
     throw "recomp-ui launcher assets missing at $AssetsSrc -- was the recomp-ui launcher built (recomp-ui junction present)?"

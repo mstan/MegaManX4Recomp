@@ -6,7 +6,7 @@
 # Usage:  powershell -File tools\run_mmx4.ps1 [-BuildDir build-master] [-NoLauncher]
 param(
     [string]$BuildDir = "build-master",
-    [switch]$NoLauncher   # boot straight into the game (skip the RmlUi launcher) for scripted/debug runs
+    [switch]$NoLauncher   # boot straight into the game for scripted/debug runs
 )
 $ErrorActionPreference = "Stop"
 $root = "F:\Projects\psxrecomp\MegaManX4Recomp"
