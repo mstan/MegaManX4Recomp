@@ -85,7 +85,7 @@ the recompiled PS1 BIOS.
 
 # Mega Man X4 Recompiled — v0.0.3-alpha
 
-This release replaces the old RmlUi launcher with the shared Dear ImGui
+This release replaces the old in-tree launcher with the shared Dear ImGui
 `recomp-ui` launcher. BIOS/disc selection, settings, controls, memory cards,
 and the Launch button now use the DPI-independent shared layout, addressing
 the inaccessible/broken launcher reported in issue #3.
