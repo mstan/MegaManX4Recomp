@@ -51,9 +51,8 @@ overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-
 buffer_ms = 60
 
 [video]
-# Native presentation. X4 defaults to authentic 4:3. The launcher's experimental
-# widescreen toggle opts into the true 16:9 field of view configured below by
-# writing "16:9" to settings.toml; it remains off by default.
+# Native presentation. X4 defaults to authentic 4:3. Its default-off Widescreen
+# mod opts into the true 16:9 field of view configured below.
 aspect_ratio = "4:3"
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -61,18 +60,21 @@ aspect_ratio = "4:3"
 # X4 MDEC player loop is understood (X4 ships STR/CAPCOM20.STR + per-stage OP/X/Z
 # opening movies).
 auto_skip_fmv = false
+# X4 owns presentation-only interpolation through its built-in Mods catalog.
+# Hide the duplicate generic Settings control and ignore stale saved values.
+offer_frame_interpolation = false
 
 # Renderer default: OpenGL (hardware) — full-rate presentation on the current
 # framework. The launcher's Renderer setting still offers Software.
 renderer = "opengl"
 
-# Widescreen is offered as an experimental opt-in and still defaults to 4:3.
-# full_2d enables native-wide presentation; the hooks below widen the scene.
-# The game remains native 4:3 unless the player selects the launcher toggle.
+# Widescreen is a default-off built-in mod and still defaults to 4:3. full_2d
+# enables native-wide presentation; the hooks below widen the scene. The game
+# remains native 4:3 unless the player enables the mod.
 # The hook path is the same pure-2D native-wide mechanism proven by MMX6.
 # All runtime helpers are identity at 4:3; codegen hooks require regeneration.
 [widescreen]
-offer   = true
+offer   = false
 full_2d = true
 
 # X4 builds the player health/weapon HUD and the right-side enemy/boss health

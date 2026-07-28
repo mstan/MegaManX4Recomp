@@ -92,6 +92,22 @@ $fontCount = (Get-ChildItem (Join-Path $Stage "assets/fonts") -Filter *.ttf -Err
 $imgCount  = (Get-ChildItem (Join-Path $Stage "assets/img")   -Filter *.tga -ErrorAction SilentlyContinue).Count
 Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount image(s)"
 
+# Built-in mod catalog staged by the runtime target's POST_BUILD command.
+$ModsSrc = Join-Path $BuildPath "mods"
+$WidescreenManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.widescreen/1.0.0/manifest.toml"
+$InterpolationManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.frame-interpolation/1.0.0/manifest.toml"
+foreach ($RequiredManifest in @($WidescreenManifest, $InterpolationManifest)) {
+    if (-not (Test-Path $RequiredManifest)) {
+        throw "Built-in MMX4 mod catalog missing from runtime output: $RequiredManifest"
+    }
+}
+$ModsDst = Join-Path $Stage "mods"
+Copy-Item -Recurse -Force $ModsSrc $ModsDst
+# Never ship a developer's local selections from a reused build directory.
+$StagedModState = Join-Path $ModsDst "state.toml"
+if (Test-Path $StagedModState) { Remove-Item -Force $StagedModState }
+Write-Host "Bundled built-in MMX4 mod catalog from $ModsSrc"
+
 # Player-facing game.toml: same effective runtime settings as the dev config,
 # minus dev-only sections ([recompiler] inputs beyond the required block, the
 # gcc overlay-autocompile command, and the [audit] block). overlay_backend is
@@ -168,8 +184,11 @@ renderer = "opengl"
 # Off by default so you see the intro. When on, a video is skipped the instant
 # it starts. Toggleable in the launcher (Settings -> "Skip FMVs").
 auto_skip_fmv = false
-# aspect_ratio: "4:3" (native). X4 defaults to authentic 4:3; the launcher's
-# EXPERIMENTAL Widescreen toggle opts into true 16:9 (see [widescreen] below).
+# X4 owns presentation-only interpolation through its built-in mod. Hide the
+# duplicate generic Settings row and ignore stale values from older builds.
+offer_frame_interpolation = false
+# aspect_ratio: "4:3" (native). Enable the default-off Widescreen mod to opt
+# into true 16:9 (see [widescreen] below).
 aspect_ratio = "4:3"
 
 # ---- Controller ---------------------------------------------------------
@@ -186,13 +205,12 @@ allow_hybrid = false
 lock_mode = true
 
 # ---- Widescreen (EXPERIMENTAL) ------------------------------------------
-# X4 offers an experimental opt-in true-16:9 mode via the launcher's Widescreen
-# toggle; it defaults to 4:3. The exact validated hook config is spliced from
-# the dev game.toml below so the shipped config can never drift from what was
-# built and tested. All hooks are identity at 4:3.
+# X4 offers an experimental default-off 16:9 mod. The exact validated hook
+# config is spliced from the dev game.toml below so the shipped config can never
+# drift from what was built and tested. All hooks are identity at 4:3.
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
-# Splice the real, validated [widescreen]* sections (offer=true + bg2d/cull/HUD
+# Splice the real, validated [widescreen]* sections (offer=false + bg2d/cull/HUD
 # hooks) straight from the dev game.toml -- single source of truth, no drift.
 $realToml = Get-Content (Join-Path $Root "game.toml") -Raw
 $wsStart  = $realToml.IndexOf("[widescreen]")
@@ -200,8 +218,8 @@ $wsEnd    = $realToml.IndexOf("[controller]", $wsStart)
 if ($wsStart -lt 0 -or $wsEnd -lt 0) { throw "Could not locate [widescreen]..[controller] in game.toml to splice" }
 $wsBlock  = $realToml.Substring($wsStart, $wsEnd - $wsStart).TrimEnd()
 Add-Content -Encoding ASCII (Join-Path $Stage "game.toml") $wsBlock
-if (-not (Select-String -Path (Join-Path $Stage "game.toml") -Pattern '^offer\s*=\s*true' -Quiet)) {
-    throw "Shipped game.toml is missing 'offer = true' after widescreen splice"
+if (-not (Select-String -Path (Join-Path $Stage "game.toml") -Pattern '^offer\s*=\s*false' -Quiet)) {
+    throw "Shipped game.toml is missing 'offer = false' after widescreen splice"
 }
 
 # Prebuilt overlay cache: native code for the game areas contributed so far.

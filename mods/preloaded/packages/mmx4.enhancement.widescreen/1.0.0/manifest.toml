@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx4.enhancement.widescreen"
+version = "1.0.0"
+name = "Mega Man X4 Widescreen"
+author = "mstan"
+description = "Renders Mega Man X4 with a wider 16:9 field of view using its game-specific background, culling, and HUD hooks."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "widescreen"
+name = "Widescreen (Experimental)"
+description = "Enable Mega Man X4's experimental game-specific 16:9 rendering enhancement."
+group = "Display"
+default_enabled = false
+
+[[plugin]]
+feature = "widescreen"
+id = "mmx4.widescreen"

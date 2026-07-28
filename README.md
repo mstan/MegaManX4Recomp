@@ -57,7 +57,8 @@ misbehave silently (see ISSUES.md #1).
 | Stage gameplay | Starts; not yet verified broadly (see ISSUES.md #1) |
 | Memory-card save / load | Card probing works; save/load not yet verified end-to-end |
 | Renderers | OpenGL (default) **and** Software, selectable in the launcher |
-| Widescreen 16:9 | Experimental opt-in; true wider 2D field of view (4:3 remains default) |
+| Widescreen 16:9 | Experimental default-off mod; true wider 2D field of view |
+| Interpolated frames | Default-off mod; presentation only, game timing remains stock |
 
 See `ISSUES.md` for notes and the remaining follow-ups.
 
@@ -67,13 +68,17 @@ These are the framework features that are already working in this build:
 
 - **Two renderers.** A GPU-authoritative OpenGL backend (this release's default)
   and a CPU software rasterizer, both selectable in the launcher.
-- **Opt-in true widescreen.** The experimental 16:9 mode widens X4's background
-  tile window plus actor activation, despawn, and draw-cull bounds; authentic
-  4:3 remains the default. Player health/weapon HUD pieces anchor to the true
-  wide left edge, while enemy/boss health pieces anchor to the wide right edge.
+- **Opt-in true widescreen mod.** The experimental 16:9 mode in the Mods panel
+  widens X4's background tile window plus actor activation, despawn, and
+  draw-cull bounds; authentic 4:3 remains the default. Player health/weapon HUD
+  pieces anchor to the true wide left edge, while enemy/boss health pieces
+  anchor to the wide right edge.
   The generated dispatcher uses optimizer-independent binary lookup, avoiding
   the severe `-O0` slowdown caused by X4's nearly 60,000 dispatch entries.
   Release builds additionally compile out developer tracing and telemetry.
+- **Interpolated-frames mod.** Select display-refresh or a fixed presentation
+  rate from the Mods panel. It blends completed frames without changing guest
+  VBlank, game logic, timers, or audio speed.
 - **Fast loading (turbo loads).** While a load is in progress the whole machine
   fast-forwards at your PC's full speed, then drops back to normal the instant
   it finishes — so disc loads complete far faster while all of the game's
