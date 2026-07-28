@@ -44,6 +44,12 @@ overlay_backend = "auto"
 # can never drift from the loader's canonical <exe>/cache + <exe>/overlay_captures.json.
 overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
 
+[audio]
+# X4's normal production cadence does not need the framework's conservative
+# 180 ms reserve. Keep 60 ms buffered to reduce audible input-to-sound delay;
+# raise this toward 180 if a future path exposes crackle during long stalls.
+buffer_ms = 60
+
 [video]
 # Native presentation. X4 defaults to authentic 4:3. The launcher's experimental
 # widescreen toggle opts into the true 16:9 field of view configured below by

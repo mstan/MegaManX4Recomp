@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "v0.0.3-alpha",
+    [string]$Version = "v0.0.4-audio-test.1",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
@@ -68,6 +68,11 @@ $DevExe = Join-Path $BuildPath "MegaManX4Recomp.exe"
 if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "mmx4-runtime.exe" }
 if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe" }
 Copy-Item $DevExe (Join-Path $Stage "MegaManX4Recomp.exe")
+$BiosSrc = Join-Path $BuildPath "bios"
+if (-not (Test-Path (Join-Path $BiosSrc "openbios.bin"))) {
+    throw "Bundled OpenBIOS image missing at $BiosSrc"
+}
+Copy-Item -Recurse -Force $BiosSrc (Join-Path $Stage "bios")
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
 if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
@@ -139,6 +144,11 @@ overlay_cache = true
 # into the game; everything else still runs the real recompiled BIOS. Set false
 # to boot the authentic full BIOS sequence instead (unvalidated for X4).
 bios_hle = true
+
+# Host audio cushion. X4 opts into a shorter buffer than the framework's
+# conservative cross-game default to reduce audible input-to-sound delay.
+[audio]
+buffer_ms = 60
 
 # ---- Visual quality -----------------------------------------------------
 [video]
@@ -339,17 +349,18 @@ been verified deep into stages, and an unvisited area may halt the program
 with an "unknown dispatch" report (that is by design - please report where
 you were; see ISSUES.md #1).
 
-This package does not include the Mega Man X4 disc, the PlayStation BIOS, save
-data, or any game assets - you supply those from your own collection, and
-MegaManX4Recomp asks for them one at a time (each dialog says which one it
-wants). The executable and the cache folder contain statically recompiled
+This package does not include the Mega Man X4 disc, retail PlayStation BIOS,
+save data, or any game assets. It includes the redistributable MIT-licensed
+OpenBIOS, so you only need to select your own game disc. You may optionally
+select your own legally dumped retail BIOS instead. The executable and the
+cache folder contain statically recompiled
 (machine-translated) builds of the game's code, the same distribution model
 used by other static recompilation projects such as N64: Recompiled.
 
 First launch:
 1. Run MegaManX4Recomp.exe. A launcher window opens.
-2. In the launcher, set your PlayStation BIOS: select your legally obtained
-   SCPH1001.BIN (a 512 KB file dumped from your own console).
+2. The included OpenBIOS is selected automatically. You may instead select a
+   legally obtained SCPH1001.BIN dumped from your own console.
 3. Set the game disc: select your legally obtained Mega Man X4 (USA,
    SLUS-00561) disc image.
 4. Adjust any options you like (renderer, supersampling, screen look,

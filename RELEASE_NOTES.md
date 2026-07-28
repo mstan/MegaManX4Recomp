@@ -99,3 +99,13 @@ the inaccessible/broken launcher reported in issue #3.
   while removing the fixed old launcher layout.
 
 All existing alpha caveats and game-compatibility notes above still apply.
+
+# Mega Man X4 Recompiled — v0.0.4 audio latency test 1
+
+This prerelease reduces X4's host audio cushion from 180 ms to 60 ms. The
+smaller cushion should make sound effects respond much sooner. It is an X4-only
+choice: the framework retains the safer 180 ms default for games that need it
+to cover long audio-production stalls.
+
+Please report whether the delay is improved and whether you hear any new
+crackle, especially during stage transitions, cutscenes, or loading.
