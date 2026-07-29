@@ -161,10 +161,11 @@ overlay_cache = true
 # to boot the authentic full BIOS sequence instead (unvalidated for X4).
 bios_hle = true
 
-# Host audio cushion. X4 opts into a shorter buffer than the framework's
-# conservative cross-game default to reduce audible input-to-sound delay.
+# Raw host audio-cushion debug control. X4 opts into exposing this field in the
+# launcher so affected users can test arbitrary values on their own machine.
 [audio]
-buffer_ms = 60
+buffer_ms = 30
+offer_buffer_ms = true
 
 # ---- Visual quality -----------------------------------------------------
 [video]

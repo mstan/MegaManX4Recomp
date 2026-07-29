@@ -45,10 +45,11 @@ overlay_backend = "auto"
 overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
 
 [audio]
-# X4's normal production cadence does not need the framework's conservative
-# 180 ms reserve. Keep 60 ms buffered to reduce audible input-to-sound delay;
-# raise this toward 180 if a future path exposes crackle during long stalls.
-buffer_ms = 60
+# X4 runs clean with a lower cushion and benefits noticeably from the reduced
+# controller-to-sound delay. Expose the raw debug value so affected users can
+# test their own audio device; games must opt into this launcher control.
+buffer_ms = 30
+offer_buffer_ms = true
 
 [video]
 # Native presentation. X4 defaults to authentic 4:3. Its default-off Widescreen

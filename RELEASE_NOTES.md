@@ -109,3 +109,14 @@ to cover long audio-production stalls.
 
 Please report whether the delay is improved and whether you hear any new
 crackle, especially during stage transitions, cutscenes, or loading.
+
+# Mega Man X4 Recompiled — v0.0.4 audio latency test 2
+
+This prerelease defaults X4's host audio cushion to 30 ms and adds an opt-in
+raw **Audio latency** field to recomp-ui. Enter any millisecond value in
+Settings, launch the game, and restart the launcher to try another value.
+The framework does not clamp or quantize this debug value.
+
+Other games do not show the field unless their own `game.toml` explicitly opts
+in. Please report the lowest value that remains clean on your audio device and
+whether particular stages, cutscenes, or loads introduce crackling or dropouts.
