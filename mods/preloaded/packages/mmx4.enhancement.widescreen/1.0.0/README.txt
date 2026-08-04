@@ -1,4 +1,10 @@
-Widescreen 16:9 (Experimental)
+Mega Man X4 Widescreen
 
-Enables MMX4's game-specific native-wide background, culling, and HUD hooks.
-The current implementation is validated for 16:9; ultrawide is not offered.
+This default-disabled mod enables X4's game-specific 16:9 rendering path. Its
+background, actor-culling, and HUD hooks remain inert at native 4:3 and are
+activated through the stable mmx4.widescreen plugin id. The implementation is
+validated for 16:9; ultrawide is not offered.
+
+Credit
+
+mstan - widescreen implementation and mod integration

@@ -40,18 +40,16 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
 
-# Ship MMX4's trusted, game-owned enhancements and testing cheat beside the
-# executable. Every feature remains disabled until explicitly selected on the
-# launcher's Mods page.
+# Preload X4's game-owned, default-off mod catalog beside the runtime. Package
+# manifests contain metadata and guarded writes only; trusted plugin
+# implementations are compiled above.
 set(MMX4_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 if(EXISTS "${MMX4_PRELOADED_MODS}/packages")
     add_custom_command(TARGET psx-runtime POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E remove_directory
-            "$<TARGET_FILE_DIR:psx-runtime>/mods"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${MMX4_PRELOADED_MODS}"
             "$<TARGET_FILE_DIR:psx-runtime>/mods"
-        COMMENT "Preloading the Mega Man X4 built-in mod catalog")
+        COMMENT "Preloading the Mega Man X4 mod catalog")
 endif()
 
 if(BUILD_TESTING)
@@ -84,7 +82,7 @@ if(PSX_BUILD_COSIM)
         WINDOW_TITLE "MMX4-cosim"
         DEFAULT_BIOS_PATH "${PSXRECOMP_V4_ROOT}/bios/SCPH1001.BIN"
         DEFAULT_GAME_CONFIG_PATH "game.toml"
-        EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS}
+        EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
         COSIM
     )
 endif()

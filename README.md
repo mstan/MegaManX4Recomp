@@ -57,8 +57,9 @@ misbehave silently (see ISSUES.md #1).
 | Stage gameplay | Starts; not yet verified broadly (see ISSUES.md #1) |
 | Memory-card save / load | Card probing works; save/load not yet verified end-to-end |
 | Renderers | OpenGL (default) **and** Software, selectable in the launcher |
-| Built-in mods | Widescreen, frame interpolation, and one-hit kills |
-| Widescreen 16:9 | Experimental opt-in mod; true wider 2D field of view (4:3 remains default) |
+| Built-in mods | Widescreen, interpolated frames, and one-hit kills; all default off |
+| Widescreen 16:9 | Experimental default-off mod; true wider 2D field of view |
+| Interpolated frames | Default-off mod; presentation only, game timing remains stock |
 
 See `ISSUES.md` for notes and the remaining follow-ups.
 
@@ -78,6 +79,9 @@ These are the framework features that are already working in this build:
   The generated dispatcher uses optimizer-independent binary lookup, avoiding
   the severe `-O0` slowdown caused by X4's nearly 60,000 dispatch entries.
   Release builds additionally compile out developer tracing and telemetry.
+- **Interpolated-frames mod.** Select display-refresh or a fixed presentation
+  rate from the Mods panel. It blends completed frames without changing guest
+  VBlank, game logic, timers, or audio speed.
 - **Fast loading (turbo loads).** While a load is in progress the whole machine
   fast-forwards at your PC's full speed, then drops back to normal the instant
   it finishes — so disc loads complete far faster while all of the game's

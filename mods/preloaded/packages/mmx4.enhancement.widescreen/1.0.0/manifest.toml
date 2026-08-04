@@ -13,11 +13,11 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 
 [[feature]]
 id = "widescreen"
-name = "Widescreen 16:9 (Experimental)"
-description = "Enable MMX4's native-wide 16:9 background, actor reveal, and HUD presentation."
+name = "Widescreen (Experimental)"
+description = "Enable MMX4's validated native-wide 16:9 background, actor reveal, and HUD presentation."
 group = "Display"
 default_enabled = false
 
 [[plugin]]
 feature = "widescreen"
-id = "mmx4.widescreen.16-9"
+id = "mmx4.widescreen"

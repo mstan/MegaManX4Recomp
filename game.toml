@@ -44,8 +44,14 @@ overlay_backend = "auto"
 # can never drift from the loader's canonical <exe>/cache + <exe>/overlay_captures.json.
 overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
 
+[audio]
+# X4's normal production cadence does not need the framework's conservative
+# 180 ms reserve. Keep 60 ms buffered to reduce audible input-to-sound delay;
+# raise this toward 180 if a future path exposes crackle during long stalls.
+buffer_ms = 60
+
 [video]
-# Native presentation. X4 defaults to authentic 4:3. Its built-in Widescreen
+# Native presentation. X4 defaults to authentic 4:3. Its default-off Widescreen
 # mod opts into the true 16:9 field of view configured below.
 aspect_ratio = "4:3"
 
@@ -54,15 +60,17 @@ aspect_ratio = "4:3"
 # X4 MDEC player loop is understood (X4 ships STR/CAPCOM20.STR + per-stage OP/X/Z
 # opening movies).
 auto_skip_fmv = false
+# X4 owns presentation-only interpolation through its built-in Mods catalog.
+# Hide the duplicate generic Settings control and ignore stale saved values.
+offer_frame_interpolation = false
 
 # Renderer default: OpenGL (hardware) — full-rate presentation on the current
 # framework. The launcher's Renderer setting still offers Software.
 renderer = "opengl"
-offer_frame_interpolation = false
 
-# Widescreen is a built-in experimental mod and still defaults to 4:3.
-# full_2d enables native-wide presentation; the hooks below widen the scene.
-# The game remains native 4:3 unless the player enables the mod.
+# Widescreen is a default-off built-in mod and still defaults to 4:3. full_2d
+# enables native-wide presentation; the hooks below widen the scene. The game
+# remains native 4:3 unless the player enables the mod.
 # The hook path is the same pure-2D native-wide mechanism proven by MMX6.
 # All runtime helpers are identity at 4:3; codegen hooks require regeneration.
 [widescreen]

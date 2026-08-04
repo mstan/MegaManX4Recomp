@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "v0.0.3-alpha",
+    [string]$Version = "v0.0.4-audio-test.1",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
@@ -68,18 +68,16 @@ $DevExe = Join-Path $BuildPath "MegaManX4Recomp.exe"
 if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "mmx4-runtime.exe" }
 if (-not (Test-Path $DevExe)) { $DevExe = Join-Path $BuildPath "psx-runtime.exe" }
 Copy-Item $DevExe (Join-Path $Stage "MegaManX4Recomp.exe")
+$BiosSrc = Join-Path $BuildPath "bios"
+if (-not (Test-Path (Join-Path $BiosSrc "openbios.bin"))) {
+    throw "Bundled OpenBIOS image missing at $BiosSrc"
+}
+Copy-Item -Recurse -Force $BiosSrc (Join-Path $Stage "bios")
 Copy-Item (Join-Path $Root "README.md") $Stage
 Copy-Item (Join-Path $Root "LICENSE") $Stage
 if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
     Copy-Item (Join-Path $Root "RELEASE_NOTES.md") $Stage
 }
-
-# Built-in mods: metadata, trusted display plugins, and guarded operations.
-$ModsSrc = Join-Path $Root "mods\preloaded"
-if (-not (Test-Path (Join-Path $ModsSrc "packages"))) {
-    throw "Built-in mod catalog missing at $ModsSrc"
-}
-Copy-Item -Recurse -Force $ModsSrc (Join-Path $Stage "mods")
 
 # Launcher assets: this build ships the shared recomp-ui Dear ImGui launcher
 # (RECOMP_LAUNCHER; see main.cpp + recomp-ui/recomp_ui.cmake), which loads from
@@ -93,6 +91,23 @@ Copy-Item -Recurse -Force $AssetsSrc (Join-Path $Stage "assets")
 $fontCount = (Get-ChildItem (Join-Path $Stage "assets/fonts") -Filter *.ttf -ErrorAction SilentlyContinue).Count
 $imgCount  = (Get-ChildItem (Join-Path $Stage "assets/img")   -Filter *.tga -ErrorAction SilentlyContinue).Count
 Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount image(s)"
+
+# Built-in mod catalog staged by the runtime target's POST_BUILD command.
+$ModsSrc = Join-Path $BuildPath "mods"
+$WidescreenManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.widescreen/1.0.0/manifest.toml"
+$InterpolationManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.frame-interpolation/1.0.0/manifest.toml"
+$OneHitKillsManifest = Join-Path $ModsSrc "packages/mmx4.cheat.one-hit-kills/1.0.0/manifest.toml"
+foreach ($RequiredManifest in @($WidescreenManifest, $InterpolationManifest, $OneHitKillsManifest)) {
+    if (-not (Test-Path $RequiredManifest)) {
+        throw "Built-in MMX4 mod catalog missing from runtime output: $RequiredManifest"
+    }
+}
+$ModsDst = Join-Path $Stage "mods"
+Copy-Item -Recurse -Force $ModsSrc $ModsDst
+# Never ship a developer's local selections from a reused build directory.
+$StagedModState = Join-Path $ModsDst "state.toml"
+if (Test-Path $StagedModState) { Remove-Item -Force $StagedModState }
+Write-Host "Bundled built-in MMX4 mod catalog from $ModsSrc"
 
 # Player-facing game.toml: same effective runtime settings as the dev config,
 # minus dev-only sections ([recompiler] inputs beyond the required block, the
@@ -147,6 +162,11 @@ overlay_cache = true
 # to boot the authentic full BIOS sequence instead (unvalidated for X4).
 bios_hle = true
 
+# Host audio cushion. X4 opts into a shorter buffer than the framework's
+# conservative cross-game default to reduce audible input-to-sound delay.
+[audio]
+buffer_ms = 60
+
 # ---- Visual quality -----------------------------------------------------
 [video]
 # supersampling: render at this multiple of native resolution and downsample,
@@ -161,13 +181,15 @@ texture_filtering = "nearest"
 # presentation). "software" = CPU renderer, selectable in the launcher
 # (Settings -> Renderer) for anyone who prefers it.
 renderer = "opengl"
-offer_frame_interpolation = false
 # auto_skip_fmv: skip full-motion videos (the X vs. Zero opening cinematics).
 # Off by default so you see the intro. When on, a video is skipped the instant
 # it starts. Toggleable in the launcher (Settings -> "Skip FMVs").
 auto_skip_fmv = false
-# aspect_ratio: "4:3" (native). X4 defaults to authentic 4:3; its built-in
-# Widescreen mod opts into true 16:9 (see [widescreen] below).
+# X4 owns presentation-only interpolation through its built-in mod. Hide the
+# duplicate generic Settings row and ignore stale values from older builds.
+offer_frame_interpolation = false
+# aspect_ratio: "4:3" (native). Enable the default-off Widescreen mod to opt
+# into true 16:9 (see [widescreen] below).
 aspect_ratio = "4:3"
 
 # ---- Controller ---------------------------------------------------------
@@ -184,10 +206,9 @@ allow_hybrid = false
 lock_mode = true
 
 # ---- Widescreen (EXPERIMENTAL) ------------------------------------------
-# X4 offers an experimental opt-in true-16:9 mode via its built-in mod; it
-# defaults to 4:3. The exact validated hook config is spliced from
-# the dev game.toml below so the shipped config can never drift from what was
-# built and tested. All hooks are identity at 4:3.
+# X4 offers an experimental default-off 16:9 mod. The exact validated hook
+# config is spliced from the dev game.toml below so the shipped config can never
+# drift from what was built and tested. All hooks are identity at 4:3.
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
 # Splice the real, validated [widescreen]* sections (offer=false + bg2d/cull/HUD
@@ -347,17 +368,18 @@ been verified deep into stages, and an unvisited area may halt the program
 with an "unknown dispatch" report (that is by design - please report where
 you were; see ISSUES.md #1).
 
-This package does not include the Mega Man X4 disc, the PlayStation BIOS, save
-data, or any game assets - you supply those from your own collection, and
-MegaManX4Recomp asks for them one at a time (each dialog says which one it
-wants). The executable and the cache folder contain statically recompiled
+This package does not include the Mega Man X4 disc, retail PlayStation BIOS,
+save data, or any game assets. It includes the redistributable MIT-licensed
+OpenBIOS, so you only need to select your own game disc. You may optionally
+select your own legally dumped retail BIOS instead. The executable and the
+cache folder contain statically recompiled
 (machine-translated) builds of the game's code, the same distribution model
 used by other static recompilation projects such as N64: Recompiled.
 
 First launch:
 1. Run MegaManX4Recomp.exe. A launcher window opens.
-2. In the launcher, set your PlayStation BIOS: select your legally obtained
-   SCPH1001.BIN (a 512 KB file dumped from your own console).
+2. The included OpenBIOS is selected automatically. You may instead select a
+   legally obtained SCPH1001.BIN dumped from your own console.
 3. Set the game disc: select your legally obtained Mega Man X4 (USA,
    SLUS-00561) disc image.
 4. Adjust any options you like (renderer, supersampling, screen look,

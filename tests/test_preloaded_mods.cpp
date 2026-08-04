@@ -51,12 +51,8 @@ int main(int argc, char** argv) {
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
-             "mmx4.widescreen.16-9",
-             "mmx4.framerate.60",
-             "mmx4.framerate.120",
-             "mmx4.framerate.144",
-             "mmx4.framerate.165",
-             "mmx4.framerate.display"}) {
+             "mmx4.widescreen",
+             "mmx4.frame-interpolation"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -104,32 +100,28 @@ int main(int argc, char** argv) {
     const auto widescreen_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!widescreen_plan.ok || !widescreen_plan.writes.empty() ||
         widescreen_plan.plugins.size() != 1 ||
-        widescreen_plan.plugins.front().id != "mmx4.widescreen.16-9") {
+        widescreen_plan.plugins.front().id != "mmx4.widescreen") {
         return fail("widescreen plugin resolution was incorrect");
     }
 
     if (!manager.set_feature_enabled(
             "mmx4.enhancement.widescreen", "widescreen", false, &error) ||
         !manager.set_feature_enabled(
-            "mmx4.experimental.frame-interpolation",
+            "mmx4.enhancement.frame-interpolation",
             "frame-interpolation", true, &error)) {
         return fail(error);
     }
-    for (const auto& [choice, plugin] :
-         {std::pair{"60", "mmx4.framerate.60"},
-          std::pair{"120", "mmx4.framerate.120"},
-          std::pair{"144", "mmx4.framerate.144"},
-          std::pair{"165", "mmx4.framerate.165"},
-          std::pair{"display", "mmx4.framerate.display"}}) {
+    for (const char* choice :
+         {"display", "90", "120", "144", "165", "240"}) {
         if (!manager.set_feature_option(
-                "mmx4.experimental.frame-interpolation",
+                "mmx4.enhancement.frame-interpolation",
                 "frame-interpolation", "rate", choice, &error)) {
             return fail(error);
         }
         const auto frame_plan = manager.resolve(kGameId, "", kDiscSha256);
         if (!frame_plan.ok || !frame_plan.writes.empty() ||
             frame_plan.plugins.size() != 1 ||
-            frame_plan.plugins.front().id != plugin) {
+            frame_plan.plugins.front().id != "mmx4.frame-interpolation") {
             return fail(std::string("wrong frame-rate plugin for ") + choice);
         }
     }
@@ -137,6 +129,6 @@ int main(int argc, char** argv) {
     fs::remove_all(root, ec);
     std::cout << "Mega Man X4 preloaded mods: three disabled-by-default "
                  "features, one testing cheat, validated 16:9, and five "
-                 "presentation-rate choices\n";
+                 "fixed presentation rates plus display refresh\n";
     return 0;
 }
