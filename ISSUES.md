@@ -23,18 +23,26 @@ presumed stale. Tracked here until a reproduction exists.
 
 ---
 
-## #2 — Widescreen (true 2D wide field of view) — RESOLVED (experimental opt-in)
+## #2 — Widescreen background-ring corruption — RESOLVED (experimental opt-in)
 
-X4 now offers the launcher's experimental Widescreen toggle while retaining
-authentic 4:3 as the default. The port widens the three-layer background tile
-window and streamer, the shared actor activation/despawn funnels, and the
-screen-space draw cull. Sky Lagoon verification showed populated 16:9 margins,
-enemy sprites active beyond the native 320-pixel edge, safe packet occupancy,
-and zero dispatch misses. The player health/weapon and enemy/boss health HUD is
-source-filtered to its dedicated packet arena and re-anchored to the respective
-16:9 boundaries, without touching world sprites or the default 4:3 path. See
-`annotations/widescreen_bg2d_sites.md` for the reverse-engineered sites and
-runtime evidence.
+X4 offers an experimental Widescreen mod while retaining authentic 4:3 as the
+default. Its widened renderer previously exposed stale or incorrectly populated
+background-ring columns in multiple stages, visible as diagonal staircase
+tiles, repeated rectangular bands, and black voids after clean stage entry.
+
+The fix configures X4's actual layer records at `0x801419B0`, follows the native
+streamer's width-only map indexing, and disables MMX5/MMX6-style parent-layer
+scroll composition. The resulting full-window refill updates all 87 columns
+across the three layers and validates all 1,134 visible ring cells with zero
+mismatches. A clean-boot Jungle replay and manual end-to-end testing confirmed
+that the corruption is gone while authentic 4:3 remains unchanged. See
+`annotations/widescreen_bg2d_sites.md` for the reverse-engineered evidence.
+
+A clean-boot input route for this Jungle location is checked in at
+`tools/routes/mmx4_jungle_widescreen.json`; use
+`tools/replay_input_route.py` as documented in the README. It reaches the
+regression location with turbo loading enabled, avoiding the unreliable
+save-state path.
 
 ---
 

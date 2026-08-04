@@ -6,7 +6,7 @@ and X6, with the X5-style inline loop compare and 32-column tile ring.
 
 ## Renderer: `0x80026AA0`
 
-The renderer reads three layer records at `0x801319B0`, stride `0x54`, and emits
+The renderer reads three layer records at `0x801419B0`, stride `0x54`, and emits
 21 columns by 16 rows of 16x16 background tiles. Its live packet pointer is
 scratchpad `0x1F800108`; the shared per-frame tile counter is
 `0x1F80011C` and is capped at 1000.
@@ -79,6 +79,38 @@ non-background textured-sprite packets included X positions 320 through 338.
 At the same time the dispatch trace showed the stage calling the parameterized
 activation/despawn funnels `0x8002B1E8` (64-pixel caller margin) and `0x8002B318`
 (32-pixel caller margin) every frame. The run accumulated zero dispatch misses.
+
+### Shared-refill regression
+
+After updating the framework pin, an Ice Area save-state reproduced diagonal
+"staircase" background tiles. The shared full-window freshness refill was
+enabled but reported zero valid MMX4 columns because its unspecified layout
+fields fell back to MMX6 guest addresses. Loading the affected save-state
+restored the stale tile ring, and MMX4's native streamer gradually replaced
+the bad columns as play continued.
+
+Disabling the cloned refill prevented writes through the wrong layout, but a
+clean Web Spider stage entry still reproduced stale rectangular bands:
+MMX4's incremental streamer alone cannot keep the full 29-column window fresh.
+
+An attempted X4-specific refill used three candidate `0x54`-byte layer records
+at the incorrect address `0x801319B0`, three candidate 32x32 halfword rings at
+`0x801441C8`, map width
+at `0x80172224`, and per-layer stride at `0x8013BD48`. The live Jungle values
+were 28 and 252, suggesting a 9-row map. That interpretation was disproven:
+boss select lost its background, and clean Jungle entries produced displaced
+tiles and large black voids even after gating out the menu's 2x2 map.
+
+Generated code inspection corrected the layer-record address to `0x801419B0`
+(`0x80026AD8: lui at,0x8014`; loads at `+0x19BA/+0x19BE`). It also established
+that X4 stores only map width at `0x80172224` and does not use MMX5/MMX6's
+parent-layer scroll composition.
+
+With those corrections, compare-only validation covered 1,134 native-window
+ring cells; the 15 mismatches were the stale cells responsible for the visible
+staircase. Enabling the 29-column refill produced 87 refreshed columns per
+frame, zero mismatches across all 1,134 cells, and removed the Jungle artifacts
+in the TCP presented-frame capture.
 
 ## HUD packet arena and wide anchors
 

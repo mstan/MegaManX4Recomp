@@ -45,9 +45,8 @@ overlay_backend = "auto"
 overlay_autocompile_cmd = "python ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
 
 [video]
-# Native presentation. X4 defaults to authentic 4:3. The launcher's experimental
-# widescreen toggle opts into the true 16:9 field of view configured below by
-# writing "16:9" to settings.toml; it remains off by default.
+# Native presentation. X4 defaults to authentic 4:3. Its built-in Widescreen
+# mod opts into the true 16:9 field of view configured below.
 aspect_ratio = "4:3"
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -59,14 +58,15 @@ auto_skip_fmv = false
 # Renderer default: OpenGL (hardware) — full-rate presentation on the current
 # framework. The launcher's Renderer setting still offers Software.
 renderer = "opengl"
+offer_frame_interpolation = false
 
-# Widescreen is offered as an experimental opt-in and still defaults to 4:3.
+# Widescreen is a built-in experimental mod and still defaults to 4:3.
 # full_2d enables native-wide presentation; the hooks below widen the scene.
-# The game remains native 4:3 unless the player selects the launcher toggle.
+# The game remains native 4:3 unless the player enables the mod.
 # The hook path is the same pure-2D native-wide mechanism proven by MMX6.
 # All runtime helpers are identity at 4:3; codegen hooks require regeneration.
 [widescreen]
-offer   = true
+offer   = false
 full_2d = true
 
 # X4 builds the player health/weapon HUD and the right-side enemy/boss health
@@ -110,6 +110,14 @@ startcol_site     = "0x80026b20" # andi s5,v0,0x1f
 startx_site       = "0x80026b10" # subu s6,zero,v0
 stream_left_site  = "0x800272d0" # addiu a1,s1,-0x10
 stream_right_site = "0x800272e4" # addiu a1,s1,0x150 (320+16)
+layer_base        = "0x801419b0"
+ring_base         = "0x801441c8"
+map_size_addr     = "0x80172224"
+layer_stride_addr = "0x8013bd48"
+ring_cols          = 32
+layer_count        = 3
+layer_struct_stride = 84
+packet_cap         = 1000
 
 # Controller: HARDCODED digital. X4 predates the DualShock (US Sept 1997 vs
 # DualShock Nov 1997): its libpad never sends the 0x43 config probe and REJECTS

@@ -74,6 +74,13 @@ if (Test-Path (Join-Path $Root "RELEASE_NOTES.md")) {
     Copy-Item (Join-Path $Root "RELEASE_NOTES.md") $Stage
 }
 
+# Built-in mods: metadata, trusted display plugins, and guarded operations.
+$ModsSrc = Join-Path $Root "mods\preloaded"
+if (-not (Test-Path (Join-Path $ModsSrc "packages"))) {
+    throw "Built-in mod catalog missing at $ModsSrc"
+}
+Copy-Item -Recurse -Force $ModsSrc (Join-Path $Stage "mods")
+
 # Launcher assets: this build ships the shared recomp-ui Dear ImGui launcher
 # (RECOMP_LAUNCHER; see main.cpp + recomp-ui/recomp_ui.cmake), which loads from
 # <exe>/assets/ (fonts + img TGAs, including this repo's boxart baked in by
@@ -154,12 +161,13 @@ texture_filtering = "nearest"
 # presentation). "software" = CPU renderer, selectable in the launcher
 # (Settings -> Renderer) for anyone who prefers it.
 renderer = "opengl"
+offer_frame_interpolation = false
 # auto_skip_fmv: skip full-motion videos (the X vs. Zero opening cinematics).
 # Off by default so you see the intro. When on, a video is skipped the instant
 # it starts. Toggleable in the launcher (Settings -> "Skip FMVs").
 auto_skip_fmv = false
-# aspect_ratio: "4:3" (native). X4 defaults to authentic 4:3; the launcher's
-# EXPERIMENTAL Widescreen toggle opts into true 16:9 (see [widescreen] below).
+# aspect_ratio: "4:3" (native). X4 defaults to authentic 4:3; its built-in
+# Widescreen mod opts into true 16:9 (see [widescreen] below).
 aspect_ratio = "4:3"
 
 # ---- Controller ---------------------------------------------------------
@@ -176,13 +184,13 @@ allow_hybrid = false
 lock_mode = true
 
 # ---- Widescreen (EXPERIMENTAL) ------------------------------------------
-# X4 offers an experimental opt-in true-16:9 mode via the launcher's Widescreen
-# toggle; it defaults to 4:3. The exact validated hook config is spliced from
+# X4 offers an experimental opt-in true-16:9 mode via its built-in mod; it
+# defaults to 4:3. The exact validated hook config is spliced from
 # the dev game.toml below so the shipped config can never drift from what was
 # built and tested. All hooks are identity at 4:3.
 "@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
 
-# Splice the real, validated [widescreen]* sections (offer=true + bg2d/cull/HUD
+# Splice the real, validated [widescreen]* sections (offer=false + bg2d/cull/HUD
 # hooks) straight from the dev game.toml -- single source of truth, no drift.
 $realToml = Get-Content (Join-Path $Root "game.toml") -Raw
 $wsStart  = $realToml.IndexOf("[widescreen]")
@@ -190,8 +198,8 @@ $wsEnd    = $realToml.IndexOf("[controller]", $wsStart)
 if ($wsStart -lt 0 -or $wsEnd -lt 0) { throw "Could not locate [widescreen]..[controller] in game.toml to splice" }
 $wsBlock  = $realToml.Substring($wsStart, $wsEnd - $wsStart).TrimEnd()
 Add-Content -Encoding ASCII (Join-Path $Stage "game.toml") $wsBlock
-if (-not (Select-String -Path (Join-Path $Stage "game.toml") -Pattern '^offer\s*=\s*true' -Quiet)) {
-    throw "Shipped game.toml is missing 'offer = true' after widescreen splice"
+if (-not (Select-String -Path (Join-Path $Stage "game.toml") -Pattern '^offer\s*=\s*false' -Quiet)) {
+    throw "Shipped game.toml is missing 'offer = false' after widescreen splice"
 }
 
 # Prebuilt overlay cache: native code for the game areas contributed so far.

@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(MegaManX4Recomp C CXX)
+include(CTest)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
@@ -25,6 +26,9 @@ endif()
 set(GAME_GENERATED_DISPATCH
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_005.61_dispatch.c")
 
+file(GLOB MMX4_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
+
 psxrecomp_v4_add_runtime_target(psx-runtime
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
     GAME_GENERATED_DISPATCH_C "${GAME_GENERATED_DISPATCH}"
@@ -33,8 +37,40 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     DEFAULT_BIOS_PATH "${PSXRECOMP_V4_ROOT}/bios/SCPH1001.BIN"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
-    EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS}
+    EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
+
+# Ship MMX4's trusted, game-owned enhancements and testing cheat beside the
+# executable. Every feature remains disabled until explicitly selected on the
+# launcher's Mods page.
+set(MMX4_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
+if(EXISTS "${MMX4_PRELOADED_MODS}/packages")
+    add_custom_command(TARGET psx-runtime POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory
+            "$<TARGET_FILE_DIR:psx-runtime>/mods"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${MMX4_PRELOADED_MODS}"
+            "$<TARGET_FILE_DIR:psx-runtime>/mods"
+        COMMENT "Preloading the Mega Man X4 built-in mod catalog")
+endif()
+
+if(BUILD_TESTING)
+    add_executable(mmx4_preloaded_mods_test
+        tests/test_preloaded_mods.cpp
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/crc32.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c"
+    )
+    target_include_directories(mmx4_preloaded_mods_test PRIVATE
+        "${PSXRECOMP_V4_ROOT}/runtime/include"
+        "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11"
+    )
+    add_test(
+        NAME mmx4_preloaded_mods_test
+        COMMAND "$<TARGET_FILE:mmx4_preloaded_mods_test>"
+                "${MMX4_PRELOADED_MODS}"
+    )
+endif()
 
 # First-divergence co-sim oracle build (COSIM_ORACLE.md): clean, deterministic,
 # PSX_NO_DEBUG_TOOLS + PSX_COSIM. Two of these (one normal, one PSX_FORCE_INTERP=1)

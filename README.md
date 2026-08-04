@@ -57,7 +57,8 @@ misbehave silently (see ISSUES.md #1).
 | Stage gameplay | Starts; not yet verified broadly (see ISSUES.md #1) |
 | Memory-card save / load | Card probing works; save/load not yet verified end-to-end |
 | Renderers | OpenGL (default) **and** Software, selectable in the launcher |
-| Widescreen 16:9 | Experimental opt-in; true wider 2D field of view (4:3 remains default) |
+| Built-in mods | Widescreen, frame interpolation, and one-hit kills |
+| Widescreen 16:9 | Experimental opt-in mod; true wider 2D field of view (4:3 remains default) |
 
 See `ISSUES.md` for notes and the remaining follow-ups.
 
@@ -67,7 +68,10 @@ These are the framework features that are already working in this build:
 
 - **Two renderers.** A GPU-authoritative OpenGL backend (this release's default)
   and a CPU software rasterizer, both selectable in the launcher.
-- **Opt-in true widescreen.** The experimental 16:9 mode widens X4's background
+- **Game-owned Mods catalog.** The Mods page owns MMX4's experimental
+  widescreen and temporal frame-blending enhancements, plus disabled-by-default
+  a one-hit-kill testing cheat.
+- **Opt-in true widescreen.** The experimental 16:9 mod widens X4's background
   tile window plus actor activation, despawn, and draw-cull bounds; authentic
   4:3 remains the default. Player health/weapon HUD pieces anchor to the true
   wide left edge, while enemy/boss health pieces anchor to the wide right edge.
@@ -142,7 +146,7 @@ python3 ../psxrecomp/tools/extract_psx_exe.py "mmx4/Mega Man X4.bin" SLUS_005.61
 Generate the recompiled C, then build and run:
 
 ```sh
-# Regenerate generated/SLUS_005.61_{full,dispatch}.c from the disc/EXE.
+# Regenerate generated/SLUS_005.61_{full_*,dispatch}.c from the disc/EXE.
 #   Windows: pwsh tools/regen.ps1
 #   (or invoke the recompiler directly:
 #    ../psxrecomp/recompiler/build/psxrecomp-game.exe --config game.toml)
@@ -152,8 +156,7 @@ cmake --build build -j16
 ./build/MegaManX4Recomp.exe
 ```
 
-Note: X4's generated `full.c` is currently very large (~225 MB, a known
-recompiler follow-up), so the single-TU compile step takes ~40 minutes.
+The current recompiler emits X4 as parallel-compilable `full_*.c` shards.
 
 To build the redistributable Windows release (regens, builds with the launcher,
 bundles assets + toolchain, and zips it): `pwsh tools/package_release.ps1`.
@@ -164,12 +167,15 @@ Most options are exposed in the launcher and persist to `settings.toml`. The
 underlying defaults live in `game.toml`:
 
 - `[video]` — `renderer` (`software` / `opengl`), `supersampling` (1–4),
-  `antialiasing`, `texture_filtering`, `aspect_ratio` (`4:3` / experimental `16:9`),
-  `auto_skip_fmv`.
+  `antialiasing`, `texture_filtering`, and `auto_skip_fmv`.
 - `[controller]` — `default_mode` (`digital`, locked — X4 supports exactly one
   pad type), `deadzone`.
 - `[runtime]` — `disc_speed` (kept at `1x`), `turbo_loads`, `bios_hle`,
   `overlay_cache`.
+
+Widescreen and temporal frame blending are game-owned features on the Mods
+page rather than duplicate generic Settings controls. The same page contains
+the one-hit-kill testing cheat; all three features default to disabled.
 
 ## Controls
 
@@ -235,6 +241,24 @@ full speed from then on.
 **Please do not post `overlay_captures.json` publicly.** It contains verbatim
 snapshots of the game's code read from your disc, which is copyrighted material —
 keep it on your own machine, alongside your disc image.
+
+## Replaying the Jungle widescreen regression route
+
+Developers can return to the Jungle location used to verify the widescreen
+background-ring fix without manually navigating the menus and stage. The
+checked-in route uses the current local memory-card save, selects the Jungle
+stage, walks X to the captured location, and then releases all controls:
+
+```powershell
+python tools/replay_input_route.py tools/routes/mmx4_jungle_widescreen.json `
+  --exe build-mods/MegaManX4Recomp.exe `
+  --disc "F:\path\to\Mega Man X4.cue"
+```
+
+The replay is consumed once per guest VBlank, so the default turbo-loading
+setting may remain enabled. To record a replacement route, launch with a debug
+port, note its starting and ending frame numbers, then run
+`tools/capture_input_route.py --start START --end END --output ROUTE.json`.
 
 ## Development Rules
 

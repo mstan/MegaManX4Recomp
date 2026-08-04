@@ -1,0 +1,190 @@
+{
+  "format_version": 1,
+  "game_id": "SLUS-00561",
+  "capture_start_frame": 39,
+  "capture_end_frame": 6530,
+  "frame_count": 6492,
+  "carried_forward_frames": 327,
+  "segments": [
+    {
+      "frames": 330,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 4,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 6,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 5,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 400,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 29,
+      "buttons": "0XFFF7"
+    },
+    {
+      "frames": 52,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 19,
+      "buttons": "0XFFF7"
+    },
+    {
+      "frames": 449,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 6,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 102,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 10,
+      "buttons": "0XFFBF"
+    },
+    {
+      "frames": 47,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 9,
+      "buttons": "0XFFF7"
+    },
+    {
+      "frames": 99,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 7,
+      "buttons": "0XFFBF"
+    },
+    {
+      "frames": 25,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 15,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 78,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 7,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 40,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 6,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 184,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 8,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 27,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 6,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 638,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 3,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 23,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 15,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 269,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 9,
+      "buttons": "0XBFFF"
+    },
+    {
+      "frames": 1006,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 65,
+      "buttons": "0XFFDF"
+    },
+    {
+      "frames": 37,
+      "buttons": "0XBFDF"
+    },
+    {
+      "frames": 210,
+      "buttons": "0XFFDF"
+    },
+    {
+      "frames": 14,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 8,
+      "buttons": "0X7FFF"
+    },
+    {
+      "frames": 8,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 7,
+      "buttons": "0X7FFF"
+    },
+    {
+      "frames": 5,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 7,
+      "buttons": "0X7FFF"
+    },
+    {
+      "frames": 186,
+      "buttons": "0XFFFF"
+    },
+    {
+      "frames": 23,
+      "buttons": "0XFFDF"
+    },
+    {
+      "frames": 1989,
+      "buttons": "0XFFFF"
+    }
+  ]
+}
