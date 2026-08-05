@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "v0.0.4-audio-test.1",
+    [string]$Version = "v0.0.5-alpha",
     [string]$BuildDir = "build-release",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
@@ -96,8 +96,14 @@ Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount im
 $ModsSrc = Join-Path $BuildPath "mods"
 $WidescreenManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.widescreen/1.0.0/manifest.toml"
 $InterpolationManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.frame-interpolation/1.0.0/manifest.toml"
-$OneHitKillsManifest = Join-Path $ModsSrc "packages/mmx4.cheat.one-hit-kills/1.0.0/manifest.toml"
-foreach ($RequiredManifest in @($WidescreenManifest, $InterpolationManifest, $OneHitKillsManifest)) {
+$DamageMultiplierManifest = Join-Path $ModsSrc "packages/mmx4.cheat.damage-multiplier/1.0.0/manifest.toml"
+$FastLoadingManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.fast-loading/1.0.0/manifest.toml"
+foreach ($RequiredManifest in @(
+    $WidescreenManifest,
+    $InterpolationManifest,
+    $DamageMultiplierManifest,
+    $FastLoadingManifest
+)) {
     if (-not (Test-Path $RequiredManifest)) {
         throw "Built-in MMX4 mod catalog missing from runtime output: $RequiredManifest"
     }
@@ -137,18 +143,11 @@ out_dir = "generated"
 window_title = "Mega Man X4 Recompiled"
 memcard_dir = "saves"
 
-# Disc read speed. "1x" is authentic PlayStation timing and is the safe default:
-# speeding up the emulated CD device changes how many frames pass between the
-# game's internal steps, which desyncs streamed audio and wedges timing-sensitive
-# Mega Man X engine loops. Fast loads instead come from turbo_loads below (which
-# fast-forwards the whole machine during a load, preserving timing).
+# Authentic loading baseline. The built-in Fast Loading mod owns the mutually
+# exclusive host-pacing and experimental guest-visible CD-speed choices.
 disc_speed = "1x"
-
-# Turbo loads: while a load is in progress, run the machine at full host speed so
-# loading finishes much faster, with all game timing preserved. Audio plays
-# through normally. On by default. Toggleable in the launcher (Settings -> Turbo
-# loads).
-turbo_loads = true
+turbo_loads = false
+offer_turbo_loads = false
 
 # Overlay cache: keeps converted native code for game areas in the cache folder,
 # and records newly visited areas into overlay_captures.json so your own cache
@@ -198,10 +197,10 @@ aspect_ratio = "4:3"
 # console. The runtime therefore presents the plain digital pad X4 expects;
 # lock_mode hides the launcher's pad-mode selector because there is exactly one
 # mode the game supports. deadzone: stick dead-band for stick->d-pad mapping
-# (0..32767; ~12000 = 37%), adjustable in the launcher.
+# (0..32767; 6553 = 20%), adjustable in the launcher.
 [controller]
 default_mode = "digital"
-deadzone = 12000
+deadzone = 6553
 allow_hybrid = false
 lock_mode = true
 
@@ -338,7 +337,7 @@ Write-Host "Verified self-contained: imports only system DLLs ($($imports.Count)
 [controller]
 enabled = true
 device = 0
-deadzone = 12000
+deadzone = 6553
 
 [mapping]
 up = dpup,lefty-
@@ -394,8 +393,10 @@ streams its FMV/audio from.
 The selected BIOS path is saved in bios.cfg and the selected disc path is saved
 in disc.cfg next to the executable. Delete those files to pick different files.
 
-Options such as turbo loads, FMV skip, and disc speed can be changed in the
-launcher Settings or in game.toml ([runtime]/[video]) with any text editor.
+Fast Loading, Damage Multiplier, Widescreen, and Interpolated Frames are owned
+by the launcher's Mods page. Fast Loading defaults off; Damage Multiplier
+defaults to 1 for normal damage. Other options such as FMV skip can be changed
+in launcher Settings or game.toml with any text editor.
 
 The cache folder contains pre-converted native code for game areas covered so
 far; those run at full speed from your first visit. As you play, newly visited

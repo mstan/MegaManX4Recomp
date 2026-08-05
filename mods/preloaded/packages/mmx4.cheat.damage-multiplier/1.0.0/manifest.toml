@@ -1,0 +1,35 @@
+format_version = 5
+id = "mmx4.cheat.damage-multiplier"
+version = "1.0.0"
+name = "Mega Man X4 Damage Multiplier"
+author = "mstan"
+description = "Forces successful player-hit damage to the selected integer multiplier. A value of 1 actively restores normal damage after loading an older modified save state."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "damage-multiplier"
+name = "Damage Multiplier"
+description = "Scale successful player-hit damage. Keep this enabled at 1 to override damage code restored by save states."
+group = "Testing Cheats"
+default_enabled = true
+
+[[option]]
+feature = "damage-multiplier"
+id = "multiplier"
+label = "Damage Multiplier"
+description = "1 is normal damage; enter a larger integer to speed up combat."
+group = "Testing Cheats"
+type = "integer"
+min = 1
+max = 255
+step = 1
+default = 1
+
+[[plugin]]
+feature = "damage-multiplier"
+id = "mmx4.damage-multiplier"

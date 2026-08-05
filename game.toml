@@ -12,18 +12,26 @@ stack_base = "0x801FFFF0"
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
 strict = true
+mod_function_entry_funcs = ["0x8002DE30"]
+
+[[recompiler.patch]]
+id = "damage-multiplier-host-value"
+address = "0x8002DEFC"
+expected = "0x90420001"
+replacement = "0x03001021"
+note = "Use the trusted damage hook's pre-scaled value from t8; multiplier 1 is stock-equivalent."
 
 [runtime]
 debug_port = 4525
 window_title = "MegaManX4Recomp"
 memcard_dir = "saves"
-# Disc speed + fast loads — the architecturally-correct model (see MMX6 game.toml
-# for the full rationale). Keep AUTHENTIC guest CD timing (disc_speed="1x") so
-# nothing breaks, and get fast loads by fast-forwarding the whole guest timeline
-# during loads (turbo_loads). Speeding the guest-visible CD device is unsafe for
-# timing-sensitive Psy-Q titles like the Mega Man X engine.
-disc_speed   = "1x"     # authentic guest CD timing (never breaks game timing)
-turbo_loads  = true     # fast-forward the machine during CD loads (the real speed lever)
+# Authentic loading baseline. The built-in Fast Loading mod owns the mutually
+# exclusive host-pacing and experimental guest-visible CD-speed choices.
+# Keeping both runtime controls disabled here makes the mod default off and
+# prevents stale generic launcher settings from applying behind its back.
+disc_speed        = "1x"
+turbo_loads       = false
+offer_turbo_loads = false
 # HLE BIOS tier, DEFAULT-ON for X4 (mirrors X5/X6): kernel B0 event family served
 # host-side + the boot shell-skip — boots straight past the PSX logo into the
 # game (kernel init still runs the real recompiled BIOS; unimplemented services
@@ -137,7 +145,7 @@ packet_cap         = 1000
 # offer. allow_hybrid=false is redundant under lock_mode but documents intent.
 [controller]
 default_mode   = "digital"
-deadzone       = 12000
+deadzone       = 6553
 allow_hybrid   = false
 lock_mode      = true
 

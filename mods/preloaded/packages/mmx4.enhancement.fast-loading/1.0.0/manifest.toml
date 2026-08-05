@@ -1,0 +1,64 @@
+format_version = 5
+id = "mmx4.enhancement.fast-loading"
+version = "1.0.0"
+name = "Mega Man X4 Fast Loading"
+author = "mstan"
+description = "Optional loading acceleration with mutually exclusive host-safe and experimental CD-timing modes."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "fast-loading"
+name = "Fast Loading"
+description = "Disabled by default. Host modes preserve every guest frame and CD interrupt. Disc modes change emulated CD timing and may break loads, audio, or game logic."
+group = "Quality of Life"
+default_enabled = false
+
+[[option]]
+feature = "fast-loading"
+id = "mode"
+label = "Loading mode"
+description = "Choose one mode. Host pacing is recommended. Experimental CD timing delivers interrupts earlier; use 2x first and disable the mod if anything stalls."
+group = "Quality of Life"
+type = "choice"
+default = "host-4x"
+
+[[option.choice]]
+value = "host-2x"
+label = "Host pacing: 2x"
+
+[[option.choice]]
+value = "host-4x"
+label = "Host pacing: 4x (recommended)"
+
+[[option.choice]]
+value = "host-8x"
+label = "Host pacing: 8x"
+
+[[option.choice]]
+value = "host-16x"
+label = "Host pacing: 16x"
+
+[[option.choice]]
+value = "host-uncapped"
+label = "Host pacing: uncapped"
+
+[[option.choice]]
+value = "disc-2x"
+label = "CD timing: 2x (experimental)"
+
+[[option.choice]]
+value = "disc-4x"
+label = "CD timing: 4x (experimental)"
+
+[[option.choice]]
+value = "disc-instant"
+label = "CD timing: instant (highest risk)"
+
+[[plugin]]
+feature = "fast-loading"
+id = "mmx4.fast-loading"

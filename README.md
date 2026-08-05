@@ -57,7 +57,7 @@ misbehave silently (see ISSUES.md #1).
 | Stage gameplay | Starts; not yet verified broadly (see ISSUES.md #1) |
 | Memory-card save / load | Card probing works; save/load not yet verified end-to-end |
 | Renderers | OpenGL (default) **and** Software, selectable in the launcher |
-| Built-in mods | Widescreen, interpolated frames, and one-hit kills; all default off |
+| Built-in mods | Widescreen, interpolated frames, Fast Loading, and an integer Damage Multiplier |
 | Widescreen 16:9 | Experimental default-off mod; true wider 2D field of view |
 | Interpolated frames | Default-off mod; presentation only, game timing remains stock |
 
@@ -70,8 +70,8 @@ These are the framework features that are already working in this build:
 - **Two renderers.** A GPU-authoritative OpenGL backend (this release's default)
   and a CPU software rasterizer, both selectable in the launcher.
 - **Game-owned Mods catalog.** The Mods page owns MMX4's experimental
-  widescreen and temporal frame-blending enhancements, plus disabled-by-default
-  a one-hit-kill testing cheat.
+  widescreen and temporal frame-blending enhancements, unified loading modes,
+  and an integer Damage Multiplier for testing and save-state repair.
 - **Opt-in true widescreen.** The experimental 16:9 mod widens X4's background
   tile window plus actor activation, despawn, and draw-cull bounds; authentic
   4:3 remains the default. Player health/weapon HUD pieces anchor to the true
@@ -82,12 +82,9 @@ These are the framework features that are already working in this build:
 - **Interpolated-frames mod.** Select display-refresh or a fixed presentation
   rate from the Mods panel. It blends completed frames without changing guest
   VBlank, game logic, timers, or audio speed.
-- **Fast loading (turbo loads).** While a load is in progress the whole machine
-  fast-forwards at your PC's full speed, then drops back to normal the instant
-  it finishes — so disc loads complete far faster while all of the game's
-  internal timing (and audio) stays correct. Authentic 1× disc timing is kept;
-  the speed comes from the load fast-forward, not from speeding up the emulated
-  CD (which would break timing). On by default; toggleable in the launcher.
+- **Fast Loading mod.** Disabled by default. One mutually exclusive selector
+  offers host-only 2x/4x/8x/16x/uncapped pacing or experimental 2x/4x/instant
+  guest-visible CD timing. Host pacing is the recommended timing-safe path.
 - **Digital controller, as the game expects.** X4 shipped **before** the
   DualShock existed and rejects analog pads outright (with one presented, the
   title screen ignores Start entirely). The runtime therefore presents a plain
@@ -174,12 +171,14 @@ underlying defaults live in `game.toml`:
   `antialiasing`, `texture_filtering`, and `auto_skip_fmv`.
 - `[controller]` — `default_mode` (`digital`, locked — X4 supports exactly one
   pad type), `deadzone`.
-- `[runtime]` — `disc_speed` (kept at `1x`), `turbo_loads`, `bios_hle`,
+- `[runtime]` — authentic `disc_speed`/`turbo_loads` baselines, `bios_hle`,
   `overlay_cache`.
 
 Widescreen and temporal frame blending are game-owned features on the Mods
 page rather than duplicate generic Settings controls. The same page contains
-the one-hit-kill testing cheat; all three features default to disabled.
+Fast Loading and Damage Multiplier. Loading and display mods default off;
+damage enforcement defaults to integer value 1 so save states cannot preserve
+stale cheat code.
 
 ## Controls
 
