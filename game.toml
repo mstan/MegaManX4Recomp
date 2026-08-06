@@ -50,7 +50,7 @@ overlay_backend = "auto"
 # Compile RECIPE only (compiler + tool paths). The WRITE cache + READ captures are
 # injected by the runtime (PSX_OVERLAY_CACHE_DIR / PSX_OVERLAY_CAPTURES) so they
 # can never drift from the loader's canonical <exe>/cache + <exe>/overlay_captures.json.
-overlay_autocompile_cmd = "py -3 ../psxrecomp/tools/compile_overlays.py --game-toml game.toml --recompiler ../psxrecomp/recompiler/build/psxrecomp-game.exe --runtime-include ../psxrecomp/runtime/include --gcc C:/msys64/mingw64/bin/gcc.exe --cps"
+overlay_autocompile_cmd = "py -3 psxrecomp-v4/tools/compile_overlays.py --game-toml game.toml --recompiler psxrecomp-v4/recompiler/build/psxrecomp-game.exe --runtime-include psxrecomp-v4/runtime/include --cps"
 
 [audio]
 # X4's normal production cadence does not need the framework's conservative
