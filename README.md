@@ -20,7 +20,7 @@ with [PSXRecomp](https://github.com/mstan/psxrecomp) — the same framework behi
 This repository contains the game-specific configuration, seeds, tools, and
 build glue for running Mega Man X4 on the PSXRecomp framework. The game's MIPS
 code is machine-translated ("recompiled") ahead of time into native C, then
-compiled into a real Windows program that runs the game's own logic on a
+compiled into a native Windows or Linux program that runs the game's own logic on a
 faithful simulation of the PS1 hardware (GPU, SPU, GTE, memory cards) plus the
 real, recompiled PS1 BIOS — no high-level emulation shims.
 
@@ -34,13 +34,16 @@ Important files:
 - `seeds/`: Ghidra-derived function starts and game-specific seed data.
 - `tools/regen.ps1`: regenerates the recompiled C output.
 - `tools/package_release.ps1`: builds the redistributable release zip.
+- `tools/build_overlay_shards.sh`: rebuilds native Linux overlay shards.
+- `tools/package_appimage.sh`: builds the reproducible Linux AppImage.
+- `tools/test_appimage_layout.sh`: verifies the AppImage payload and seeding.
 - `psxrecomp-v4.pin`: framework commit this project is known-good against.
 - `ISSUES.md`: game-specific issue log.
 - `DISC.md`: source-disc identity and verification hashes.
 
 ## Status
 
-**Early playable preview — `v0.0.2-alpha`.** Mega Man X4 **boots and plays**: the intro
+**Early playable preview — `v0.0.5-alpha`.** Mega Man X4 **boots and plays**: the intro
 cinematics (X vs. Zero) decode and play, the title screen and menus respond,
 the attract demos run, and you can start a game — with working controller
 input and no known crashes on the covered path. It has **not** been verified
@@ -92,11 +95,13 @@ These are the framework features that are already working in this build:
   one mode the game supports. Keyboard and SDL gamepads both work.
 - **Supersampling + anti-aliasing.** Internal-resolution SSAA (1×–4×) with
   optional linear present filtering for clean edges.
-- **Self-contained overlay toolchain.** As you explore new areas the runtime
+- **Self-contained Windows overlay toolchain.** As you explore new areas the runtime
   converts the game's streamed ARC overlay code to native code in the
-  background. That needs no developer tools installed — the release bundles a
+  background. That needs no developer tools installed — the Windows release bundles a
   fully self-contained toolchain (embedded Python + TinyCC), so newly visited
-  areas are accelerated on any machine.
+  areas are accelerated without a developer install. The Linux AppImage ships
+  the native Linux shards available at release time; uncovered overlays fall
+  back safely to the interpreter and are captured for a later shard build.
 - **Graphical launcher.** Pick your BIOS, disc, and memory cards; verify the
   disc; configure renderer / supersampling / controller, with live settings
   persistence — then press Launch.
@@ -104,6 +109,19 @@ These are the framework features that are already working in this build:
 ## Setup
 
 ### Release Package (recommended)
+
+On Linux, download `MegaManX4Recomp-v*-linux-x86_64.AppImage`, make it
+executable, and run it:
+
+```sh
+chmod +x MegaManX4Recomp-v*-linux-x86_64.AppImage
+./MegaManX4Recomp-v*-linux-x86_64.AppImage
+```
+
+The AppImage stores writable data under
+`~/.local/share/MegaManX4Recomp` (override with `MMX4_RECOMP_DATA_DIR`).
+
+On Windows:
 
 1. Download `MegaManX4Recomp-v*-windows-x64.zip` from Releases and extract it.
 2. Run `MegaManX4Recomp.exe`. A **launcher window** opens.
@@ -120,12 +138,15 @@ Accepted disc formats: `.cue` + `.bin` (preferred — pick the `.cue`) and `.bin
 Mode-2 Form-2 XA sectors X4 streams its FMV/audio from. If the header or game
 ID does not match `SLUS-00561`, the launcher warns and tries to run it anyway.
 
-Selected paths persist next to the executable (`bios.cfg` / `disc.cfg` and
-`settings.toml`). Delete those to pick different files or reset settings.
+Selected paths persist next to the executable on Windows and under the
+AppImage's writable data directory on Linux. Delete `settings.toml` there to
+reset launcher choices.
 
 ### Building From Source
 
-Builds on **Windows (MSYS2/MinGW)**.
+Windows builds use MSYS2/MinGW. Native Linux and WSL builds use GCC or Clang,
+CMake, Ninja, SDL development files, OpenGL development files, ImageMagick,
+and curl.
 
 Requirements:
 
@@ -161,6 +182,25 @@ The current recompiler emits X4 as parallel-compilable `full_*.c` shards.
 
 To build the redistributable Windows release (regens, builds with the launcher,
 bundles assets + toolchain, and zips it): `pwsh tools/package_release.ps1`.
+
+To cut the Linux release from WSL or native Linux:
+
+```sh
+# Private capture input -> tagged gcc/linux-x64 .so shards.
+bash tools/build_overlay_shards.sh --captures build-master/overlay_captures.json
+
+# Builds all 141 static units, requires matching Linux shards, and packages.
+bash tools/package_appimage.sh
+
+# Read-only payload, writable-state, shard ABI, and path-portability checks.
+bash tools/test_appimage_layout.sh \
+  release-linux/MegaManX4Recomp-v0.0.5-alpha-linux-x86_64.AppImage
+```
+
+The packager accepts Windows output paths under WSL, stages its AppDir on the
+native Linux filesystem, verifies pinned tooling by SHA-256, normalizes staged
+timestamps, and refuses to ship a Windows `.dll` cache or a mismatched shard
+tag. Set `SOURCE_DATE_EPOCH` explicitly to reproduce a historical cut.
 
 ## Configuration
 
@@ -211,10 +251,11 @@ SDL when connected. X4 is a digital-pad game; sticks map onto the D-pad.
 | Start | Menu |
 | Select | View / Back |
 
-Release builds include `input.ini` next to `MegaManX4Recomp.exe`. Edit it to
-change controller device index, deadzone, or button mapping. Keyboard bindings
-are configurable in `keybinds.ini` and live-rebindable in the launcher's
-Controls page.
+Release builds include `input.ini` in their writable data directory (beside
+the executable on Windows; under `~/.local/share/MegaManX4Recomp` for the
+AppImage). Edit it to change controller device index, deadzone, or button
+mapping. Keyboard bindings are configurable in `keybinds.ini` and
+live-rebindable in the launcher's Controls page.
 
 ## Memory Cards
 

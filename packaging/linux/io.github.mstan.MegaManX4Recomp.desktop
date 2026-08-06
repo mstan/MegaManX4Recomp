@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mega Man X4 Recompiled
+Comment=Static recompilation of Mega Man X4
+Exec=MegaManX4Recomp
+Icon=io.github.mstan.MegaManX4Recomp
+Categories=Game;
+Terminal=false

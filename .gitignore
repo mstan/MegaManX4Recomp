@@ -9,6 +9,8 @@
 
 # Release packaging artifacts
 /release-stage/
+/release-linux/
+*.AppImage
 *.zip
 # Downloaded toolchain artifacts cached by package_release.ps1 (embedded python +
 # tcc zips) — fetched on demand, never committed.

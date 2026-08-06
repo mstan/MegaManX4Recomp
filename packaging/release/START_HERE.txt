@@ -1,0 +1,37 @@
+MegaManX4Recomp - Mega Man X4, recompiled
+==========================================
+
+WHAT YOU NEED
+  Your own Mega Man X4 (USA, SLUS-00561) disc image. A .cue + .bin pair is
+  preferred; a bare .bin also works. Do not convert it to a 2048-byte cooked
+  .iso: that discards the XA sectors used for the game's FMV and audio.
+
+  A PlayStation BIOS is not required. This package bundles the MIT-licensed
+  OpenBIOS from PCSX-Redux (bios/openbios.bin, notice in bios/OpenBIOS.LICENSE).
+  You may optionally select your own legally obtained SCPH1001.BIN instead.
+
+FIRST RUN
+  1. Launch the AppImage. The launcher window opens.
+  2. Set the Disc row to your Mega Man X4 image.
+  3. Optionally visit Mods for the four bundled packages. Fast Loading,
+     Widescreen, and Frame Interpolation ship disabled; Damage Multiplier
+     defaults to normal 1x damage.
+  4. Press Launch. Your choices are remembered for next time.
+
+WHERE THINGS LIVE
+  saves/     memory cards
+  cache/     converted native code, seeded by this release and grows as you play
+  mods/      bundled and user-installed mod packages
+  input.ini  controller mapping (yours after first launch)
+
+  On Linux the AppImage seeds these into ~/.local/share/MegaManX4Recomp.
+  Override that location with MMX4_RECOMP_DATA_DIR.
+
+PRIVACY NOTE
+  overlay_captures.json and cache shards produced while playing contain code
+  converted from your disc. Do not redistribute your own capture data.
+
+EARLY RELEASE
+  The intro, title screen, menus, attract demos, and starting a game are known
+  to work. Deep stages and end-to-end memory-card save/load are not yet fully
+  verified. Please report an unknown-dispatch halt with where it occurred.

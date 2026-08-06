@@ -11,6 +11,8 @@ stack_base = "0x801FFFF0"
 [recompiler]
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
+# Relative forward-slash form works from Windows, WSL, and native Linux.
+bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
 strict = true
 mod_function_entry_funcs = ["0x8002DE30"]
 
