@@ -29,6 +29,23 @@ set(GAME_GENERATED_DISPATCH
 file(GLOB MMX4_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
 
+# X4's game-owned, default-off mod catalog. Package manifests contain metadata
+# and guarded writes only; the trusted plugin implementations are compiled in
+# above.
+#
+# The FRAMEWORK stages it: PRELOADED_MODS_DIR below hands the directory to
+# psxrecomp_add_runtime_target(), which wipes <exe-dir>/mods/bundled and copies
+# both its own mods/builtin/packages and these packages into it, plus
+# mods/preloaded/README.md -> mods/README.md. This repo must NOT copy the tree
+# itself. It used to, with a hand-written POST_BUILD copy_directory into
+# <exe-dir>/mods, and because that named the destination as a STRING, framework
+# commit 4cc04be3's rename of the staged catalog from mods/packages to
+# mods/bundled broke it silently -- nothing a configure, compile or link step
+# can see. The four mmx4.* packages went on landing in mods/packages, which
+# neither the launcher nor the release packager's Add-ModCatalog reads.
+# Bead beads-eio.3.101.
+set(MMX4_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
+
 psxrecomp_v4_add_runtime_target(psx-runtime
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
     GAME_GENERATED_DISPATCH_C "${GAME_GENERATED_DISPATCH}"
@@ -36,20 +53,9 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     WINDOW_TITLE "MegaManX4Recomp"
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
+    PRELOADED_MODS_DIR "${MMX4_PRELOADED_MODS}"
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
-
-# Preload X4's game-owned, default-off mod catalog beside the runtime. Package
-# manifests contain metadata and guarded writes only; trusted plugin
-# implementations are compiled above.
-set(MMX4_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
-if(EXISTS "${MMX4_PRELOADED_MODS}/packages")
-    add_custom_command(TARGET psx-runtime POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${MMX4_PRELOADED_MODS}"
-            "$<TARGET_FILE_DIR:psx-runtime>/mods"
-        COMMENT "Preloading the Mega Man X4 mod catalog")
-endif()
 
 if(BUILD_TESTING)
     add_executable(mmx4_preloaded_mods_test

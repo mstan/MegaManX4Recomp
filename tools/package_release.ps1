@@ -92,28 +92,37 @@ $fontCount = (Get-ChildItem (Join-Path $Stage "assets/fonts") -Filter *.ttf -Err
 $imgCount  = (Get-ChildItem (Join-Path $Stage "assets/img")   -Filter *.tga -ErrorAction SilentlyContinue).Count
 Write-Host "Bundled recomp-ui launcher assets: $fontCount font(s) + $imgCount image(s)"
 
-# Built-in mod catalog staged by the runtime target's POST_BUILD command.
-$ModsSrc = Join-Path $BuildPath "mods"
-$WidescreenManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.widescreen/1.0.0/manifest.toml"
-$InterpolationManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.frame-interpolation/1.0.0/manifest.toml"
-$DamageMultiplierManifest = Join-Path $ModsSrc "packages/mmx4.cheat.damage-multiplier/1.0.0/manifest.toml"
-$FastLoadingManifest = Join-Path $ModsSrc "packages/mmx4.enhancement.fast-loading/1.0.0/manifest.toml"
-foreach ($RequiredManifest in @(
-    $WidescreenManifest,
-    $InterpolationManifest,
-    $DamageMultiplierManifest,
-    $FastLoadingManifest
-)) {
-    if (-not (Test-Path $RequiredManifest)) {
-        throw "Built-in MMX4 mod catalog missing from runtime output: $RequiredManifest"
-    }
-}
-$ModsDst = Join-Path $Stage "mods"
-Copy-Item -Recurse -Force $ModsSrc $ModsDst
-# Never ship a developer's local selections from a reused build directory.
-$StagedModState = Join-Path $ModsDst "state.toml"
-if (Test-Path $StagedModState) { Remove-Item -Force $StagedModState }
-Write-Host "Bundled built-in MMX4 mod catalog from $ModsSrc"
+# Built-in mod catalog staged by the runtime target's POST_BUILD command into
+# <build>/mods/bundled (psxrecomp_add_runtime_target's PRELOADED_MODS_DIR
+# stages the framework's mods/builtin/packages and this repo's
+# mods/preloaded/packages there together).
+#
+# Routed through the framework's shared Add-ModCatalog. What used to be here
+# was four literal
+#
+#     mods/packages/mmx4.<name>/1.0.0/manifest.toml
+#
+# paths, each asserted with Test-Path, and both halves of that were wrong:
+#
+#   * mods/packages is the PRE-SPLIT layout. Framework 4cc04be3 moved staged
+#     build output to mods/bundled and nothing in this repo followed, so at
+#     framework master the first Test-Path threw and this title could not
+#     package at all (bead beads-eio.3.101);
+#   * the paths pin the VERSION too, so bumping a package from 1.0.0 to 1.1.0
+#     would have failed the release for a reason unrelated to the release, and
+#     the list names only this repo's four packages -- it says nothing about
+#     whether the framework's shared psx.* packages shipped.
+#
+# Add-ModCatalog asserts the invariant instead: every package the SOURCES
+# define -- this repo's mods/preloaded/packages and the framework's
+# mods/builtin/packages -- must survive into the staged catalog, at whatever
+# version the sources carry. It also strips the two things under mods/ that
+# belong to this machine (installed/ and state.toml), which is what the
+# hand-written state.toml removal below it was doing by hand.
+. (Join-Path $FrameworkRoot "tools\release_overlay_stage.ps1")
+Add-ModCatalog -BuildPath $BuildPath -Stage $Stage `
+               -GameModSource (Join-Path $Root "mods\preloaded") `
+               -FrameworkModSource (Join-Path $FrameworkRoot "mods\builtin") | Out-Null
 
 # Player-facing game.toml: same effective runtime settings as the dev config,
 # minus dev-only sections ([recompiler] inputs beyond the required block, the
