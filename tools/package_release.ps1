@@ -18,7 +18,7 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 if ([string]::IsNullOrWhiteSpace($FrameworkRoot)) {
     $FrameworkRoot = Join-Path $Root "psxrecomp-v4"
 }
-$FrameworkRoot = (Resolve-Path $FrameworkRoot).Path
+$FrameworkRoot = ((Resolve-Path $FrameworkRoot).Path -replace '\\', '/')
 Write-Host "Framework root: $FrameworkRoot"
 $BuildPath = Join-Path $Root $BuildDir
 $StageRoot = Join-Path $Root "release-stage"
