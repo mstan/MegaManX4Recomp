@@ -9,7 +9,8 @@ param(
     # (-> the shared master checkout). Point this at a specific worktree to build
     # against exactly the pinned commit when the main checkout is on another
     # branch (e.g. -FrameworkRoot F:/Projects/psxrecomp/_wt-fw-master).
-    [string]$FrameworkRoot = ""
+    [string]$FrameworkRoot = "",
+    [switch]$SkipRegen
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,6 +20,7 @@ if ([string]::IsNullOrWhiteSpace($FrameworkRoot)) {
     $FrameworkRoot = Join-Path $Root "psxrecomp-v4"
 }
 $FrameworkRoot = (Resolve-Path $FrameworkRoot).Path
+$FrameworkRootCMake = $FrameworkRoot.Replace('\', '/')
 Write-Host "Framework root: $FrameworkRoot"
 $BuildPath = Join-Path $Root $BuildDir
 $StageRoot = Join-Path $Root "release-stage"
@@ -63,15 +65,56 @@ function Get-TomlScalar {
     }
     return $null
 }
+
+function Ensure-BiosBackends {
+    param([Parameter(Mandatory)][string]$FrameworkRoot)
+    $stems = @()
+    if (Test-Path -LiteralPath (Join-Path $FrameworkRoot "bios\OpenBIOS.toml")) {
+        $stems += ,@("OpenBIOS", "bios/OpenBIOS.toml")
+    }
+    if (Test-Path -LiteralPath (Join-Path $FrameworkRoot "bios\SCPH1001.BIN")) {
+        $stems += ,@("SCPH1001", "bios/SCPH1001.toml")
+    }
+    if (-not $stems) { throw "No BIOS profile available under $FrameworkRoot\bios" }
+
+    $missing = @($stems | Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $FrameworkRoot ("generated\{0}_dispatch.c" -f $_[0])))
+    })
+    if (-not $missing) { return }
+
+    $bash = $null
+    foreach ($cand in @("C:\msys64\usr\bin\bash.exe", "C:\msys64\mingw64\bin\bash.exe")) {
+        if (Test-Path -LiteralPath $cand) { $bash = $cand; break }
+    }
+    if (-not $bash) {
+        throw ("Missing recompiled BIOS backend(s): {0}. Install MSYS2 or run " +
+               "psxrecomp-v4/tools/regen_bios.sh manually." -f (($missing | ForEach-Object { $_[0] }) -join ', '))
+    }
+
+    $cygpath = Join-Path (Split-Path -Parent $bash) "cygpath.exe"
+    $posixRoot = (& $cygpath -u $FrameworkRoot).Trim()
+    $posixMingw = (& $cygpath -u $MingwBin).Trim()
+    foreach ($stem in $missing) {
+        Write-Host "Generating recompiled BIOS backend: $($stem[0])"
+        $biosShellCmd = "export PATH='$posixMingw':`$PATH; cd '$posixRoot' && " +
+                        "PSXRECOMP_BIOS_BUILD=recompiler/build tools/regen_bios.sh --config $($stem[1])"
+        Invoke-Native { & $bash -c $biosShellCmd } "regen_bios ($($stem[0]))"
+    }
+}
 # X4 builds against its psxrecomp-v4 junction (-> the shared master framework
 # worktree), NOT the master ..\psxrecomp checkout. All framework paths go
 # through the junction at $Root so this game's framework pin is honored.
 $RecompDir = Resolve-Path (Join-Path $FrameworkRoot "recompiler\build")
 Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_OF_PROCESSORS } "recompiler build"
-& (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
-if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
+Ensure-BiosBackends -FrameworkRoot $FrameworkRoot
+if (-not $SkipRegen) {
+    & (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
+    if ($LASTEXITCODE -ne 0) { throw "game regen failed" }
+} else {
+    Write-Host "Skipping game C regeneration; packaging the existing generated sources"
+}
 
-Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSXRECOMP_ROOT="$FrameworkRoot" } "cmake configure"
+Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSXRECOMP_ROOT="$FrameworkRootCMake" } "cmake configure"
 Invoke-Native { cmake --build $BuildPath -j $env:NUMBER_OF_PROCESSORS } "cmake build"
 
 if (Test-Path $StageRoot) {
@@ -153,6 +196,7 @@ Add-ModCatalog -BuildPath $BuildPath -Stage $Stage `
 name = "Mega Man X4"
 id = "SLUS-00561"
 exe = "mmx4/SLUS_005.61"
+disc = "mmx4/Mega Man X4.cue"
 load_address = "0x80010000"
 entry_pc = "0x800DAE8C"
 text_size = "0x0011F800"
