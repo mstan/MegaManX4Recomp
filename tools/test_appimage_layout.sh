@@ -23,7 +23,7 @@ data_dir=$(env "${ENV_PREFIX}_DATA_DIR=$work/data" "${ENV_PREFIX}_SEED_ONLY=1" \
 fail=0
 check_file() { [ -f "$data_dir/$1" ] || { echo "MISSING file: $1" >&2; fail=1; }; }
 check_dir() { [ -d "$data_dir/$1" ] || { echo "MISSING dir: $1" >&2; fail=1; }; }
-for dir in saves cache mods assets bios; do check_dir "$dir"; done
+for dir in saves cache mods mods/bundled assets bios; do check_dir "$dir"; done
 for file in game.toml input.ini START_HERE.txt LICENSE README.md \
             bios/openbios.bin bios/OpenBIOS.LICENSE .appimage-layout-version; do
     check_file "$file"
@@ -32,9 +32,13 @@ done
 got_version=$(tr -d ' \t\r\n' < "$data_dir/.appimage-layout-version")
 [ "$got_version" = "$expected_version" ] ||
     { echo "version marker '$got_version' != '$expected_version'" >&2; fail=1; }
-mod_count=$(find "$data_dir/mods" -name manifest.toml | wc -l)
-[ "$mod_count" -eq "$EXPECTED_MODS" ] ||
-    { echo "expected $EXPECTED_MODS mod manifests, found $mod_count" >&2; fail=1; }
+legacy_packages=$(find "$data_dir/mods" -path "$data_dir/mods/packages" -type d | wc -l)
+[ "$legacy_packages" -eq 0 ] ||
+    { echo "seeded legacy mods/packages catalog" >&2; fail=1; }
+package_dirs=$(find "$data_dir/mods/bundled" -mindepth 1 -maxdepth 1 -type d | wc -l)
+mod_count=$(find "$data_dir/mods/bundled" -mindepth 2 -maxdepth 2 -name manifest.toml | wc -l)
+[ "$package_dirs" -gt 0 ] && [ "$mod_count" -eq "$package_dirs" ] ||
+    { echo "seeded mod catalog has $package_dirs package dir(s) and $mod_count manifest(s)" >&2; fail=1; }
 
 so_count=$(find "$data_dir/cache" -path '*/gcc/linux-x64/*' -name '*.so' | wc -l)
 range_count=$(find "$data_dir/cache" -path '*/gcc/linux-x64/*' -name '*.ranges' | wc -l)

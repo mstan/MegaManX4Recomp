@@ -49,6 +49,13 @@ if [ -d "$payload/cache" ]; then
     chmod -R u+rwX "$data_dir/cache"
 fi
 
+# Link the read-only bundled overlay toolchain into the writable data directory.
+# The runtime looks beside argv[0], and argv[0] is the launcher symlink below.
+if [ -d "$payload/overlay_toolchain" ]; then
+    if [ -L "$data_dir/overlay_toolchain" ] || [ ! -e "$data_dir/overlay_toolchain" ]; then
+        ln -sfn "$payload/overlay_toolchain" "$data_dir/overlay_toolchain"
+    fi
+fi
 for file in game.toml LICENSE README.md APPIMAGE_README.md START_HERE.txt; do
     if [ -f "$payload/$file" ]; then
         cp -f "$payload/$file" "$data_dir/$file"

@@ -7,7 +7,6 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 version=""
 out_dir=""
 skip_build=0
-allow_no_cache=0
 build_dir=${BUILD_DIR:-"$root/build-appimage"}
 cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
 jobs=${BUILD_JOBS:-$(( cores > 4 ? cores - 2 : 2 ))}
@@ -19,9 +18,8 @@ while [ "$#" -gt 0 ]; do
         --build-dir) build_dir=$2; shift 2 ;;
         --jobs) jobs=$2; shift 2 ;;
         --skip-build) skip_build=1; shift ;;
-        --allow-no-cache) allow_no_cache=1; shift ;;
         -h|--help)
-            echo "usage: $0 [--version VERSION] [--out DIR] [--build-dir DIR] [--jobs N] [--skip-build] [--allow-no-cache]"
+            echo "usage: $0 [--version VERSION] [--out DIR] [--build-dir DIR] [--jobs N] [--skip-build] "
             exit 0 ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
@@ -31,7 +29,7 @@ version=${version:-$(tr -d ' \t\r\n' < "$root/packaging/release/VERSION")}
 # shellcheck source=/dev/null
 . "$root/packaging/release/app.conf"
 for name in APP_NAME EXE_NAME PAYLOAD_DIR DESKTOP_ID ENV_PREFIX ICON_SOURCE \
-            EXPECTED_MODS EXPECTED_STATIC_SHARDS FRAMEWORK_DIR; do
+            EXPECTED_STATIC_SHARDS FRAMEWORK_DIR; do
     eval "value=\${$name:-}"
     [ -n "$value" ] || { echo "packaging/release/app.conf does not set $name" >&2; exit 1; }
 done
@@ -61,6 +59,8 @@ case "$root" in
         fi ;;
 esac
 appdir=$stage_base/AppDir
+tools_dir=${RECOMP_APPIMAGE_TOOLS:-"${XDG_CACHE_HOME:-$HOME/.cache}/recomp-appimage-tools"}
+
 cleanup() {
     case "$stage_base" in
         /tmp/"$PAYLOAD_DIR"-appimage.*) rm -rf -- "$stage_base" ;;
@@ -87,6 +87,11 @@ fi
     { echo "missing generated dispatch source" >&2; exit 1; }
 
 fw=$root/$FRAMEWORK_DIR
+# Shared release staging surface: tag derivation, cache selection, toolchain
+# staging, and mod catalog checks live in psxrecomp, not this title packager.
+# shellcheck source=/dev/null
+. "$fw/tools/release_overlay_stage.sh"
+psx_release_stage_init "$fw"
 generator=Ninja
 command -v ninja >/dev/null 2>&1 || generator="Unix Makefiles"
 bios_build=${PSXRECOMP_BIOS_BUILD:-recompiler/build-linux}
@@ -131,21 +136,14 @@ echo "Verified $static_count static shards in the Linux build graph"
 player_toml=$root/packaging/release/game.toml
 game_id=$(sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
     "$player_toml" | head -1)
-cg_tag=$(python3 - "$fw/tools/compile_overlays.py" "$fw/runtime/include" \
-                   "$recompiler_bin" "$player_toml" <<'PY'
-import importlib.util, os, sys
-module_path, includes, recompiler, game_toml = sys.argv[1:5]
-spec = importlib.util.spec_from_file_location("compile_overlays", module_path)
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-print("cg%d_%08x_gc%08x" % (
-    module.codegen_ver(includes),
-    module.codegen_hash(includes),
-    module.overlay_config_hash(os.path.abspath(recompiler), os.path.abspath(game_toml))))
-PY
-)
-echo "game=$game_id codegen_tag=$cg_tag"
-
+cg_tag=$(psx_overlay_cg_tag \
+    --runtime-include "$fw/runtime/include" \
+    --recompiler "$recompiler_bin" \
+    --game-toml "$player_toml" \
+    --flavor-from-build "$build_dir" \
+    --runtime-target psx-runtime)
+[ -n "$cg_tag" ] || { echo "could not compute codegen tag" >&2; exit 1; }
+echo "game=$game_id  codegen tag=$cg_tag"
 rm -rf -- "$appdir"
 mkdir -p "$appdir/usr/bin" "$appdir/usr/share/$PAYLOAD_DIR"
 payload=$appdir/usr/share/$PAYLOAD_DIR
@@ -158,14 +156,12 @@ chmod 0755 "$appdir/AppRun"
 install -m 0644 "$root/packaging/linux/$DESKTOP_ID.desktop" \
     "$appdir/$DESKTOP_ID.desktop"
 
-for tree in assets bios mods; do
+for tree in assets bios; do
     [ -d "$build_dir/$tree" ] || { echo "build did not stage $tree/" >&2; exit 1; }
     cp -a "$build_dir/$tree" "$payload/$tree"
 done
-rm -f "$payload/mods/state.toml"
-mod_count=$(find "$payload/mods" -name manifest.toml | wc -l)
-[ "$mod_count" -eq "$EXPECTED_MODS" ] ||
-    { echo "expected $EXPECTED_MODS mod manifests, found $mod_count" >&2; exit 1; }
+psx_add_mod_catalog --build-path "$build_dir" --stage "$payload" \
+                    --runtime-target psx-runtime
 [ -f "$payload/bios/openbios.bin" ] || { echo "bundled OpenBIOS is missing" >&2; exit 1; }
 [ -f "$payload/bios/OpenBIOS.LICENSE" ] || { echo "OpenBIOS license is missing" >&2; exit 1; }
 
@@ -173,28 +169,24 @@ mkdir -p "$payload/licenses"
 [ ! -f "$fw/runtime/licenses/libchdr-NOTICES.txt" ] ||
     cp "$fw/runtime/licenses/libchdr-NOTICES.txt" "$payload/licenses/"
 
-# Only Linux shards for this exact runtime/config tag are shippable. Windows
-# DLLs are explicitly excluded and the default release path refuses no-cache.
-cache_src=${OVERLAY_CACHE_DIR:-"$root/build-linux-cache/cache"}/$game_id
-so_count=0
-if [ -d "$cache_src" ]; then
-    so_count=$(find "$cache_src" -path "*/linux-x64/$cg_tag/*" -name '*.so' | wc -l)
-fi
-if [ "$so_count" -eq 0 ] && [ "$allow_no_cache" = 0 ]; then
-    echo "no matching Linux shards under $cache_src for $cg_tag" >&2
-    echo "run tools/build_overlay_shards.sh first" >&2
-    exit 1
-fi
-if [ "$so_count" -gt 0 ]; then
-    mkdir -p "$payload/cache/$game_id"
-    (cd "$cache_src" && find . -path "*/linux-x64/$cg_tag/*" -type f \
-        \( -name '*.so' -o -name '*.ranges' -o -name '*.resident' \) \
-        -exec cp --parents {} "$payload/cache/$game_id/" \;)
-fi
-stray_dll=$(find "$payload/cache" -name '*.dll' 2>/dev/null | wc -l)
-[ "$stray_dll" -eq 0 ] || { echo "Windows DLL leaked into Linux cache" >&2; exit 1; }
-echo "Bundled $so_count native Linux overlay shard(s)"
-
+# --- prebuilt overlay cache + overlay toolchain ---------------------------
+# The cache namespace and toolchain layout are framework-owned. The cache source
+# root is the parent of the per-game directory, matching compile_overlays.py
+# --out-dir and the Windows packager.
+cache_src_root=${OVERLAY_CACHE_DIR:-"$root/build-linux-cache/cache"}
+case "$cache_src_root" in
+    *QUARANTINE*) echo "refusing quarantined overlay cache source: $cache_src_root" >&2; exit 1 ;;
+esac
+psx_add_overlay_cache --game-id "$game_id" \
+                      --cache-src-root "$cache_src_root" \
+                      --stage "$payload" \
+                      --cg-tag "$cg_tag"
+psx_add_overlay_toolchain --stage "$payload" \
+                          --recomp-dir "$(dirname -- "$recompiler_bin")" \
+                          --recomp-tools "$fw/tools" \
+                          --recomp-include "$fw/runtime/include" \
+                          --dl-cache "$tools_dir" \
+                          --platform linux
 cp "$player_toml" "$payload/game.toml"
 cp "$root/packaging/release/input.ini" "$payload/input.ini"
 cp "$root/packaging/release/START_HERE.txt" "$payload/START_HERE.txt"
@@ -212,7 +204,6 @@ fi
     -gravity center -extent 256x256 "$appdir/$DESKTOP_ID.png"
 ln -s "$DESKTOP_ID.png" "$appdir/.DirIcon"
 
-tools_dir=${RECOMP_APPIMAGE_TOOLS:-"${XDG_CACHE_HOME:-$HOME/.cache}/recomp-appimage-tools"}
 mkdir -p "$tools_dir"
 fetch_tool() {
     url=$1 sha=$2 dest=$3
