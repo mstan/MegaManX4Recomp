@@ -5,7 +5,7 @@ native code, built with the shared **psxrecomp** framework. The end goal is a
 binary that plays without an emulator behind it, exactly like TombaRecomp,
 MegaManX5Recomp and MegaManX6Recomp. X4, X5 and X6 share the same Capcom 2D
 engine lineage, so much of the MMX5/MMX6 bring-up (DualShock-required input,
-streamed engine overlays, 2D widescreen) is expected to port across at
+asset loading, 2D widescreen) is expected to port across at
 different addresses.
 
 ## Inheritance

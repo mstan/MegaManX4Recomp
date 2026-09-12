@@ -9,6 +9,10 @@ way:
     git -C psxrecomp-v4 fetch && git -C psxrecomp-v4 checkout <new-sha>
     git add psxrecomp-v4 && git commit -m "bump psxrecomp-v4 to <new-sha>"
 
+Correction (2026-09-11): the historical scaffold notes below assumed that
+ARC files contained streamed game code. Original-disc/loader inspection did
+not support that claim; see [the verified inventory](DISC_INVENTORY.md).
+
 The notes below are kept only as a historical changelog of which framework
 build each MegaManX4Recomp release was cut against.
 

@@ -1,5 +1,10 @@
 # Mega Man X4 Recompiled — v0.0.2-alpha
 
+Historical coverage correction (2026-09-11): the ARC-overlay claims below were
+assumptions. Original-disc inspection found no separate game overlay; see
+[the inventory and its limits](docs/DISC_INVENTORY.md). No new release or version
+bump accompanies this correction.
+
 ## 🆕 New in v0.0.2
 
 - **Experimental Widescreen (true 16:9).** X4's opt-in wide field of view is now

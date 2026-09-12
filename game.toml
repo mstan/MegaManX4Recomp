@@ -40,13 +40,11 @@ offer_turbo_loads = false
 # fall through to LLE). Set false (or PSX_BIOS_HLE=0) to compare against the
 # authentic LLE boot.
 bios_hle = true
-# Overlay acceleration: compile dirty-RAM overlays (X4 streams its stage/engine
-# code from ARC archives — CAPCOM.ARC / COLxx_*.ARC — into RAM and executes it;
-# the overlay cache captures those dirty-RAM regions generically, same pipeline
-# as MMX6's ROCK overlay). Captures -> compile_overlays.py -> DLLs in
-# <exe>/cache/SLUS-00561/ -> loader rescans + loads. Priority: static > gcc shard
-# > tcc shard > interp. backend "auto" = gcc if a gcc toolchain is present, else
-# the bundled toolchain-free tcc.
+# Keep the generic dirty-RAM native cache and interpreter fallback available.
+# Original-disc inspection found no separate X4 game overlay; the ARC files
+# inspected are assets. See docs/DISC_INVENTORY.md for evidence and limits.
+# Priority: static > gcc shard > tcc shard > interp. Backend "auto" selects
+# an available native toolchain. Captures are private diagnostic artifacts.
 overlay_cache = true
 overlay_backend = "auto"
 # Compile RECIPE only (compiler + tool paths). The WRITE cache + READ captures are

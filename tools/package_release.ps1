@@ -219,10 +219,9 @@ disc_speed = "1x"
 turbo_loads = false
 offer_turbo_loads = false
 
-# Overlay cache: keeps converted native code for game areas in the cache folder,
-# and records newly visited areas into overlay_captures.json so your own cache
-# grows as you play. Keep that file private - it contains game code from your
-# disc (see README).
+# Generic dirty-RAM native cache and runtime compilation fallback.
+# Original-disc inspection found no separate X4 game overlay in the ARC assets.
+# See docs/DISC_INVENTORY.md in the source repository for evidence and limits.
 overlay_cache = true
 
 # HLE-accelerated boot (the validated configuration for X4 this release): kernel
@@ -416,11 +415,10 @@ by the launcher's Mods page. Fast Loading defaults off; Damage Multiplier
 defaults to 1 for normal damage. Other options such as FMV skip can be changed
 in launcher Settings or game.toml with any text editor.
 
-The cache folder contains pre-converted native code for game areas covered so
-far; those run at full speed from your first visit. As you play, newly visited
-areas are recorded into overlay_captures.json and your local cache grows
-automatically. Do NOT post overlay_captures.json publicly - it contains
-snapshots of the game's own code read from your disc. See README.md for details.
+The cache and bundled toolchain support eligible dirty-RAM native code.
+Original-disc inspection found no separate X4 game overlay in the ARC assets;
+see docs/DISC_INVENTORY.md in the source repository for evidence and limits.
+Keep overlay_captures.json private: it contains verbatim memory bytes.
 
 Keyboard and Xbox-style controller defaults are documented in README.md.
 Controller mappings are configurable in input.ini; keyboard bindings in

@@ -53,7 +53,7 @@ misbehave silently (see ISSUES.md #1).
 | Area | State |
 |---|---|
 | PS1 BIOS boot | Works (real recompiled BIOS core, HLE-accelerated boot) |
-| Disc-detect / boot | Works (loads the engine and streamed ARC overlays) |
+| Disc-detect / boot | Works (resident executable and streamed assets) |
 | Intro cinematics / FMV | Plays (X vs. Zero opening decodes) |
 | Controller | Works; digital pad (X4 predates the DualShock — see below) |
 | Title / menus / attract | Works |
@@ -95,13 +95,11 @@ These are the framework features that are already working in this build:
   one mode the game supports. Keyboard and SDL gamepads both work.
 - **Supersampling + anti-aliasing.** Internal-resolution SSAA (1×–4×) with
   optional linear present filtering for clean edges.
-- **Self-contained Windows overlay toolchain.** As you explore new areas the runtime
-  converts the game's streamed ARC overlay code to native code in the
-  background. That needs no developer tools installed — the Windows release bundles a
-  fully self-contained toolchain (embedded Python + TinyCC), so newly visited
-  areas are accelerated without a developer install. The Linux AppImage ships
-  the native Linux shards available at release time; uncovered overlays fall
-  back safely to the interpreter and are captured for a later shard build.
+- **Self-contained Windows fallback toolchain.** The runtime can convert
+  eligible dirty-RAM code using its bundled toolchain, and packaged native
+  caches remain supported. A bounded original-disc inspection found no separate
+  X4 game overlays in the ARC assets; see [the inventory](docs/DISC_INVENTORY.md).
+  This is not a claim that every runtime path has native coverage.
 - **Graphical launcher.** Pick your BIOS, disc, and memory cards; verify the
   disc; configure renderer / supersampling / controller, with live settings
   persistence — then press Launch.
@@ -266,25 +264,21 @@ X4's in-game save/load has not yet been verified end-to-end in this build (see
 ISSUES.md #3). Runtime memory-card files are local artifacts and must not be
 committed.
 
-## Help make your game faster — just by playing
+## Code coverage and private diagnostics
 
-**Why isn't the game already at full speed everywhere?** Most of X4's code is
-converted ("recompiled") into a fast native program ahead of time. But
-PlayStation games don't keep all of their code in memory at once — they stream
-extra chunks of code off the disc as you reach new areas (these chunks are
-called *overlays*; X4 streams stage and engine code from its `ARC/*.ARC`
-archives). We can't convert a chunk we've never seen, and the only way to see
-it is for someone to actually visit that area. Until then, that area's code
-runs in a slower compatibility mode.
+X4's resident executable is recompiled ahead of time. The original-disc and
+loader inspection found no separate game overlay in its ARC files; those
+inspected contain assets. See [the verified inventory and its limits](docs/DISC_INVENTORY.md).
+Earlier claims that visiting every area was required to obtain X4's stage code
+were unsupported.
 
-**Your cache grows as you play.** While you play, the runtime records newly
-visited areas into `overlay_captures.json` and converts them with the bundled
-toolchain; your own `cache` folder grows automatically and those areas run at
-full speed from then on.
+The generic native cache, runtime compilation and interpreter fallback remain
+available for eligible runtime code. A cache entry or dirty-RAM capture does not
+by itself identify a distinct on-disc overlay or guarantee native coverage.
 
-**Please do not post `overlay_captures.json` publicly.** It contains verbatim
-snapshots of the game's code read from your disc, which is copyrighted material —
-keep it on your own machine, alongside your disc image.
+Keep `overlay_captures.json` private: it contains verbatim memory bytes from
+your game and BIOS. Useful reports can describe the area, behavior and enabled
+mods without publishing those bytes.
 
 ## Replaying the Jungle widescreen regression route
 

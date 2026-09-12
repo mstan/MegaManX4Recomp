@@ -1,0 +1,1375 @@
+{
+  "schema": "psxrecomp disc inventory v1",
+  "game_id": "SLUS-00561",
+  "disc_hashes": {
+    "sha1": "26ffe24a79384b24af7571674251ee575e889b38"
+  },
+  "checks": [
+    {
+      "method": "words",
+      "file": "SLUS_005.61",
+      "base": "0x80010000",
+      "file_offset": 2048,
+      "values": {
+        "0x80010014": "0x80014140",
+        "0x80010018": "0x800142bc",
+        "0x8001001c": "0x80014514",
+        "0x80010020": "0x800141bc",
+        "0x80013614": "0x41040",
+        "0x80013618": "0x441021",
+        "0x8001361c": "0x21080",
+        "0x80013620": "0x3c03800f",
+        "0x80013624": "0x24630e18",
+        "0x80013628": "0x431021",
+        "0x8001362c": "0x8c430004",
+        "0x80013630": "0x0",
+        "0x80013634": "0xaca30000",
+        "0x80013638": "0x8c430008",
+        "0x8001363c": "0x8c420000",
+        "0x80013640": "0x3c018013",
+        "0x80013644": "0xac237cc0",
+        "0x80013648": "0x3e00008",
+        "0x8001364c": "0x0",
+        "0x80013e74": "0x3c058001",
+        "0x80013e78": "0x24a50014",
+        "0x80013e7c": "0x8ca20000",
+        "0x80013e80": "0x8ca30004",
+        "0x80013e84": "0x8ca40008",
+        "0x80013e88": "0xafa20010",
+        "0x80013e8c": "0xafa30014",
+        "0x80013e90": "0xafa40018",
+        "0x80013e94": "0x8ca2000c",
+        "0x80013e98": "0x0",
+        "0x80013e9c": "0xafa2001c",
+        "0x80013f4c": "0x3c048013",
+        "0x80013f50": "0x8c847cd0",
+        "0x80013f54": "0xc039856",
+        "0x80013f58": "0x24050200",
+        "0x80013f5c": "0x3c038013",
+        "0x80013f60": "0x8c637cd0",
+        "0x80013f64": "0x0",
+        "0x80013f68": "0x24620004",
+        "0x80013f6c": "0x3c018013",
+        "0x80013f70": "0xac227cd0",
+        "0x80013f74": "0x8c640000",
+        "0x80013f78": "0x24620008",
+        "0x80013f7c": "0x3c018013",
+        "0x80013f80": "0xac227cd0",
+        "0x80013f84": "0x3c018013",
+        "0x80013f88": "0xac247cdc",
+        "0x80013f8c": "0x8c640004",
+        "0x80013f90": "0x2462000c",
+        "0x80013f94": "0x3c018013",
+        "0x80013f98": "0xac227cd0",
+        "0x80013f9c": "0x3c018013",
+        "0x80013fa0": "0xac247cc8",
+        "0x80013fa4": "0x8c640008",
+        "0x80013fa8": "0x24620010",
+        "0x80013fac": "0x3c018013",
+        "0x80013fb0": "0xac227cd0",
+        "0x80013fb4": "0x3c018013",
+        "0x80013fb8": "0xac247cd4",
+        "0x80013fbc": "0x8c65000c",
+        "0x80013fc0": "0x3c048013",
+        "0x80013fc4": "0x8c847dcc",
+        "0x80013fc8": "0x3c038013",
+        "0x80013fcc": "0x8c637cec",
+        "0x80013fd0": "0x24020001",
+        "0x80013fd4": "0x3c018013",
+        "0x80013fd8": "0xa0227ce8",
+        "0x80013fdc": "0x24630001",
+        "0x80013fe0": "0x3c018013",
+        "0x80013fe4": "0xac247dc4",
+        "0x80013fe8": "0x3c018013",
+        "0x80013fec": "0xac237cec",
+        "0x80013ff0": "0x3c018013",
+        "0x80013ff4": "0xac257cbc",
+        "0x80013ff8": "0x3c018013",
+        "0x80013ffc": "0xac257dc8",
+        "0x80014000": "0x800504b",
+        "0x80014008": "0x3c028013",
+        "0x8001400c": "0x94427cd6",
+        "0x80014010": "0x0",
+        "0x80014014": "0x21080",
+        "0x80014018": "0x501021",
+        "0x8001401c": "0x8c420000",
+        "0x80014020": "0x0",
+        "0x80014024": "0x40f809",
+        "0x80014028": "0x0",
+        "0x8001402c": "0x3c028013",
+        "0x80014030": "0x8c427cbc",
+        "0x80014034": "0x0",
+        "0x80014038": "0x14400031",
+        "0x8001403c": "0x0",
+        "0x80014040": "0x3c038013",
+        "0x80014044": "0x8c637cd4",
+        "0x80014048": "0x0",
+        "0x8001404c": "0x31402",
+        "0x80014050": "0x14400010",
+        "0x80014054": "0x31080",
+        "0x80014058": "0x3c01800f",
+        "0x8001405c": "0x220821",
+        "0x80014060": "0x8c2315bc",
+        "0x80014064": "0x3c028013",
+        "0x80014068": "0x8c427dc4",
+        "0x8001406c": "0x0",
+        "0x80014070": "0xac620000",
+        "0x80014074": "0x3c028013",
+        "0x80014078": "0x8c427dc4",
+        "0x8001407c": "0x3c038013",
+        "0x80014080": "0x8c637dc8",
+        "0x80014084": "0x0",
+        "0x80014088": "0x431021",
+        "0x8001408c": "0x3c018013",
+        "0x80014090": "0xac227dc4",
+        "0x80014094": "0x3c028013",
+        "0x800140b0": "0x24820004",
+        "0x800140b4": "0x3c018013",
+        "0x800140b8": "0xac227cd0",
+        "0x800140bc": "0x8c830000",
+        "0x800140c0": "0x24820008",
+        "0x800140c4": "0x3c018013",
+        "0x800140c8": "0xac227cd0",
+        "0x800140cc": "0x3c018013",
+        "0x800140d0": "0xac237cd4",
+        "0x800140d4": "0x8c820004",
+        "0x800140d8": "0x31c02",
+        "0x800140dc": "0x3c018013",
+        "0x800140e0": "0xac227cbc",
+        "0x800140e4": "0x14600003",
+        "0x800140e8": "0x0",
+        "0x800140ec": "0x3c018013",
+        "0x800140f0": "0xac227dc8",
+        "0x800140f4": "0x24020001",
+        "0x800140f8": "0x3c018013",
+        "0x800140fc": "0xa0227ce8",
+        "0x80014140": "0x3c028013",
+        "0x80014144": "0x90427ce8",
+        "0x80014148": "0x27bdffe8",
+        "0x8001414c": "0x10400007",
+        "0x80014150": "0xafbf0010",
+        "0x80014154": "0x3c028013",
+        "0x80014158": "0x8c427dc4",
+        "0x8001415c": "0x3c018013",
+        "0x80014160": "0xa0207ce8",
+        "0x80014164": "0x3c018013",
+        "0x80014168": "0xac227cc4",
+        "0x8001416c": "0xc004dac",
+        "0x80014170": "0x0",
+        "0x800147e4": "0x3c10800f",
+        "0x800147e8": "0x26101640",
+        "0x800147ec": "0x431021",
+        "0x800147f0": "0x21080",
+        "0x800147f4": "0x3c018013",
+        "0x800147f8": "0x220821",
+        "0x800147fc": "0x90227d05",
+        "0x80014800": "0x0",
+        "0x80014804": "0x21080",
+        "0x80014808": "0x501021",
+        "0x8001480c": "0x8c420000",
+        "0x80014810": "0x0",
+        "0x80014814": "0x40f809",
+        "0x80014818": "0x0",
+        "0x800f1640": "0x800148e4",
+        "0x800f1644": "0x800148ec",
+        "0x800f1648": "0x80014968",
+        "0x80012e58": "0x24040041",
+        "0x80012e5c": "0x3c05801f",
+        "0x80012e60": "0xc004e24",
+        "0x80012e64": "0x34a53000",
+        "0x80012e68": "0xc00531c",
+        "0x80012e6c": "0x0",
+        "0x80015c70": "0x3c108014",
+        "0x80015c74": "0x261059c8",
+        "0x80015c78": "0x3c028017",
+        "0x80015c7c": "0x80422203",
+        "0x80015c80": "0x2002821",
+        "0x80015c84": "0x3c01800f",
+        "0x80015c88": "0x220821",
+        "0x80015c8c": "0x90241654",
+        "0x80015c90": "0xc004e24",
+        "0x80015c94": "0x8821",
+        "0x80015c98": "0xc00531c",
+        "0x80015c9c": "0x0",
+        "0x80015ca0": "0x24060008",
+        "0x80015ca4": "0x8e040000",
+        "0x80015ca8": "0x3c058014",
+        "0x80015cac": "0x80a5e198",
+        "0x80015cb0": "0xc03727d",
+        "0x80015cb4": "0x902021",
+        "0x8001d300": "0x8202000c",
+        "0x8001d304": "0x3c05801f",
+        "0x8001d308": "0x3c01800f",
+        "0x8001d30c": "0x220821",
+        "0x8001d310": "0x90242180",
+        "0x8001d314": "0xc004e24",
+        "0x8001d318": "0x34a56000",
+        "0x8001d31c": "0xc00531c",
+        "0x8001d320": "0x0",
+        "0x8001d324": "0xc00878f",
+        "0x8001d328": "0x0",
+        "0x80021e3c": "0x3c02801f",
+        "0x80021e40": "0x9042604f",
+        "0x80021e44": "0x3c03801f",
+        "0x80021e48": "0x90636018",
+        "0x80021e4c": "0x3c04801f",
+        "0x80021e50": "0x90846019",
+        "0x80021e54": "0x3c018017",
+        "0x80021e58": "0xa0222203",
+        "0x80021e5c": "0x3c018017",
+        "0x80021e60": "0xa02321cc",
+        "0x80021e64": "0x3c018017",
+        "0x80021e68": "0xa02421cd",
+        "0x80021e6c": "0x3e00008",
+        "0x80021e70": "0x0",
+        "0x80015f14": "0x8c450000",
+        "0x80015f18": "0x24020003",
+        "0x80015f1c": "0x14620005",
+        "0x80015f20": "0x58502",
+        "0x80015f24": "0x3c118017",
+        "0x80015f28": "0x2631dea8",
+        "0x80015f2c": "0x80057d2",
+        "0x80015f30": "0x3c04000f",
+        "0x80015f34": "0x31b00",
+        "0x80015f38": "0x3c028017",
+        "0x80015f3c": "0x2442eea8",
+        "0x80015f40": "0x628821",
+        "0x80015f44": "0x3c04000f",
+        "0x80015f48": "0x3484ffff",
+        "0x80015f4c": "0xa42024",
+        "0x80015f50": "0xc42021",
+        "0x80015f54": "0xc005bfd",
+        "0x80015f58": "0x2202821",
+        "0x80015f64": "0x24070010",
+        "0x80015f68": "0x24060040",
+        "0x80015f6c": "0x24a40006",
+        "0x80015f70": "0x101400",
+        "0x80015f74": "0x21c03",
+        "0x80015f78": "0x28620010",
+        "0x80015f7c": "0xa4b30000",
+        "0x80015f80": "0xa492fffc",
+        "0x80015f84": "0x10400006",
+        "0x80015f88": "0xac910002",
+        "0x80015e7c": "0x8e050008",
+        "0x80015e80": "0x0",
+        "0x80015e84": "0x10a00003",
+        "0x80015e88": "0x0",
+        "0x80015e8c": "0xc03a934",
+        "0x80015e90": "0x2002021"
+      }
+    }
+  ],
+  "file_tables": [
+    {
+      "file": "SLUS_005.61",
+      "base": "0x80010000",
+      "file_offset": 2048,
+      "address": "0x800f0e18",
+      "stride": 12,
+      "lba_offset": 0,
+      "size_offset": 4,
+      "first_word_offset": 8,
+      "files": [
+        "ARC/CAPCOM.ARC",
+        "ARC/COL00_0X.ARC",
+        "ARC/COL00_0Z.ARC",
+        "ARC/COL00_1X.ARC",
+        "ARC/COL00_1Z.ARC",
+        "ARC/COL01_0X.ARC",
+        "ARC/COL01_0Z.ARC",
+        "ARC/COL01_1X.ARC",
+        "ARC/COL01_1Z.ARC",
+        "ARC/COL02_0X.ARC",
+        "ARC/COL02_0Z.ARC",
+        "ARC/COL02_1X.ARC",
+        "ARC/COL02_1Z.ARC",
+        "ARC/COL03_0X.ARC",
+        "ARC/COL03_0Z.ARC",
+        "ARC/COL03_1X.ARC",
+        "ARC/COL03_1Z.ARC",
+        "ARC/COL04_0X.ARC",
+        "ARC/COL04_0Z.ARC",
+        "ARC/COL04_1X.ARC",
+        "ARC/COL04_1Z.ARC",
+        "ARC/COL05_0X.ARC",
+        "ARC/COL05_0Z.ARC",
+        "ARC/COL05_1X.ARC",
+        "ARC/COL05_1Z.ARC",
+        "ARC/COL06_0X.ARC",
+        "ARC/COL06_0Z.ARC",
+        "ARC/COL06_1X.ARC",
+        "ARC/COL06_1Z.ARC",
+        "ARC/COL07_0X.ARC",
+        "ARC/COL07_0Z.ARC",
+        "ARC/COL07_1X.ARC",
+        "ARC/COL07_1Z.ARC",
+        "ARC/COL08_0X.ARC",
+        "ARC/COL08_0Z.ARC",
+        "ARC/COL08_1X.ARC",
+        "ARC/COL08_1Z.ARC",
+        "ARC/COL09_0X.ARC",
+        "ARC/COL09_0Z.ARC",
+        "ARC/COL0A_0X.ARC",
+        "ARC/COL0A_0Z.ARC",
+        "ARC/COL0B_0X.ARC",
+        "ARC/COL0B_0Z.ARC",
+        "ARC/COL0B_1X.ARC",
+        "ARC/COL0B_1Z.ARC",
+        "ARC/COL0C_0X.ARC",
+        "ARC/COL0C_0Z.ARC",
+        "ARC/COL0C_1X.ARC",
+        "ARC/COL0C_1Z.ARC",
+        "ARC/COL0D_0X.ARC",
+        "ARC/COL0D_0Z.ARC",
+        "ARC/COL0E_U0.ARC",
+        "ARC/COL0E_U1.ARC",
+        "ARC/COL0F_U0.ARC",
+        "ARC/COL0F_U1.ARC",
+        "ARC/COLD_1U1.ARC",
+        "ARC/COLD_1U2.ARC",
+        "ARC/COLD_1U3.ARC",
+        "ARC/COLD_1U4.ARC",
+        "ARC/COLD_1U5.ARC",
+        "ARC/COLD_1U6.ARC",
+        "ARC/COLD_1U7.ARC",
+        "ARC/COLD_1U8.ARC",
+        "ARC/FONT8X8.ARC",
+        "ARC/LOAD_U.ARC",
+        "ARC/MOJIPAT.ARC",
+        "ARC/ONPARE1.ARC",
+        "ARC/ONPARE2.ARC",
+        "ARC/ONPARE3.ARC",
+        "ARC/ONPARE4.ARC",
+        "ARC/ONPARE5.ARC",
+        "ARC/ONPARE6.ARC",
+        "ARC/ONPARE7.ARC",
+        "ARC/ONPARE8.ARC",
+        "ARC/PL00SEP.ARC",
+        "ARC/PL00_U.ARC",
+        "ARC/PL01SEP.ARC",
+        "ARC/PL01_U.ARC",
+        "ARC/PL02_U.ARC",
+        "ARC/PLDEMO.ARC",
+        "ARC/PLDEMO00.ARC",
+        "ARC/PLDEMO01.ARC",
+        "ARC/PLDEMO02.ARC",
+        "ARC/PLDEMO03.ARC",
+        "ARC/ST00_00.ARC",
+        "ARC/ST00_01.ARC",
+        "ARC/ST01_00.ARC",
+        "ARC/ST01_01.ARC",
+        "ARC/ST02_00.ARC",
+        "ARC/ST02_01.ARC",
+        "ARC/ST03_00.ARC",
+        "ARC/ST03_01.ARC",
+        "ARC/ST04_00.ARC",
+        "ARC/ST04_01.ARC",
+        "ARC/ST05_00.ARC",
+        "ARC/ST05_01.ARC",
+        "ARC/ST06_00.ARC",
+        "ARC/ST06_01.ARC",
+        "ARC/ST07_00.ARC",
+        "ARC/ST07_01.ARC",
+        "ARC/ST08_00.ARC",
+        "ARC/ST08_01.ARC",
+        "ARC/ST09_00.ARC",
+        "ARC/ST0A_00.ARC",
+        "ARC/ST0B_00.ARC",
+        "ARC/ST0B_01.ARC",
+        "ARC/ST0B_0X.ARC",
+        "ARC/ST0B_0Z.ARC",
+        "ARC/ST0C_00.ARC",
+        "ARC/ST0C_01.ARC",
+        "ARC/ST0C_U1.ARC",
+        "ARC/ST0D_0X.ARC",
+        "ARC/ST0D_0Z.ARC",
+        "ARC/ST0E_U0.ARC",
+        "ARC/ST0E_U1.ARC",
+        "ARC/ST0F_U1.ARC",
+        "ARC/ST0F_UX.ARC",
+        "ARC/ST0F_UZ.ARC",
+        "ARC/ST0_1_1.ARC",
+        "ARC/ST1_1_1.ARC",
+        "ARC/ST2_1_1.ARC",
+        "ARC/ST3_1_1.ARC",
+        "ARC/ST4_1_1.ARC",
+        "ARC/ST5_1_1.ARC",
+        "ARC/ST6_1_1.ARC",
+        "ARC/ST7_1_1.ARC",
+        "ARC/ST8_1_1.ARC",
+        "ARC/STA_0_1.ARC",
+        "ARC/STB_1_1.ARC",
+        "ARC/STC_1_1.ARC",
+        "ARC/STD_1_1U.ARC",
+        "ARC/STD_1_2U.ARC",
+        "ARC/STD_1_3U.ARC",
+        "ARC/STD_1_4U.ARC",
+        "ARC/STD_1_5U.ARC",
+        "ARC/STD_1_6U.ARC",
+        "ARC/STD_1_7U.ARC",
+        "ARC/STD_1_8U.ARC"
+      ]
+    }
+  ],
+  "group_shift": 16,
+  "expected_groups": {
+    "0": 419,
+    "1": 114,
+    "2": 79
+  },
+  "files": [
+    {
+      "file": "ARC/CAPCOM.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 2,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL00_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL00_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL00_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL00_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL01_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL01_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL01_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL01_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL02_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL02_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL02_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL02_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL03_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL03_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL03_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL03_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL04_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL04_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL04_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL04_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL05_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL05_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL05_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL05_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL06_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL06_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL06_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL06_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL07_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL07_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL07_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL07_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL08_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL08_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL08_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL08_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL09_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL09_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0A_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0A_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0B_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0B_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0B_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0B_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0C_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0C_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0C_1X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0C_1Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0D_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0D_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0E_U0.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0E_U1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0F_U0.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COL0F_U1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U2.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U3.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U4.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U5.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U6.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U7.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/COLD_1U8.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 1,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/FONT8X8.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 2,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/LOAD_U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/MOJIPAT.ARC",
+      "method": "raw_file",
+      "role": "Raw text-pattern data loaded at 0x801f3000.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/ONPARE1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE2.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE3.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE4.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE5.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE6.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE7.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ONPARE8.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/PL00SEP.ARC",
+      "method": "raw_file",
+      "role": "Raw sequence data loaded at 0x801459c8 and passed to sequence-open.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/PL00_U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 16,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/PL01SEP.ARC",
+      "method": "raw_file",
+      "role": "Raw sequence data loaded at 0x801459c8 and passed to sequence-open.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/PL01_U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 16,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/PL02_U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 16,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/PLDEMO.ARC",
+      "method": "raw_file",
+      "role": "Replay state/input data; PLDEMO00-03 selected into 0x801f6000, PLDEMO active selection not established.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/PLDEMO00.ARC",
+      "method": "raw_file",
+      "role": "Replay state/input data; PLDEMO00-03 selected into 0x801f6000, PLDEMO active selection not established.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/PLDEMO01.ARC",
+      "method": "raw_file",
+      "role": "Replay state/input data; PLDEMO00-03 selected into 0x801f6000, PLDEMO active selection not established.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/PLDEMO02.ARC",
+      "method": "raw_file",
+      "role": "Replay state/input data; PLDEMO00-03 selected into 0x801f6000, PLDEMO active selection not established.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/PLDEMO03.ARC",
+      "method": "raw_file",
+      "role": "Replay state/input data; PLDEMO00-03 selected into 0x801f6000, PLDEMO active selection not established.",
+      "inspect_mips_shapes": true
+    },
+    {
+      "file": "ARC/ST00_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST00_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST01_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST01_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST02_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST02_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST03_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST03_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST04_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST04_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST05_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST05_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST06_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST06_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST07_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 11,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST07_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST08_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 11,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST08_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST09_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0A_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0B_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 8,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0B_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0B_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0B_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0C_00.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0C_01.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0C_U1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 12,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0D_0X.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0D_0Z.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0E_U0.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 9,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0E_U1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 9,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0F_U1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0F_UX.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0F_UZ.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 10,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST0_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST1_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST2_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST3_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST4_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST5_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST6_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST7_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/ST8_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 3,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STA_0_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STB_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STC_1_1.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 4,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_1U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_2U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_3U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_4U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_5U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_6U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_7U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "ARC/STD_1_8U.ARC",
+      "method": "typed_aligned_archive",
+      "member_count": 7,
+      "role": "Typed RAM data, graphics and sound archive; see loader evidence in docs/DISC_INVENTORY.md."
+    },
+    {
+      "file": "SLUS_005.61",
+      "method": "raw_file",
+      "role": "Resident PS-X executable; existing static recompilation input."
+    },
+    {
+      "file": "STR/CAPCOM20.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/OP_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/X1_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/X2_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/X3_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/X4_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/Z1_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/Z2_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/Z3_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/Z4_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "STR/Z5_U.STR",
+      "method": "raw_file",
+      "role": "MDEC video stream."
+    },
+    {
+      "file": "SYSTEM.CNF",
+      "method": "raw_file",
+      "role": "Boot configuration."
+    },
+    {
+      "file": "XA/BGM1_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/BGM2.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/BGM3.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/BGM4.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/BGM5_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/BOSINT_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/VOICE1_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/VOICE2_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/VOICE3_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/VOICE4_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "XA/VOICE5_U.XA",
+      "method": "raw_file",
+      "role": "XA audio stream."
+    },
+    {
+      "file": "ZNULL.DAT",
+      "method": "raw_file",
+      "role": "Disc-layout filler; no loader file-table entry."
+    }
+  ]
+}

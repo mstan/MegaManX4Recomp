@@ -54,12 +54,10 @@ PS1 address space, for context:
   0x80000000-0x801FFFFF  KSEG0  cached; the 2 MB main RAM
   0xA0000000-0xA01FFFFF  KSEG1  uncached mirror of the same RAM
   0xBFC00000             BIOS ROM reset vector
-The boot EXE loads contiguously at 0x80010000. Mega Man X4 streams
-stage code/data from the disc at runtime (the ARC/*.ARC archives —
-CAPCOM.ARC / COLxx_*.ARC — loaded into RAM and executed, the dirty-RAM
-overlay analogue of X5/X6's ROCK overlay); those overlays are out of
-scope for the static EXE import and are handled by the recompiler's
-overlay cache pipeline.
+The boot EXE loads contiguously at 0x80010000. Original-disc inspection
+found no separate X4 executable overlay in ARC/*.ARC; the inspected loader
+paths handle assets. See docs/DISC_INVENTORY.md for original addresses,
+reproducible structural checks, and bounded limits.
 
 ----------------------------------------------------------------
 Project creation

@@ -29,11 +29,9 @@ Boot EXE: `SLUS_005.61` — PS-EXE header (little-endian):
 
 On-disc layout of note:
 - `SLUS_005.61` — boot EXE (the static recomp target)
-- `ARC/*.ARC` (138 archives: `CAPCOM.ARC`, `COLxx_*.ARC`, …) — streamed
-  stage/engine code + assets loaded into RAM and executed. NOTE: unlike X5/X6
-  (which use a single `ROCK_Xn.BIN`/`.DAT` overlay pair), X4 packs its streamed
-  engine/stage code into these ARC archives. The overlay-cache pipeline captures
-  the resulting dirty-RAM regions generically, so the same mechanism applies.
+- `ARC/*.ARC` — 130 typed asset containers (612 members) and eight raw
+  text-pattern, sequence and replay files. The original-disc inspection found
+  no separate executable game overlay; see [loader evidence and limits](docs/DISC_INVENTORY.md).
 - `STR/*.STR` — MDEC movies (`CAPCOM20.STR`, `OP_U.STR`, `X1_U..X4_U.STR`,
   `Z1_U..Z5_U.STR`)
 - `XA/*.XA` — streamed audio (`BGM1_U..BGM5_U.XA`, `BOSINT_U.XA`,
