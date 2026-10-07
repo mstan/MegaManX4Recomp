@@ -27,7 +27,8 @@ set(GAME_GENERATED_DISPATCH
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_005.61_dispatch.c")
 
 file(GLOB MMX4_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
 
 # X4's game-owned, default-off mod catalog. Package manifests contain metadata
 # and guarded writes only; the trusted plugin implementations are compiled in

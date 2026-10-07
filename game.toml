@@ -14,7 +14,8 @@ out_dir = "generated"
 # Relative forward-slash form works from Windows, WSL, and native Linux.
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
 strict = true
-mod_function_entry_funcs = ["0x8002DE30"]
+mod_function_entry_funcs = ["0x8002DE30", "0x80023D68", "0x80024334", "0x800E4DB0"]
+mod_instruction_sites = ["0x80023D88", "0x80026698"]
 
 [[recompiler.patch]]
 id = "damage-multiplier-host-value"

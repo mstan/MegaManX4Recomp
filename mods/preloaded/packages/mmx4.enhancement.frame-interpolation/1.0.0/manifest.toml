@@ -1,9 +1,9 @@
 format_version = 5
 id = "mmx4.enhancement.frame-interpolation"
 version = "1.0.0"
-name = "Mega Man X4 Interpolated Frames"
+name = "Mega Man X4 Native Scene Interpolation"
 author = "mstan"
-description = "Presents blended intermediate frames above the game's stock output. Game logic, timers, and audio remain at their original cadence."
+description = "Redraws intermediate actor and background positions. Game logic, timers, and audio remain at their original cadence."
 resolver = "declarative"
 save_compatibility = "shared"
 
@@ -13,8 +13,8 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 
 [[feature]]
 id = "frame-interpolation"
-name = "Interpolated Frames"
-description = "Blend between completed game frames at the selected output rate. Presentation only: gameplay and audio do not run faster."
+name = "Native Scene Interpolation"
+description = "Redraw actors and scrolling layers at intermediate positions. HUD and sprite animation retain their authored frames. Gameplay and audio keep their original timing."
 group = "Display"
 default_enabled = false
 
