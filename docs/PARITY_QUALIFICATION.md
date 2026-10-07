@@ -185,3 +185,28 @@ accepts a validated native Linux payload and binds the ELF after linuxdeploy.
 Both final candidates need execution identity, native coverage/catalog checks,
 package hashes, no retail BIOS/disc/player-save payload, and owner playtest.
 No public push, merge or release is authorized by this source milestone.
+
+## First Windows owner-review candidate
+
+The ENHANCED runtime built from title `fcf5c2b`, framework `e5e2dca8` and
+recomp-ui `03d58aa0`. Fresh code emission produced 148 game translation units;
+the 364-task runtime build succeeded. The final executable is
+`build-campaign-enhanced/MegaManX4Recomp.exe`, SHA-256
+`7ea92438728cfe60ffaa0af28d95c38bdd6a60327dac910e6299797ba97230db`.
+Its imports are Windows system libraries. Shared execution identity is
+`884e397b56709c15cef68ebbfe1ff46ee01aa3a21941cd7717f1ff12f77ea3be`;
+there is no title HLE implementation family.
+
+The private historical BIOS capture was freshly compiled into one native pair
+with 51 functions under `cg18_d1867bb4_gc42f74d69_f0`; no shard failed. This is
+not an original-disc all-game overlay inventory. The reviewed game executable
+already compiles the main game text. Local review configuration names the
+current emitter/compiler explicitly for remaining captures, with two workers;
+the canonical overlay config hash is unchanged by those local tool paths.
+
+Owner launcher: `F:/Projects/psxrecomp/parity-review-20261006/Play-MMX4.ps1`.
+It checks the executable receipt and uses private cards and debug port 4693.
+Check X/Zero intro, sprites/backgrounds, dialogue, 16:9, pause and boss doors or
+death/retry. No new gameplay smoke test ran, per the owner's lighter first-pass
+direction. Native interpolation, 32:9, loading HLE, Linux artifacts and final
+owner acceptance remain open.
