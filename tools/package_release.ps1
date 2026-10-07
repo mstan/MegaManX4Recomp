@@ -1,6 +1,6 @@
 param(
     [string]$Version = "v0.0.5-alpha",
-    [string]$BuildDir = "build-release",
+    [string]$BuildDir = "",
     # Where your accumulated overlay cache lives (the dir compile_overlays.py
     # writes to, per game.toml overlay_autocompile_cmd --out-dir). Bundled as a
     # head start; optional. X4's cache lives at build-release/cache/SLUS-00561.
@@ -10,7 +10,11 @@ param(
     # against exactly the pinned commit when the main checkout is on another
     # branch (e.g. -FrameworkRoot F:/Projects/psxrecomp/_wt-fw-master).
     [string]$FrameworkRoot = "",
-    [switch]$SkipRegen
+    [switch]$SkipRegen,
+    [ValidateSet('ENHANCED', 'REFERENCE')]
+    [string]$ExecutionProfile = 'ENHANCED',
+    [ValidateRange(1, 256)]
+    [int]$Jobs = 2
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,11 +26,17 @@ if ([string]::IsNullOrWhiteSpace($FrameworkRoot)) {
 $FrameworkRoot = (Resolve-Path $FrameworkRoot).Path
 $FrameworkRootCMake = $FrameworkRoot.Replace('\', '/')
 Write-Host "Framework root: $FrameworkRoot"
-$BuildPath = Join-Path $Root $BuildDir
+if (-not $BuildDir) { $BuildDir = "build-release-" + $ExecutionProfile.ToLowerInvariant() }
+$BuildPath = if ([IO.Path]::IsPathRooted($BuildDir)) { $BuildDir } else { Join-Path $Root $BuildDir }
 $StageRoot = Join-Path $Root "release-stage"
 $Stage = Join-Path $StageRoot "MegaManX4Recomp-windows-x64"
 $ZipPath = Join-Path $Root ("MegaManX4Recomp-{0}-windows-x64.zip" -f $Version)
 $MingwBin = "C:\msys64\mingw64\bin"
+$CMake = Join-Path $MingwBin 'cmake.exe'
+$Ninja = Join-Path $MingwBin 'ninja.exe'
+foreach ($tool in @($CMake, $Ninja)) {
+    if (-not (Test-Path -LiteralPath $tool)) { throw "Missing native build tool: $tool" }
+}
 
 $env:PATH = "$MingwBin;$env:PATH"
 
@@ -105,7 +115,7 @@ function Ensure-BiosBackends {
 # worktree), NOT the master ..\psxrecomp checkout. All framework paths go
 # through the junction at $Root so this game's framework pin is honored.
 $RecompDir = Resolve-Path (Join-Path $FrameworkRoot "recompiler\build")
-Invoke-Native { cmake --build $RecompDir --target psxrecomp-game -j $env:NUMBER_OF_PROCESSORS } "recompiler build"
+Invoke-Native { & $CMake --build $RecompDir --target psxrecomp-game --parallel $Jobs } "recompiler build"
 Ensure-BiosBackends -FrameworkRoot $FrameworkRoot
 if (-not $SkipRegen) {
     & (Join-Path $RecompDir "psxrecomp-game.exe") --config (Join-Path $Root "game.toml")
@@ -114,11 +124,22 @@ if (-not $SkipRegen) {
     Write-Host "Skipping game C regeneration; packaging the existing generated sources"
 }
 
-Invoke-Native { cmake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release -DPSX_DEBUG_TOOLS=OFF -DPSXRECOMP_ROOT="$FrameworkRootCMake" } "cmake configure"
-Invoke-Native { cmake --build $BuildPath -j $env:NUMBER_OF_PROCESSORS } "cmake build"
+Invoke-Native {
+    & $CMake -S $Root -B $BuildPath -G Ninja -DCMAKE_BUILD_TYPE=Release `
+        -DPSX_DEBUG_TOOLS=OFF "-DPSX_EXECUTION_PROFILE=$ExecutionProfile" `
+        "-DCMAKE_MAKE_PROGRAM=$Ninja" "-DPSXRECOMP_V4_ROOT=$FrameworkRootCMake" `
+        "-DPSXRECOMP_ROOT=$FrameworkRootCMake"
+} "cmake configure"
+Invoke-Native { & $CMake --build $BuildPath --parallel $Jobs } "cmake build"
 
 if (Test-Path $StageRoot) {
-    Remove-Item -Recurse -Force $StageRoot
+    $ResolvedStageRoot = [IO.Path]::GetFullPath($StageRoot)
+    $ExpectedStageRoot = [IO.Path]::GetFullPath((Join-Path $Root 'release-stage'))
+    if ($ResolvedStageRoot -ne $ExpectedStageRoot -or
+        (Get-Item -LiteralPath $StageRoot).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
+        throw "Refusing unsafe release-stage cleanup: $ResolvedStageRoot"
+    }
+    Remove-Item -LiteralPath $ResolvedStageRoot -Recurse -Force
 }
 New-Item -ItemType Directory -Force $Stage | Out-Null
 New-Item -ItemType Directory -Force (Join-Path $Stage "saves") | Out-Null
@@ -185,111 +206,10 @@ Add-ModCatalog -BuildPath $BuildPath -Stage $Stage `
                -GameModSource (Join-Path $Root "mods\preloaded") `
                -FrameworkModSource (Join-Path $FrameworkRoot "mods\builtin") | Out-Null
 
-# Player-facing game.toml: same effective runtime settings as the dev config,
-# minus dev-only sections ([recompiler] inputs beyond the required block, the
-# gcc overlay-autocompile command, and the [audit] block). overlay_backend is
-# left at the default "auto": with no gcc toolchain on a player box it resolves
-# to tcc, which fills overlay gaps via the bundled overlay_toolchain/ (no system
-# python or gcc needed). Players can edit [runtime]/[video] post-install.
-@"
-[game]
-name = "Mega Man X4"
-id = "SLUS-00561"
-exe = "mmx4/SLUS_005.61"
-disc = "mmx4/Mega Man X4.cue"
-load_address = "0x80010000"
-entry_pc = "0x800DAE8C"
-text_size = "0x0011F800"
-stack_base = "0x801FFFF0"
-
-# Required block; used only by the developer recompiler tool, not at runtime.
-[recompiler]
-seeds = "seeds/ghidra_funcs.txt"
-out_dir = "generated"
-
-# ---- Player-adjustable options ------------------------------------------
-# Edit, save, and restart MegaManX4Recomp.exe to apply.
-[runtime]
-window_title = "Mega Man X4 Recompiled"
-memcard_dir = "saves"
-
-# Authentic loading baseline. The built-in Fast Loading mod owns the mutually
-# exclusive host-pacing and experimental guest-visible CD-speed choices.
-disc_speed = "1x"
-turbo_loads = false
-offer_turbo_loads = false
-
-# Generic dirty-RAM native cache and runtime compilation fallback.
-# Original-disc inspection found no separate X4 game overlay in the ARC assets.
-# See docs/DISC_INVENTORY.md in the source repository for evidence and limits.
-overlay_cache = true
-
-# HLE-accelerated boot (the validated configuration for X4 this release): kernel
-# services are served host-side and the BIOS shell is skipped, booting straight
-# into the game; everything else still runs the real recompiled BIOS. Set false
-# to boot the authentic full BIOS sequence instead (unvalidated for X4).
-bios_hle = true
-
-# Host audio cushion. X4 opts into a shorter buffer than the framework's
-# conservative cross-game default to reduce audible input-to-sound delay.
-[audio]
-buffer_ms = 60
-
-# ---- Visual quality -----------------------------------------------------
-[video]
-# supersampling: render at this multiple of native resolution and downsample,
-# for higher detail and anti-aliased edges. 1 = native PSX look, 2 = recommended,
-# 3-4 = sharper (needs a faster CPU to hold full speed).
-supersampling = 2
-# antialiasing: smooth (linear) scaling to the window. false = sharp pixels.
-antialiasing  = true
-# texture_filtering: "nearest" = native PSX look; "bilinear" = smooths textures.
-texture_filtering = "nearest"
-# renderer: "opengl" = hardware GPU renderer (this release's default, full-rate
-# presentation). "software" = CPU renderer, selectable in the launcher
-# (Settings -> Renderer) for anyone who prefers it.
-renderer = "opengl"
-# auto_skip_fmv: skip full-motion videos (the X vs. Zero opening cinematics).
-# Off by default so you see the intro. When on, a video is skipped the instant
-# it starts. Toggleable in the launcher (Settings -> "Skip FMVs").
-auto_skip_fmv = false
-# X4 owns presentation-only interpolation through its built-in mod. Hide the
-# duplicate generic Settings row and ignore stale values from older builds.
-offer_frame_interpolation = false
-# aspect_ratio: "4:3" (native). Enable the default-off Widescreen mod to opt
-# into true 16:9 (see [widescreen] below).
-aspect_ratio = "4:3"
-
-# ---- Controller ---------------------------------------------------------
-# X4 predates the DualShock and its pad driver REJECTS analog pads (with one
-# presented, the title screen ignores Start entirely) - exactly like the real
-# console. The runtime therefore presents the plain digital pad X4 expects;
-# lock_mode hides the launcher's pad-mode selector because there is exactly one
-# mode the game supports. deadzone: stick dead-band for stick->d-pad mapping
-# (0..32767; 6553 = 20%), adjustable in the launcher.
-[controller]
-default_mode = "digital"
-deadzone = 6553
-allow_hybrid = false
-lock_mode = true
-
-# ---- Widescreen (EXPERIMENTAL) ------------------------------------------
-# X4 offers an experimental default-off 16:9 mod. The exact validated hook
-# config is spliced from the dev game.toml below so the shipped config can never
-# drift from what was built and tested. All hooks are identity at 4:3.
-"@ | Set-Content -Encoding ASCII (Join-Path $Stage "game.toml")
-
-# Splice the real, validated [widescreen]* sections (offer=false + bg2d/cull/HUD
-# hooks) straight from the dev game.toml -- single source of truth, no drift.
-$realToml = Get-Content (Join-Path $Root "game.toml") -Raw
-$wsStart  = $realToml.IndexOf("[widescreen]")
-$wsEnd    = $realToml.IndexOf("[controller]", $wsStart)
-if ($wsStart -lt 0 -or $wsEnd -lt 0) { throw "Could not locate [widescreen]..[controller] in game.toml to splice" }
-$wsBlock  = $realToml.Substring($wsStart, $wsEnd - $wsStart).TrimEnd()
-Add-Content -Encoding ASCII (Join-Path $Stage "game.toml") $wsBlock
-if (-not (Select-String -Path (Join-Path $Stage "game.toml") -Pattern '^offer\s*=\s*false' -Quiet)) {
-    throw "Shipped game.toml is missing 'offer = false' after widescreen splice"
-}
+# One portable player configuration for Windows and Linux. The config fixture
+# checks every widescreen address/layout against the development config.
+Copy-Item -LiteralPath (Join-Path $Root 'packaging/release/game.toml') `
+          -Destination (Join-Path $Stage 'game.toml') -Force
 
 # Prebuilt overlay cache + self-contained overlay toolchain, both staged by the
 # shared framework implementation. The cache-required decision is read from the
@@ -432,6 +352,11 @@ ISSUES.md #3).
 if (Test-Path $ZipPath) {
     Remove-Item -Force $ZipPath
 }
+# Bind the build contract to the final renamed executable before compression.
+$ExecutionManifest = Join-Path $BuildPath `
+    ([IO.Path]::GetFileNameWithoutExtension($DevExe) + '.execution.json')
+Invoke-PsxReleaseStage -StageArgs @('stage-execution', '--binary',
+    (Join-Path $Stage 'MegaManX4Recomp.exe'), '--manifest', $ExecutionManifest) | Out-Null
 Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $ZipPath -Force
 
 Write-Host "Wrote $ZipPath"

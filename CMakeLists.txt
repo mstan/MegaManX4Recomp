@@ -58,6 +58,12 @@ psxrecomp_v4_add_runtime_target(psx-runtime
 )
 
 if(BUILD_TESTING)
+    find_package(Python3 3.11 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME mmx4_release_config_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_release_config.py")
+    endif()
     add_executable(mmx4_preloaded_mods_test
         tests/test_preloaded_mods.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
@@ -68,6 +74,7 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/include"
         "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11"
     )
+    psxrecomp_sha256_file(mmx4_preloaded_mods_test)
     add_test(
         NAME mmx4_preloaded_mods_test
         COMMAND "$<TARGET_FILE:mmx4_preloaded_mods_test>"

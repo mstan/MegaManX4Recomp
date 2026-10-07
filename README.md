@@ -212,11 +212,22 @@ underlying defaults live in `game.toml`:
 - `[runtime]` — authentic `disc_speed`/`turbo_loads` baselines, `bios_hle`,
   `overlay_cache`.
 
+New settings default to OpenGL with a 1080p internal-resolution target. Existing
+player resolution choices remain authoritative. Windows and Linux package the
+same portable player config from `packaging/release/game.toml`.
+
 Widescreen and temporal frame blending are game-owned features on the Mods
 page rather than duplicate generic Settings controls. The same page contains
 Fast Loading and Damage Multiplier. Loading and display mods default off;
 damage enforcement defaults to integer value 1 so save states cannot preserve
 stale cheat code.
+
+Campaign source preparation selects the shared `ENHANCED` execution profile by
+default; configure `-DPSX_EXECUTION_PROFILE=REFERENCE` in a separate build directory
+for the maintained reference. No title-owned HLE family is registered yet, and
+frame blending does not satisfy native scene interpolation. The remaining caller,
+view, build and package gates are recorded in
+[the qualification queue](docs/PARITY_QUALIFICATION.md).
 
 ## Controls
 

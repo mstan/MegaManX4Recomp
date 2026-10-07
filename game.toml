@@ -75,6 +75,8 @@ offer_frame_interpolation = false
 # Renderer default: OpenGL (hardware) — full-rate presentation on the current
 # framework. The launcher's Renderer setting still offers Software.
 renderer = "opengl"
+internal_resolution = "1080p"
+resolution_reference_lines = 240
 
 # Widescreen is a default-off built-in mod and still defaults to 4:3. full_2d
 # enables native-wide presentation; the hooks below widen the scene. The game
