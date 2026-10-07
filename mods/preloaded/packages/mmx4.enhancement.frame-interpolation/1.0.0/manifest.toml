@@ -16,7 +16,7 @@ id = "frame-interpolation"
 name = "Native Scene Interpolation"
 description = "Redraw actors and scrolling layers at intermediate positions. HUD and sprite animation retain their authored frames. Gameplay and audio keep their original timing."
 group = "Display"
-default_enabled = true
+default_enabled = false
 
 [[option]]
 feature = "frame-interpolation"
