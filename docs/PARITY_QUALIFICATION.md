@@ -3,7 +3,11 @@
 Source branch: `campaign/mmx4-parity-hle-20261006`, based on `51f5f44`.
 Owner `master` remains at `74aa7e8`; the candidate retains the six newer commits
 already present in `origin/master`. Framework pin:
-`8f95b599997399a476062e99634ddbb67e5c8731` (CODEGEN 18, emitter `18d1867bb4`).
+`e5e2dca85c2e7c1758c6de27870599103a1f8bfc` (CODEGEN 18, emitter `18d1867bb4`).
+First-review integration uses the common UI pin `03d58aa0`. The resumed owner
+instruction defers the broad matrix below: build ENHANCED and its native cache,
+then check the intro, X/Zero movement, scrolling edges/HUD, pause, stage entry
+and death/retry. Native interpolation and new loading HLE are still absent.
 Central tracking: `beads-eio.9.2`, beneath X4/System PlayStation.
 
 This is a source milestone. No compiler, game, disc hash, download, AOT generation
