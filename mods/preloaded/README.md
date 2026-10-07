@@ -9,3 +9,7 @@ All features are disabled by default. They target the verified USA
 SLUS-00561 MODE2/2352 data-track BIN documented in `DISC.md`.
 Package archives contain metadata and guarded declarative writes only; trusted
 native implementations are compiled into MegaManX4Recomp.
+
+Generic host pacing and CD Speed are excluded. The old title-named Fast Loading
+wrapper is parked under `mods/development`; it was not a game-specific loader.
+A verified title loading implementation remains campaign work.

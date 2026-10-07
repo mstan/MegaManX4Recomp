@@ -5,6 +5,7 @@ name = "Mega Man X4 Fast Loading"
 author = "mstan"
 description = "Optional loading acceleration with mutually exclusive host-safe and experimental CD-timing modes."
 resolver = "declarative"
+channel = "developer"
 save_compatibility = "shared"
 
 [[target]]
@@ -17,6 +18,7 @@ name = "Fast Loading"
 description = "Disabled by default. Host modes preserve every guest frame and CD interrupt. Disc modes change emulated CD timing and may break loads, audio, or game logic."
 group = "Quality of Life"
 default_enabled = false
+hidden = true
 
 [[option]]
 feature = "fast-loading"

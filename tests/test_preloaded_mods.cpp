@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 4) return fail("expected four package manifests");
+    if (manifest_count != 3) return fail("expected three package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -64,8 +64,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 4)
-        return fail("expected four package families");
+    if (manager.packages().size() != 3)
+        return fail("expected three package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
@@ -98,30 +98,12 @@ int main(int argc, char** argv) {
             "mmx4.cheat.damage-multiplier", "damage-multiplier", false, &error)) {
         return fail(error);
     }
-    if (!manager.set_feature_enabled(
+    if (manager.set_feature_enabled(
             "mmx4.enhancement.fast-loading", "fast-loading", true, &error)) {
-        return fail(error);
+        return fail("retired generic loading wrapper unexpectedly selectable");
     }
-    for (const char* mode : {
-             "host-2x", "host-4x", "host-8x", "host-16x",
-             "host-uncapped", "disc-2x", "disc-4x", "disc-instant"}) {
-        if (!manager.set_feature_option(
-                "mmx4.enhancement.fast-loading", "fast-loading",
-                "mode", mode, &error)) {
-            return fail(error);
-        }
-        const auto loading_plan =
-            manager.resolve(kGameId, "", kDiscSha256);
-        if (!loading_plan.ok || !loading_plan.writes.empty() ||
-            loading_plan.plugins.size() != 1 ||
-            loading_plan.plugins.front().id != "mmx4.fast-loading") {
-            return fail(std::string("wrong fast-loading plugin for ") + mode);
-        }
-    }
-
+    error.clear();
     if (!manager.set_feature_enabled(
-            "mmx4.enhancement.fast-loading", "fast-loading", false, &error) ||
-        !manager.set_feature_enabled(
             "mmx4.enhancement.widescreen", "widescreen", true, &error)) {
         return fail(error);
     }
@@ -156,7 +138,7 @@ int main(int argc, char** argv) {
 
     fs::remove_all(root, ec);
     std::cout << "Mega Man X4 preloaded mods: default integer damage 1, "
-                 "default-off unified loading modes, validated 16:9, and five "
+                 "generic loading wrapper absent, validated 16:9, and five "
                  "fixed presentation rates plus display refresh\n";
     return 0;
 }
