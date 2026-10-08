@@ -9,7 +9,7 @@ text_size = "0x0011F800"
 stack_base = "0x801FFFF0"
 
 [recompiler]
-mod_function_entry_funcs = ["0x8002DE30", "0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158"]
+mod_function_entry_funcs = ["0x8002DE30", "0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158", "0x80026AA0", "0x80026894", "0x80024334", "0x80024920", "0x80024B9C", "0x80024260", "0x8002B1E8", "0x8002B318", "0x8002B288", "0x8002B3C0", "0x8002B160", "0x80028E24", "0x800293E8"]
 mod_instruction_sites = []
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
@@ -51,41 +51,18 @@ deadzone = 6553
 allow_hybrid = false
 lock_mode = true
 
+# Modern authored-map renderer: the original21x16 tile ring stays unchanged.
 [widescreen]
 offer = false
 full_2d = true
+ultrawide = true
 nw_left_hud_packet_lo = "0x80139800"
 nw_left_hud_packet_hi = "0x8013a000"
 
+# Primitive clipping is shared; actor bounds use original title callbacks.
 [widescreen.cull]
 auto_screen_x = true
 screen_h_imms = ["0xf0"]
-bias_sites = [
-  "0x8002b17c", "0x8002b1bc",
-  "0x8002b2a8", "0x8002b2e8",
-  "0x8002b3e0", "0x8002b420",
-]
-range_sites = [
-  "0x8002b1c4",
-  "0x8002b2f0",
-  "0x8002b428",
-]
-a1_sites = [
-  "0x8002b1ec",
-  "0x8002b320",
-]
 
-[widescreen.bg2d]
-count_site = "0x80026c98"
-startcol_site = "0x80026b20"
-startx_site = "0x80026b10"
-stream_left_site = "0x800272d0"
-stream_right_site = "0x800272e4"
-layer_base = "0x801419b0"
-ring_base = "0x801441c8"
-map_size_addr = "0x80172224"
-layer_stride_addr = "0x8013bd48"
-ring_cols = 32
-layer_count = 3
-layer_struct_stride = 84
-packet_cap = 1000
+# The retired widescreen.bg2d producer/ring widening path is unavailable.
+# The controller remains locked to the original digital protocol.
