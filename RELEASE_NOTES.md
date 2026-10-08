@@ -1,4 +1,18 @@
-# Mega Man X4 Recompiled — v0.0.2-alpha
+# Mega Man X4 Recompiled — v0.1.0-alpha
+
+- Adaptive authored-map renderer replaces the retired fixed 16:9 tile-ring path.
+- OpenGL and 1080p internal resolution are enabled by default, with pixel-art sampling.
+- Title-specific resident ARC loading defaults on; generic CD/host timing options are retired.
+- Wider enemy activation, persistent kills at wide edges, distant destructible door hitboxes, and adaptive intro searchlights.
+- Gameplay uses the approved 2x guest CPU budget while device clocks retain their timing.
+- Bundled OpenBIOS, normal damage by default, and interpolation unavailable.
+- Windows x64 ZIP and native Linux x86_64 AppImage use the shared release staging and execution-contract checks.
+
+The owner approved the Windows gameplay candidate. Package checks cover startup,
+version, dependencies and defaults; they do not establish complete stage coverage
+or a measured correction to the historical sound-delay concern.
+
+## Historical v0.0.2-alpha notes
 
 Historical coverage correction (2026-09-11): the ARC-overlay claims below were
 assumptions. Original-disc inspection found no separate game overlay; see
