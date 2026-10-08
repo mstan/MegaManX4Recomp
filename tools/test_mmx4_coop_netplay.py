@@ -490,6 +490,18 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
     except BaseException as error:
         record.update(status="failed", success=False, error=f"{type(error).__name__}: {error}",
                       traceback=traceback.format_exc())
+        record["failure_observations"] = []
+        for peer in peers:
+            observed = dict(seat=peer.seat, running=peer.running(), log=str(peer.log))
+            if peer.running():
+                try:
+                    observed["netplay_status"] = peer.request("netplay_status", allow_error=True)
+                    observed["co_op"] = peer.observe()
+                except Exception as diagnostic_error:
+                    observed["diagnostic_error"] = str(diagnostic_error)
+            if peer.log.exists():
+                observed["log_tail"] = peer.log.read_text(errors="replace").splitlines()[-32:]
+            record["failure_observations"].append(observed)
     finally:
         for reservation in reservations:
             reservation.close()
@@ -537,7 +549,7 @@ def main() -> int:
     tag = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
     directory = (args.report_dir or args.game_root / ".cache/mmx4-coop-netplay" / tag).resolve()
     directory.mkdir(parents=True, exist_ok=False)
-    report = dict(schema=1, status="running", success=False, started_utc=tag,
+    report = dict(schema=1, status="running", success=False, started_utc=datetime.now(timezone.utc).isoformat(),
                   executable=str(args.exe), executable_sha256=sha256_file(args.exe),
                   bios=str(args.bios), bios_sha256=sha256_file(args.bios), disc=str(args.disc),
                   config=str(args.config), config_sha256=sha256_file(args.config), cases=[])
