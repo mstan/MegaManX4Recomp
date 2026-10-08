@@ -23,13 +23,27 @@ There is no runtime execution-profile selector. The generic sector view and
 resident cache live in psxrecomp; title addresses, contracts and queue policy
 remain here. Mode 2 EDC/ECC are synthetic and the guarded callback ignores them.
 
-Default review features are 1080p internal rendering, true 16:9 scene reveal,
-background streaming and resident asset loading. Existing three-layer tile-ring
-hooks refill 29 visible columns from the 32-column ring, widen object visibility
-and re-anchor the packet-specific HUD. Wider ratios are unqualified. This 2D
-sprite/tile renderer retains nearest-neighbor sampling; 3D PGXP/perspective
-texture correction is not applicable. The existing damage override stays at
-one, which preserves original damage.
+Default review features are 1080p internal rendering, adaptive scene reveal
+and resident asset loading. The old fixed-16:9 tile-ring expansion is retired
+under `development/retired-widescreen`, outside active configuration/catalog.
+Custom Renderer 1.1.0 selects Adaptive by default. Its fixed 16:9, 21:9 and
+32:9 choices use the same replacement renderer.
+
+The shared psxrecomp authored-map renderer emits original stage tiles into a
+double-buffered host DMA arena. X4 supplies its three layer layouts, native OT
+groups, integer parallax mappings and draw bounds. The original 21-column
+renderer, 32-column ring and packet capacity are unchanged. Ordinary actor
+placement and draw/lifetime bounds expand with the view; special/boss placement
+retains original policy. Screen-relative objects retain HUD tagging. The 2D
+sprite/tile renderer uses nearest sampling; 3D PGXP is not applicable.
+Damage remains one.
+
+Compiled source is `a0ed6c3`, framework `e740b81c`. Focused shared geometry and
+release-config checks passed. Bounded hidden normal New Game reached actual X
+intro-stage gameplay (state 6), generated additional stage tiles with positive
+wide reveal, served resident requests and exited cleanly with no invalid-layer
+errors. Audio/controllers were disabled; sound delay, full-stage transitions,
+wider ratios and long-play performance remain for owner review.
 
 Interpolation and generic loading source/packages are archived outside the
 compiled sources and bundled catalog. Their baseline is preserved on
