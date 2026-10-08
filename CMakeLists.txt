@@ -29,8 +29,11 @@ set(GAME_GENERATED_DISPATCH
 file(GLOB MMX4_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
+list(REMOVE_ITEM MMX4_MOD_PLUGIN_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx4_resident.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx4_resident_reference.c")
 
-# X4's game-owned, default-off mod catalog. Package manifests contain metadata
+# X4's game-owned mod catalog. Package manifests contain metadata
 # and guarded writes only; the trusted plugin implementations are compiled in
 # above.
 #
@@ -55,13 +58,18 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
     PRELOADED_MODS_DIR "${MMX4_PRELOADED_MODS}"
-    AUDIT_MOD_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/mods/development"
     # Loading policy belongs to this title; generic acceleration is retired.
     EXCLUDE_BUILTIN_MODS
         psx.enhancement.cd-speed
         psx.enhancement.fast-loading
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
+psxrecomp_add_implementation(psx-runtime
+    NAME resident-loading CONTRACT slus00561-arc-callback-v1
+    HLE_SOURCES src/mods/mmx4_resident.cpp
+    LLE_SOURCES src/mods/mmx4_resident_reference.c
+    CONTRACT_FILES src/mods/mmx4_resident_catalog.h
+        "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
 
 if(BUILD_TESTING)
     find_package(Python3 3.11 COMPONENTS Interpreter QUIET)
@@ -102,4 +110,10 @@ if(PSX_BUILD_COSIM)
         EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
         COSIM
     )
+    psxrecomp_add_implementation(psx-cosim
+        NAME resident-loading CONTRACT slus00561-arc-callback-v1
+        HLE_SOURCES src/mods/mmx4_resident.cpp
+        LLE_SOURCES src/mods/mmx4_resident_reference.c
+        CONTRACT_FILES src/mods/mmx4_resident_catalog.h
+            "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
 endif()

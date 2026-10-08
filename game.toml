@@ -14,8 +14,8 @@ out_dir = "generated"
 # Relative forward-slash form works from Windows, WSL, and native Linux.
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
 strict = true
-mod_function_entry_funcs = ["0x8002DE30", "0x80023D68", "0x80024334", "0x800E4DB0"]
-mod_instruction_sites = ["0x80023D88", "0x80026698"]
+mod_function_entry_funcs = ["0x8002DE30", "0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158"]
+mod_instruction_sites = []
 
 [[recompiler.patch]]
 id = "damage-multiplier-host-value"
@@ -28,10 +28,7 @@ note = "Use the trusted damage hook's pre-scaled value from t8; multiplier 1 is 
 debug_port = 4525
 window_title = "MegaManX4Recomp"
 memcard_dir = "saves"
-# Authentic loading baseline. The built-in Fast Loading mod owns the mutually
-# exclusive host-pacing and experimental guest-visible CD-speed choices.
-# Keeping both runtime controls disabled here makes the mod default off and
-# prevents stale generic launcher settings from applying behind its back.
+# Title-owned resident ARC loading; drive and host timing stay authentic.
 disc_speed        = "1x"
 turbo_loads       = false
 offer_turbo_loads = false
@@ -60,8 +57,7 @@ overlay_autocompile_cmd = "py -3 psxrecomp-v4/tools/compile_overlays.py --game-t
 buffer_ms = 60
 
 [video]
-# Native presentation. X4 defaults to authentic 4:3. Its default-off Widescreen
-# mod opts into the true 16:9 field of view configured below.
+# The default-on title package enables the supported 16:9 scene.
 aspect_ratio = "4:3"
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -69,8 +65,8 @@ aspect_ratio = "4:3"
 # X4 MDEC player loop is understood (X4 ships STR/CAPCOM20.STR + per-stage OP/X/Z
 # opening movies).
 auto_skip_fmv = false
-# X4 owns presentation-only interpolation through its built-in Mods catalog.
-# Hide the duplicate generic Settings control and ignore stale saved values.
+# Interpolation is archived and uncompiled for serial review.
+frame_interpolation = false
 offer_frame_interpolation = false
 
 # Renderer default: OpenGL (hardware) — full-rate presentation on the current
@@ -79,11 +75,7 @@ renderer = "opengl"
 internal_resolution = "1080p"
 resolution_reference_lines = 240
 
-# Widescreen is a default-off built-in mod and still defaults to 4:3. full_2d
-# enables native-wide presentation; the hooks below widen the scene. The game
-# remains native 4:3 unless the player enables the mod.
-# The hook path is the same pure-2D native-wide mechanism proven by MMX6.
-# All runtime helpers are identity at 4:3; codegen hooks require regeneration.
+# Title-owned widescreen includes tile-ring streaming and HUD placement.
 [widescreen]
 offer   = false
 full_2d = true
