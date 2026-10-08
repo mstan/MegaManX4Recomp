@@ -12,6 +12,11 @@ The owner approved the Windows gameplay candidate. Package checks cover startup,
 version, dependencies and defaults; they do not establish complete stage coverage
 or a measured correction to the historical sound-delay concern.
 
+Release packaging uses `tools/package_release.sh` for the Windows ZIP and
+`tools/package_native_appimage.sh` for the Linux AppImage after a production
+build. Both delegate catalog, toolchain and executable-contract gates to the
+pinned shared framework; the older standalone packagers are historical.
+
 ## Historical v0.0.2-alpha notes
 
 Historical coverage correction (2026-09-11): the ARC-overlay claims below were
