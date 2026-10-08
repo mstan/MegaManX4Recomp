@@ -81,6 +81,15 @@ add_custom_command(TARGET psx-runtime POST_BUILD
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_executable(mmx4_coop_assets_test tests/test_mmx4_coop_assets.c src/mods/mmx4_coop_assets.c)
+    target_include_directories(mmx4_coop_assets_test PRIVATE src/mods)
+    add_test(NAME mmx4_coop_assets_test COMMAND mmx4_coop_assets_test)
+    add_executable(mmx4_coop_combat_test tests/test_mmx4_coop_combat.c src/mods/mmx4_coop_combat.c)
+    target_include_directories(mmx4_coop_combat_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_combat_test COMMAND mmx4_coop_combat_test)
+    add_executable(mmx4_coop_lifecycle_test tests/test_mmx4_coop_lifecycle.c)
+    target_include_directories(mmx4_coop_lifecycle_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_lifecycle_test COMMAND mmx4_coop_lifecycle_test)
     find_package(Python3 3.11 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         add_test(NAME mmx4_release_config_test
@@ -90,14 +99,20 @@ if(BUILD_TESTING)
     add_executable(mmx4_preloaded_mods_test
         tests/test_preloaded_mods.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/disc_path.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/cue_sheet.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/crc32.c"
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c"
     )
     target_include_directories(mmx4_preloaded_mods_test PRIVATE
         "${PSXRECOMP_V4_ROOT}/runtime/include"
+        "${PSXRECOMP_V4_ROOT}/recompiler/include"
         "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11"
     )
     psxrecomp_sha256_file(mmx4_preloaded_mods_test)
+    target_link_libraries(mmx4_preloaded_mods_test PRIVATE chdr-static)
     add_test(
         NAME mmx4_preloaded_mods_test
         COMMAND "$<TARGET_FILE:mmx4_preloaded_mods_test>"

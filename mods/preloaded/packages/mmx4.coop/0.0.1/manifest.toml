@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx4.coop"
+version = "0.0.1"
+name = "X + Zero Co-op (Development)"
+author = "mstan"
+description = "Work-in-progress simultaneous X and Zero spike. Not yet qualified for gameplay."
+resolver = "declarative"
+save_compatibility = "isolated"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "coop"
+name = "X + Zero Co-op"
+description = "Development only. Two native characters. Requires OpenGL and a fresh boot."
+group = "Experimental"
+default_enabled = false
+
+[[plugin]]
+feature = "coop"
+id = "mmx4.coop"

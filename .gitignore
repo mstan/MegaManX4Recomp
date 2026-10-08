@@ -39,6 +39,9 @@
 *.lock
 *.lock~
 
+# Private QA output (may contain original game imagery)
+/.cache/
+
 # Local editor / cache files
 .vs/
 .vscode/
