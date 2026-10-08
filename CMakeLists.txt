@@ -70,6 +70,11 @@ psxrecomp_add_implementation(psx-runtime
     LLE_SOURCES src/mods/mmx4_resident_reference.c
     CONTRACT_FILES src/mods/mmx4_resident_catalog.h
         "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
+add_custom_command(TARGET psx-runtime POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
+        "$<TARGET_FILE_DIR:psx-runtime>/game.toml"
+    VERBATIM)
 
 if(BUILD_TESTING)
     find_package(Python3 3.11 COMPONENTS Interpreter QUIET)

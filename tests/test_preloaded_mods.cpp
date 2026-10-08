@@ -53,7 +53,6 @@ int main(int argc, char** argv) {
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
-             "mmx4.widescreen",
              "mmx4.widescreen"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
@@ -69,8 +68,7 @@ int main(int argc, char** argv) {
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 3 ||
-        false) {
+        default_plan.plugins.size() != 3) {
         return fail("normal-damage override was not enabled by default");
     }
 
@@ -87,7 +85,6 @@ int main(int argc, char** argv) {
     const auto damage_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!damage_plan.ok || !damage_plan.writes.empty() ||
         damage_plan.plugins.size() != 3 ||
-        false ||
         manager.feature_option_value(
             "mmx4.cheat.damage-multiplier", "damage-multiplier",
             "multiplier") != "37") {
@@ -109,8 +106,7 @@ int main(int argc, char** argv) {
     }
     const auto widescreen_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!widescreen_plan.ok || !widescreen_plan.writes.empty() ||
-        widescreen_plan.plugins.size() != 2 ||
-        false) {
+        widescreen_plan.plugins.size() != 2) {
         return fail("widescreen plugin resolution was incorrect");
     }
 
@@ -121,7 +117,6 @@ int main(int argc, char** argv) {
 
     fs::remove_all(root, ec);
     std::cout << "Mega Man X4 preloaded mods: normal damage 1, resident loading and widescreen, "
-                 "generic loading wrapper absent, validated 16:9, and five "
-                 "fixed presentation rates plus display refresh\n";
+                 "generic loading wrapper and interpolation absent\n";
     return 0;
 }

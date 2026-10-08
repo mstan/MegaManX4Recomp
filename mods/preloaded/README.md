@@ -5,7 +5,9 @@ page. The catalog owns MMX4's game-specific display enhancements as well as a
 testing cheat for reproducing late-game bug reports without repeated full
 playthroughs.
 
-All features are disabled by default. They target the verified USA
+Widescreen and resident asset loading are enabled by default. The damage
+override remains at one (original damage). Interpolation is archived and
+unavailable. These packages target the verified USA
 SLUS-00561 MODE2/2352 data-track BIN documented in `DISC.md`.
 Package archives contain metadata and guarded declarative writes only; trusted
 native implementations are compiled into MegaManX4Recomp.

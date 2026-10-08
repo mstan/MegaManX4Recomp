@@ -9,8 +9,8 @@ text_size = "0x0011F800"
 stack_base = "0x801FFFF0"
 
 [recompiler]
-mod_function_entry_funcs = ["0x8002DE30", "0x80023D68", "0x80024334", "0x800E4DB0"]
-mod_instruction_sites = ["0x80023D88", "0x80026698"]
+mod_function_entry_funcs = ["0x8002DE30", "0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158"]
+mod_instruction_sites = []
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
@@ -35,6 +35,7 @@ bios_hle = true
 buffer_ms = 60
 
 [video]
+frame_interpolation = false
 internal_resolution = "1080p"
 resolution_reference_lines = 240
 antialiasing = true
