@@ -9,8 +9,8 @@ text_size = "0x0011F800"
 stack_base = "0x801FFFF0"
 
 [recompiler]
-mod_function_entry_funcs = ["0x8002DE30", "0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158", "0x80026AA0", "0x80026894", "0x80024334", "0x80024920", "0x80024B9C", "0x80024260", "0x8002B1E8", "0x8002B318", "0x8002B288", "0x8002B3C0", "0x8002B160", "0x80028E24", "0x800293E8"]
-mod_instruction_sites = []
+mod_function_entry_funcs = ["0x8002DE30", "0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158", "0x80026AA0", "0x80026894", "0x80024334", "0x80024920", "0x80024B9C", "0x80024260", "0x8002B1E8", "0x8002B318", "0x8002B288", "0x8002B3C0", "0x8002B160", "0x80028E24", "0x800293E8", "0x80028DB4"]
+mod_instruction_sites = ["0x80029284"]
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
@@ -66,3 +66,8 @@ screen_h_imms = ["0xf0"]
 
 # The retired widescreen.bg2d producer/ring widening path is unavailable.
 # The controller remains locked to the original digital protocol.
+
+[timing]
+# Double guest CPU budget during gameplay; device/VBlank/audio time stays authentic.
+guest_cycle_scale = 2
+guest_cycle_scale_gate = [{ addr = 0x801721C0, size = 1, value = 6 }]
