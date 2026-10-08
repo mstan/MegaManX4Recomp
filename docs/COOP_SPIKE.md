@@ -39,6 +39,17 @@ enable **X + Zero Co-op (Development)**, select **OpenGL**, and start a fresh
 game. The package is disabled by default. Choose either native campaign and
 bind the second controller through the normal controller settings.
 
+The prepared Windows playtest build exposes both local controller cards.
+Development builds permit explicitly assigning the same physical controller to
+both players; normal builds retain exclusive assignments. Automatic controller
+allocation still chooses separate devices. The private `Play X4 Co-op.cmd`
+opens the launcher and uses `build-coop/playtest-saves`: card 1 holds the X
+campaign, card 2 the Zero campaign. Both generated native-format saves have all
+eight Mavericks cleared and story progress 5, immediately before the final
+stage chain. They retain base HP and do not grant optional armor/hearts/tanks.
+`tools/prepare_mmx4_playtest_save.py` recreates them in a new directory from
+the owner's original US executable and refuses to overwrite existing cards.
+
 Each player's Start opens that character's original menu. The world pauses;
 only the owner controls the open menu. A tank used there heals that owner and
 depletes the shared pool once. The native pickups contribute to the same
