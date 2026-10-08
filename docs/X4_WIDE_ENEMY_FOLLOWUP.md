@@ -14,3 +14,8 @@ Latest merged shared cycle-scale mechanism uses guest_cycle_scale=2 during main
 state6 gameplay only; CPU work is half charged while VBlank/CD/SPU keep time.
 1080p Adaptive and resident ARC loader remain enabled; interpolation stays hidden.
 Owner wide-view enemy/kill/retry/audio/performance playtest remains required.
+
+Owner accepted enemy/performance follow-up. One remaining prop repair: original
+category4/type4 handler800C081C installs the destructible doorway hitbox and HP.
+Only that verified prop type joins the extended placement/visit scan; scripted
+encounters remain on the native scanner. OpenBIOS is the current review default.

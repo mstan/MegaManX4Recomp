@@ -100,11 +100,19 @@ static int placement_index(uint32_t record,unsigned *index) {
     if(!base || record<base || ((record-base)&7u) || record-base>=PLACEMENT_COUNT*8u)return 0;
     *index=(record-base)/8u;return 1;
 }
+static int placement_is_trackable(uint32_t record) {
+    unsigned category=psx_mod_read_byte(record+3u);
+    /* Original category4/type4 handler800C081C installs the destructible
+     * door's native hitbox and health. Its artwork is already part of the
+     * authored map, so widening only its rendering leaves shots passing
+     * through until the old scan finally creates the collision actor. */
+    return category<3u || (category==4u && psx_mod_read_byte(record+1u)==4u);
+}
 static void mmx4_placement_spawned(CPUState *cpu,uint32_t address) {
     (void)address;unsigned index;
     /* Guarded original successful-allocation latch, not an allocation attempt.
      * Failed allocations must remain eligible on a later native scan. */
-    if(!placement_state || !cpu->gpr[17] || psx_mod_read_byte(cpu->gpr[19]+3u)>=3u ||
+    if(!placement_state || !cpu->gpr[17] || !placement_is_trackable(cpu->gpr[19]) ||
        !placement_index(cpu->gpr[19],&index))return;
     uint32_t p=placement_state+32u+index/8u;
     psx_mod_write_byte(p,psx_mod_read_byte(p)|(1u<<(index&7u)));
@@ -117,7 +125,7 @@ static int mmx4_extra_placement(CPUState *cpu, uint32_t address) {
      * Categories0..2 are ordinary enemy/item allocators. Scripted categories
      * remain native. Intro type31 is an authored enemy, not a script trigger. */
     uint32_t record=cpu->gpr[18];unsigned category=psx_mod_read_byte(record);
-    if (category<3u) {
+    if (placement_is_trackable(record-3u)) {
         unsigned index;
         if(placement_state && psx_mod_widescreen_x_margin()>0 && placement_index(record-3u,&index) &&
            (psx_mod_read_byte(placement_state+32u+index/8u)&(1u<<(index&7u)))) {
@@ -153,7 +161,7 @@ static void mmx4_scan_view(CPUState *cpu, uint32_t address) {
         if(psx_mod_read_byte(record+3u)==255u)break;
         int inside=psx_placement_contains(now,(int16_t)psx_mod_read_half(record+4u),
             (int16_t)psx_mod_read_half(record+6u));
-        if(inside && psx_mod_read_byte(record+3u)<3u && (psx_mod_read_byte(record)&1u))
+        if(inside && placement_is_trackable(record) && (psx_mod_read_byte(record)&1u))
             psx_mod_write_byte(p,psx_mod_read_byte(p)|mask);
         else if((psx_mod_read_byte(p)&mask) && !inside)
             psx_mod_write_byte(p,psx_mod_read_byte(p)&~mask);
