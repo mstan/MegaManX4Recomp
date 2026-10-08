@@ -2,12 +2,15 @@
 name = "Mega Man X4"
 id = "SLUS-00561"
 exe = "mmx4/SLUS_005.61"
+disc = "mmx4/Mega Man X4.cue"
 load_address = "0x80010000"
 entry_pc = "0x800DAE8C"
 text_size = "0x0011F800"
 stack_base = "0x801FFFF0"
 
 [recompiler]
+mod_function_entry_funcs = ["0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158", "0x80026AA0", "0x80026894", "0x80024334", "0x80024920", "0x80024B9C", "0x80024260", "0x8002B1E8", "0x8002B318", "0x8002B288", "0x8002B3C0", "0x8002B160", "0x80028E24", "0x800293E8", "0x80028DB4"]
+mod_instruction_sites = ["0x80029284", "0x8002DF04"]
 seeds = "seeds/ghidra_funcs.txt"
 out_dir = "generated"
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
@@ -24,14 +27,17 @@ bios_hle = true
 
 # The developer config invokes Windows Python and MinGW by absolute path.
 # A release config must not carry those paths into Linux, WSL, or Proton.
-# This AppImage instead starts with matching native Linux shards bundled in
-# cache/; unvisited overlays remain safely interpreted and captured.
+# Native caches remain supported. Original-disc inspection found no separate
+# X4 game executable overlay; see docs/DISC_INVENTORY.md. Captured dirty RAM
+# alone does not identify stage code or establish complete native coverage.
 
 [audio]
 buffer_ms = 60
 
 [video]
-supersampling = 2
+frame_interpolation = false
+internal_resolution = "1080p"
+resolution_reference_lines = 240
 antialiasing = true
 texture_filtering = "nearest"
 renderer = "opengl"
@@ -45,41 +51,23 @@ deadzone = 6553
 allow_hybrid = false
 lock_mode = true
 
+# Modern authored-map renderer: the original21x16 tile ring stays unchanged.
 [widescreen]
 offer = false
 full_2d = true
+ultrawide = true
 nw_left_hud_packet_lo = "0x80139800"
 nw_left_hud_packet_hi = "0x8013a000"
 
+# Primitive clipping is shared; actor bounds use original title callbacks.
 [widescreen.cull]
 auto_screen_x = true
 screen_h_imms = ["0xf0"]
-bias_sites = [
-  "0x8002b17c", "0x8002b1bc",
-  "0x8002b2a8", "0x8002b2e8",
-  "0x8002b3e0", "0x8002b420",
-]
-range_sites = [
-  "0x8002b1c4",
-  "0x8002b2f0",
-  "0x8002b428",
-]
-a1_sites = [
-  "0x8002b1ec",
-  "0x8002b320",
-]
 
-[widescreen.bg2d]
-count_site = "0x80026c98"
-startcol_site = "0x80026b20"
-startx_site = "0x80026b10"
-stream_left_site = "0x800272d0"
-stream_right_site = "0x800272e4"
-layer_base = "0x801419b0"
-ring_base = "0x801441c8"
-map_size_addr = "0x80172224"
-layer_stride_addr = "0x8013bd48"
-ring_cols = 32
-layer_count = 3
-layer_struct_stride = 84
-packet_cap = 1000
+# The retired widescreen.bg2d producer/ring widening path is unavailable.
+# The controller remains locked to the original digital protocol.
+
+[timing]
+# Double guest CPU budget during gameplay; device/VBlank/audio time stays authentic.
+guest_cycle_scale = 2
+guest_cycle_scale_gate = [{ addr = 0x801721C0, size = 1, value = 6 }]

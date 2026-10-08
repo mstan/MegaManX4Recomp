@@ -7,9 +7,10 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 version=""
 out_dir=""
 skip_build=0
-build_dir=${BUILD_DIR:-"$root/build-appimage"}
-cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
-jobs=${BUILD_JOBS:-$(( cores > 4 ? cores - 2 : 2 ))}
+build_dir=${BUILD_DIR:-""}
+jobs=${BUILD_JOBS:-2}
+execution_profile=ENHANCED
+framework_root=""
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -17,13 +18,20 @@ while [ "$#" -gt 0 ]; do
         --out) out_dir=$2; shift 2 ;;
         --build-dir) build_dir=$2; shift 2 ;;
         --jobs) jobs=$2; shift 2 ;;
+        --profile) execution_profile=$2; shift 2 ;;
+        --framework) framework_root=$2; shift 2 ;;
         --skip-build) skip_build=1; shift ;;
         -h|--help)
-            echo "usage: $0 [--version VERSION] [--out DIR] [--build-dir DIR] [--jobs N] [--skip-build] "
+            echo "usage: $0 [--version VERSION] [--out DIR] [--build-dir DIR] [--jobs N] [--profile ENHANCED|REFERENCE] [--framework DIR] [--skip-build] "
             exit 0 ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
 done
+case "$execution_profile" in
+    ENHANCED|REFERENCE) ;;
+    *) echo "invalid execution profile: $execution_profile" >&2; exit 2 ;;
+esac
+[ -n "$build_dir" ] || build_dir="$root/build-appimage-${execution_profile,,}"
 
 version=${version:-$(tr -d ' \t\r\n' < "$root/packaging/release/VERSION")}
 # shellcheck source=/dev/null
@@ -45,6 +53,7 @@ to_unix_path() {
 }
 out_dir=${out_dir:-"$root/release-linux"}
 out_dir=$(to_unix_path "$out_dir")
+build_dir=$(to_unix_path "$build_dir")
 mkdir -p "$out_dir"
 out_dir=$(CDPATH= cd -- "$out_dir" && pwd)
 output=$out_dir/$EXE_NAME-$version-linux-x86_64.AppImage
@@ -86,7 +95,8 @@ fi
 [ -f "$root/generated/SLUS_005.61_dispatch.c" ] ||
     { echo "missing generated dispatch source" >&2; exit 1; }
 
-fw=$root/$FRAMEWORK_DIR
+fw=$(to_unix_path "${framework_root:-$root/$FRAMEWORK_DIR}")
+fw=$(CDPATH= cd -- "$fw" && pwd)
 # Shared release staging surface: tag derivation, cache selection, toolchain
 # staging, and mod catalog checks live in psxrecomp, not this title packager.
 # shellcheck source=/dev/null
@@ -113,6 +123,9 @@ if [ "$skip_build" = 0 ]; then
 
     cmake -S "$root" -B "$build_dir" -G "$generator" \
         -DCMAKE_BUILD_TYPE=Release \
+        -DPSX_EXECUTION_PROFILE="$execution_profile" \
+        -DPSXRECOMP_V4_ROOT="$fw" -DPSXRECOMP_ROOT="$fw" \
+        -DPSX_SDL_BACKEND=SDL2 \
         -DPSX_DEBUG_TOOLS=OFF \
         -DCMAKE_EXE_LINKER_FLAGS="-Wl,--build-id=none"
     cmake --build "$build_dir" --target psx-runtime -j "$jobs"
@@ -236,6 +249,11 @@ export NO_STRIP=1
     --executable "$appdir/usr/bin/$EXE_NAME" \
     --desktop-file "$appdir/$DESKTOP_ID.desktop" \
     --icon-file "$appdir/$DESKTOP_ID.png"
+
+# linuxdeploy may rewrite the ELF; bind the final staged bytes after it returns.
+python3 "$fw/tools/release_stage.py" stage-execution \
+    --binary "$appdir/usr/bin/$EXE_NAME" \
+    --manifest "$(dirname -- "$elf")/$(basename -- "$elf").execution.json"
 
 find "$appdir" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 rm -f -- "$output"

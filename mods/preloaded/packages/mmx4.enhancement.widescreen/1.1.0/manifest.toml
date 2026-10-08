@@ -1,0 +1,48 @@
+format_version = 5
+id = "mmx4.enhancement.widescreen"
+version = "1.1.0"
+name = "Mega Man X4 Custom Renderer"
+author = "mstan"
+description = "Adaptive scene reveal from the original stage map, native parallax, room-edge framing, HUD and ordinary enemy placement."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "widescreen"
+name = "Custom Renderer"
+description = "Follow window resizing with the modern authored-map renderer and native actor reveal."
+group = "Display"
+default_enabled = true
+
+[[option]]
+feature = "widescreen"
+id = "aspect"
+label = "Aspect"
+description = "Adaptive follows the window. Fixed choices use the same custom renderer."
+group = "Display"
+type = "choice"
+default = "adaptive"
+
+[[option.choice]]
+value = "adaptive"
+label = "Adaptive"
+
+[[option.choice]]
+value = "16:9"
+label = "16:9"
+
+[[option.choice]]
+value = "21:9"
+label = "21:9"
+
+[[option.choice]]
+value = "32:9"
+label = "32:9"
+
+[[plugin]]
+feature = "widescreen"
+id = "mmx4.widescreen"

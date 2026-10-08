@@ -14,23 +14,15 @@ out_dir = "generated"
 # Relative forward-slash form works from Windows, WSL, and native Linux.
 bios_config = "psxrecomp-v4/bios/SCPH1001.toml"
 strict = true
-mod_function_entry_funcs = ["0x8002DE30"]
+mod_function_entry_funcs = ["0x80013968", "0x80013DA8", "0x800E5D40", "0x800E6158", "0x80026AA0", "0x80026894", "0x80024334", "0x80024920", "0x80024B9C", "0x80024260", "0x8002B1E8", "0x8002B318", "0x8002B288", "0x8002B3C0", "0x8002B160", "0x80028E24", "0x800293E8", "0x80028DB4", "0x800B6C9C", "0x800D4024"]
+mod_instruction_sites = ["0x80029284", "0x8002DF04"]
 
-[[recompiler.patch]]
-id = "damage-multiplier-host-value"
-address = "0x8002DEFC"
-expected = "0x90420001"
-replacement = "0x03001021"
-note = "Use the trusted damage hook's pre-scaled value from t8; multiplier 1 is stock-equivalent."
 
 [runtime]
 debug_port = 4525
 window_title = "MegaManX4Recomp"
 memcard_dir = "saves"
-# Authentic loading baseline. The built-in Fast Loading mod owns the mutually
-# exclusive host-pacing and experimental guest-visible CD-speed choices.
-# Keeping both runtime controls disabled here makes the mod default off and
-# prevents stale generic launcher settings from applying behind its back.
+# Title-owned resident ARC loading; drive and host timing stay authentic.
 disc_speed        = "1x"
 turbo_loads       = false
 offer_turbo_loads = false
@@ -40,13 +32,11 @@ offer_turbo_loads = false
 # fall through to LLE). Set false (or PSX_BIOS_HLE=0) to compare against the
 # authentic LLE boot.
 bios_hle = true
-# Overlay acceleration: compile dirty-RAM overlays (X4 streams its stage/engine
-# code from ARC archives — CAPCOM.ARC / COLxx_*.ARC — into RAM and executes it;
-# the overlay cache captures those dirty-RAM regions generically, same pipeline
-# as MMX6's ROCK overlay). Captures -> compile_overlays.py -> DLLs in
-# <exe>/cache/SLUS-00561/ -> loader rescans + loads. Priority: static > gcc shard
-# > tcc shard > interp. backend "auto" = gcc if a gcc toolchain is present, else
-# the bundled toolchain-free tcc.
+# Keep the generic dirty-RAM native cache and interpreter fallback available.
+# Original-disc inspection found no separate X4 game overlay; the ARC files
+# inspected are assets. See docs/DISC_INVENTORY.md for evidence and limits.
+# Priority: static > gcc shard > tcc shard > interp. Backend "auto" selects
+# an available native toolchain. Captures are private diagnostic artifacts.
 overlay_cache = true
 overlay_backend = "auto"
 # Compile RECIPE only (compiler + tool paths). The WRITE cache + READ captures are
@@ -61,8 +51,7 @@ overlay_autocompile_cmd = "py -3 psxrecomp-v4/tools/compile_overlays.py --game-t
 buffer_ms = 60
 
 [video]
-# Native presentation. X4 defaults to authentic 4:3. Its default-off Widescreen
-# mod opts into the true 16:9 field of view configured below.
+# The default-on Custom Renderer follows the live drawable aspect.
 aspect_ratio = "4:3"
 
 # auto_skip_fmv: auto-skip full-motion videos (XA audio + MDEC). Off for the
@@ -70,81 +59,31 @@ aspect_ratio = "4:3"
 # X4 MDEC player loop is understood (X4 ships STR/CAPCOM20.STR + per-stage OP/X/Z
 # opening movies).
 auto_skip_fmv = false
-# X4 owns presentation-only interpolation through its built-in Mods catalog.
-# Hide the duplicate generic Settings control and ignore stale saved values.
+# Interpolation is archived and uncompiled for serial review.
+frame_interpolation = false
 offer_frame_interpolation = false
 
 # Renderer default: OpenGL (hardware) — full-rate presentation on the current
 # framework. The launcher's Renderer setting still offers Software.
 renderer = "opengl"
+internal_resolution = "1080p"
+resolution_reference_lines = 240
 
-# Widescreen is a default-off built-in mod and still defaults to 4:3. full_2d
-# enables native-wide presentation; the hooks below widen the scene. The game
-# remains native 4:3 unless the player enables the mod.
-# The hook path is the same pure-2D native-wide mechanism proven by MMX6.
-# All runtime helpers are identity at 4:3; codegen hooks require regeneration.
+# Modern authored-map renderer: the original21x16 tile ring stays unchanged.
 [widescreen]
-offer   = false
+offer = false
 full_2d = true
-
-# X4 builds the player health/weapon HUD and the right-side enemy/boss health
-# HUD in a dedicated double-buffered GP0 packet arena. Re-anchor only commands
-# from that arena: left-third pieces move to the true 16:9 left edge and
-# right-third pieces move to the true 16:9 right edge. Filtering is essential
-# because X4's world is also made of screen-space 2D primitives, so the
-# unfiltered nw_hud_corners mode must stay off for this title.
+ultrawide = true
 nw_left_hud_packet_lo = "0x80139800"
 nw_left_hud_packet_hi = "0x8013a000"
 
-# Widen screen-derived object visibility funnels when they occur in statically
-# recompiled code or streamed overlays. The detector requires paired horizontal
-# and vertical bounds, so unrelated uses of 320 are untouched. The runtime
-# margin is zero at 4:3 and the per-side 16:9 reveal width when enabled.
+# Primitive clipping is shared; actor bounds use original title callbacks.
 [widescreen.cull]
 auto_screen_x = true
-screen_h_imms = ["0xf0"] # X4 render funnel uses the full 240-line display bound
-bias_sites = [
-  "0x8002b17c", "0x8002b1bc", # fixed 64px despawn/classifier margin
-  "0x8002b2a8", "0x8002b2e8", # fixed 32px activation/draw margin
-  "0x8002b3e0", "0x8002b420", # fixed 96px activation/draw margin
-]
-range_sites = [
-  "0x8002b1c4", # 320 + 2*64
-  "0x8002b2f0", # 320 + 2*32
-  "0x8002b428", # 320 + 2*96
-]
-a1_sites = [
-  "0x8002b1ec", # load-delay nop before copying caller horizontal margin
-  "0x8002b320", # move t0,a1 in the flag-setting classifier variant
-]
+screen_h_imms = ["0xf0"]
 
-# X4's three-layer background renderer at 0x80026AA0 draws 21 columns x 16 rows
-# from a 32-column ring. This is the X4/X5 inline-sltiu variant of the MMX6
-# mechanism: widen the loop bound, move its tile/screen start left, and stream
-# both leading edges far enough out to keep reveal columns populated.
-[widescreen.bg2d]
-count_site        = "0x80026c98" # sltiu v0,t2,0x15
-startcol_site     = "0x80026b20" # andi s5,v0,0x1f
-startx_site       = "0x80026b10" # subu s6,zero,v0
-stream_left_site  = "0x800272d0" # addiu a1,s1,-0x10
-stream_right_site = "0x800272e4" # addiu a1,s1,0x150 (320+16)
-layer_base        = "0x801419b0"
-ring_base         = "0x801441c8"
-map_size_addr     = "0x80172224"
-layer_stride_addr = "0x8013bd48"
-ring_cols          = 32
-layer_count        = 3
-layer_struct_stride = 84
-packet_cap         = 1000
-
-# Controller: HARDCODED digital. X4 predates the DualShock (US Sept 1997 vs
-# DualShock Nov 1997): its libpad never sends the 0x43 config probe and REJECTS
-# pad id 0x73 — with an analog pad presented, the title screen ignores START
-# entirely (verified via the SIO byte ring: buttons byte 0xF7 delivered, game
-# ignores). Digital (id 0x41) is the ONLY pad type the game supports, so
-# lock_mode hides the launcher's whole pad-mode selector (same pattern as
-# Tomba 2) and forces every port to default_mode — there is no valid choice to
-# offer. allow_hybrid=false is redundant under lock_mode but documents intent.
+# The retired widescreen.bg2d producer/ring widening path is unavailable.
+# The controller remains locked to the original digital protocol.
 [controller]
 default_mode   = "digital"
 deadzone       = 6553
@@ -165,3 +104,8 @@ vaddr_base  = "0x80010000"
 # Address normalization: KSEG masking only (game loads contiguously, no remaps).
 [audit.normalize]
 kseg_mask = "0x1FFFFFFF"
+
+[timing]
+# Double guest CPU budget during gameplay; device/VBlank/audio time stays authentic.
+guest_cycle_scale = 2
+guest_cycle_scale_gate = [{ addr = 0x801721C0, size = 1, value = 6 }]

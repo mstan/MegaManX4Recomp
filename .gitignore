@@ -69,5 +69,6 @@ __pycache__/
 
 # Local scratch/toolchain-probe artifacts (root-level only)
 /_*.c
+/_*.toml
 /_*.dll
 /_*.exe

@@ -47,14 +47,13 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 4) return fail("expected four package manifests");
+    if (manifest_count != 3) return fail("expected three package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
              "mmx4.damage-multiplier",
-             "mmx4.fast-loading",
-             "mmx4.widescreen",
-             "mmx4.frame-interpolation"}) {
+             "mmx4.resident-loading",
+             "mmx4.widescreen"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -64,13 +63,12 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 4)
-        return fail("expected four package families");
+    if (manager.packages().size() != 3)
+        return fail("expected three package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 1 ||
-        default_plan.plugins.front().id != "mmx4.damage-multiplier") {
+        default_plan.plugins.size() != 3) {
         return fail("normal-damage override was not enabled by default");
     }
 
@@ -86,8 +84,7 @@ int main(int argc, char** argv) {
     }
     const auto damage_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!damage_plan.ok || !damage_plan.writes.empty() ||
-        damage_plan.plugins.size() != 1 ||
-        damage_plan.plugins.front().id != "mmx4.damage-multiplier" ||
+        damage_plan.plugins.size() != 3 ||
         manager.feature_option_value(
             "mmx4.cheat.damage-multiplier", "damage-multiplier",
             "multiplier") != "37") {
@@ -98,65 +95,28 @@ int main(int argc, char** argv) {
             "mmx4.cheat.damage-multiplier", "damage-multiplier", false, &error)) {
         return fail(error);
     }
-    if (!manager.set_feature_enabled(
+    if (manager.set_feature_enabled(
             "mmx4.enhancement.fast-loading", "fast-loading", true, &error)) {
-        return fail(error);
+        return fail("retired generic loading wrapper unexpectedly selectable");
     }
-    for (const char* mode : {
-             "host-2x", "host-4x", "host-8x", "host-16x",
-             "host-uncapped", "disc-2x", "disc-4x", "disc-instant"}) {
-        if (!manager.set_feature_option(
-                "mmx4.enhancement.fast-loading", "fast-loading",
-                "mode", mode, &error)) {
-            return fail(error);
-        }
-        const auto loading_plan =
-            manager.resolve(kGameId, "", kDiscSha256);
-        if (!loading_plan.ok || !loading_plan.writes.empty() ||
-            loading_plan.plugins.size() != 1 ||
-            loading_plan.plugins.front().id != "mmx4.fast-loading") {
-            return fail(std::string("wrong fast-loading plugin for ") + mode);
-        }
-    }
-
+    error.clear();
     if (!manager.set_feature_enabled(
-            "mmx4.enhancement.fast-loading", "fast-loading", false, &error) ||
-        !manager.set_feature_enabled(
             "mmx4.enhancement.widescreen", "widescreen", true, &error)) {
         return fail(error);
     }
     const auto widescreen_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!widescreen_plan.ok || !widescreen_plan.writes.empty() ||
-        widescreen_plan.plugins.size() != 1 ||
-        widescreen_plan.plugins.front().id != "mmx4.widescreen") {
+        widescreen_plan.plugins.size() != 2) {
         return fail("widescreen plugin resolution was incorrect");
     }
 
-    if (!manager.set_feature_enabled(
-            "mmx4.enhancement.widescreen", "widescreen", false, &error) ||
-        !manager.set_feature_enabled(
-            "mmx4.enhancement.frame-interpolation",
-            "frame-interpolation", true, &error)) {
-        return fail(error);
-    }
-    for (const char* choice :
-         {"display", "90", "120", "144", "165", "240"}) {
-        if (!manager.set_feature_option(
-                "mmx4.enhancement.frame-interpolation",
-                "frame-interpolation", "rate", choice, &error)) {
-            return fail(error);
-        }
-        const auto frame_plan = manager.resolve(kGameId, "", kDiscSha256);
-        if (!frame_plan.ok || !frame_plan.writes.empty() ||
-            frame_plan.plugins.size() != 1 ||
-            frame_plan.plugins.front().id != "mmx4.frame-interpolation") {
-            return fail(std::string("wrong frame-rate plugin for ") + choice);
-        }
+    if (manager.set_feature_enabled("mmx4.enhancement.frame-interpolation",
+                                    "frame-interpolation", true, &error)) {
+        return fail("archived interpolation unexpectedly selectable");
     }
 
     fs::remove_all(root, ec);
-    std::cout << "Mega Man X4 preloaded mods: default integer damage 1, "
-                 "default-off unified loading modes, validated 16:9, and five "
-                 "fixed presentation rates plus display refresh\n";
+    std::cout << "Mega Man X4 preloaded mods: normal damage 1, resident loading and widescreen, "
+                 "generic loading wrapper and interpolation absent\n";
     return 0;
 }

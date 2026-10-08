@@ -5,7 +5,8 @@
 
 #define PKG "mmx4.cheat.damage-multiplier"
 #define FEATURE "damage-multiplier"
-#define DAMAGE_FUNCTION 0x8002DE30u
+#define DAMAGE_SUBTRACT_ADDRESS 0x8002DF04u
+#define STOCK_DAMAGE_SUBTRACT 0x00621823u
 #define DAMAGE_LOAD_ADDRESS 0x8002DEF8u
 #define DAMAGE_SHIFT_ADDRESS 0x8002DF00u
 #define STOCK_DAMAGE_LOAD 0x9083005Cu
@@ -15,22 +16,12 @@ static uint32_t s_damage_multiplier = 1u;
 
 static void mmx4_damage_multiplier_on_hit(
     struct CPUState* cpu, uint32_t address) {
-    const uint32_t target = cpu->gpr[4];
-    const uint32_t hit = cpu->gpr[5];
-    const int32_t weapon =
-        (int32_t)(int8_t)psx_mod_read_byte(hit + 1u);
-    const uint32_t table = psx_mod_read_word(target + 88u);
-    const uint32_t damage_address =
-        table + (uint32_t)(weapon * 2) + 1u;
-    const uint32_t stock_damage = psx_mod_read_byte(damage_address);
-
     (void)address;
-    /*
-     * The recompiler-owned instruction at 0x8002DEFC moves t8 into v0.
-     * t8 is otherwise unused by this routine. Supplying the pre-scaled value
-     * here supports every integer multiplier without mutating damage tables.
-     */
-    cpu->gpr[24] = stock_damage * s_damage_multiplier;
+    /* At original SUBU v1,v1,v0, the delayed byte load has committed.
+     * The native damage load stays intact when this feature is disabled. */
+    uint32_t scaled=cpu->gpr[2]*s_damage_multiplier;
+    cpu->gpr[2]=scaled>127u?127u:scaled;
+
 }
 
 static void mmx4_damage_multiplier_enforce(void) {
@@ -74,7 +65,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_damage_multiplier_plugin) {
         "mmx4.damage-multiplier", mmx4_damage_multiplier_activate);
     (void)psx_mod_register_vblank_plugin(
         "mmx4.damage-multiplier", mmx4_damage_multiplier_enforce);
-    (void)psx_mod_register_function_entry_plugin(
-        "mmx4.damage-multiplier", DAMAGE_FUNCTION,
+    (void)psx_mod_register_instruction_plugin(
+        "mmx4.damage-multiplier", DAMAGE_SUBTRACT_ADDRESS, STOCK_DAMAGE_SUBTRACT,
         mmx4_damage_multiplier_on_hit);
 }

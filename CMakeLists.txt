@@ -27,9 +27,13 @@ set(GAME_GENERATED_DISPATCH
     "${CMAKE_CURRENT_SOURCE_DIR}/generated/SLUS_005.61_dispatch.c")
 
 file(GLOB MMX4_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/*.cpp")
+list(REMOVE_ITEM MMX4_MOD_PLUGIN_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx4_resident.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx4_resident_reference.c")
 
-# X4's game-owned, default-off mod catalog. Package manifests contain metadata
+# X4's game-owned mod catalog. Package manifests contain metadata
 # and guarded writes only; the trusted plugin implementations are compiled in
 # above.
 #
@@ -54,10 +58,31 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
     PRELOADED_MODS_DIR "${MMX4_PRELOADED_MODS}"
+    # Loading policy belongs to this title; generic acceleration is retired.
+    EXCLUDE_BUILTIN_MODS
+        psx.enhancement.cd-speed
+        psx.enhancement.fast-loading
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
+psxrecomp_add_implementation(psx-runtime
+    NAME resident-loading CONTRACT slus00561-arc-callback-v1
+    HLE_SOURCES src/mods/mmx4_resident.cpp
+    LLE_SOURCES src/mods/mmx4_resident_reference.c
+    CONTRACT_FILES src/mods/mmx4_resident_catalog.h
+        "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
+add_custom_command(TARGET psx-runtime POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
+        "$<TARGET_FILE_DIR:psx-runtime>/game.toml"
+    VERBATIM)
 
 if(BUILD_TESTING)
+    find_package(Python3 3.11 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME mmx4_release_config_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_release_config.py")
+    endif()
     add_executable(mmx4_preloaded_mods_test
         tests/test_preloaded_mods.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
@@ -68,6 +93,7 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/include"
         "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11"
     )
+    psxrecomp_sha256_file(mmx4_preloaded_mods_test)
     add_test(
         NAME mmx4_preloaded_mods_test
         COMMAND "$<TARGET_FILE:mmx4_preloaded_mods_test>"
@@ -89,4 +115,10 @@ if(PSX_BUILD_COSIM)
         EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
         COSIM
     )
+    psxrecomp_add_implementation(psx-cosim
+        NAME resident-loading CONTRACT slus00561-arc-callback-v1
+        HLE_SOURCES src/mods/mmx4_resident.cpp
+        LLE_SOURCES src/mods/mmx4_resident_reference.c
+        CONTRACT_FILES src/mods/mmx4_resident_catalog.h
+            "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
 endif()
