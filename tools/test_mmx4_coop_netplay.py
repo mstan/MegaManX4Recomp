@@ -157,14 +157,17 @@ class Peer:
                     f"P{self.seat + 1}: trusted co-op profile did not activate")
             self.diagnostic = candidates[0]
         play = self.read(PLAY, 0x64)
-        diagnostic = self.read(self.diagnostic, 0x300)
-        first = self.read(PLAYER, BODY_BYTES)
+        diagnostic = self.read(self.diagnostic, 0x500)
+        completed_context = struct.unpack_from("<I", diagnostic, 0x1C)[0] == 1
+        first = (diagnostic[0x300:0x300 + BODY_BYTES] if completed_context
+                 else self.read(PLAYER, BODY_BYTES))
         magic, frames, enrolled, failed, banks = struct.unpack_from("<5I", diagnostic)
         require(magic == DIAGNOSTIC_MAGIC, f"P{self.seat + 1}: invalid co-op diagnostic header")
         require(failed == 0, f"P{self.seat + 1}: co-op plugin reported failure")
         return dict(mode=play[0], minor=play[1], stage=play[0xC], section=play[0xD],
                     campaign=play[0x43], pause_suppressed=play[0x1C], script_gate=play[0x10],
                     frames=frames, enrolled=enrolled, failed=failed, banks=banks,
+                    completed_context=completed_context,
                     p1=body_state(first), p2=body_state(diagnostic[0x100:0x100 + BODY_BYTES]))
 
     def stop(self) -> None:
@@ -233,8 +236,12 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
         ("runtime", "overlay_autocompile_cmd", ""),
         ("runtime", "turbo_loads", False),
         ("runtime", "bios_hle", False),
-        ("video", "aspect_ratio", "4:3"),
-        ("video", "renderer", "opengl"),
+        # Disagree offline preferences deliberately. The trusted session must
+        # force 4:3; explicit CLI OpenGL chooses the supported presentation
+        # backend while unequal quality settings leave guest VRAM unchanged.
+        ("video", "aspect_ratio", "16:9" if seat == 0 else "21:9"),
+        ("video", "renderer", "software" if seat == 0 else "vulkan"),
+        ("video", "internal_resolution", "1080p" if seat == 0 else "720p"),
         ("video", "auto_skip_fmv", False),
         ("video", "frame_interpolation", False),
         ("netplay", "content_negotiation", False),
@@ -341,8 +348,14 @@ class Exercise:
                 self.record["boot_modes"].append(dict(elapsed=self.args.boot_timeout -
                     max(0, deadline - time.monotonic()), modes=modes))
                 previous = modes
-            if all(state["mode"] == 6 and state["enrolled"] == 1 for state in states):
+            if all(state["mode"] == 6 and state["minor"] == 0 and state["enrolled"] == 1
+                   for state in states):
                 self.both("input", 0)
+                self.wait_ticks(max(8, self.args.delay + 4),
+                                timeout=max(1, deadline - time.monotonic()))
+                settled = self.both("observe")
+                if any(state["minor"] == 2 for state in settled):
+                    continue
                 self.wait_observation("intro-enrolled", lambda state:
                     state["mode"] == 6 and state["minor"] == 0 and state["enrolled"] == 1
                     and state["p1"]["character"] == campaign
@@ -353,6 +366,17 @@ class Exercise:
                     timeout=max(1, deadline - time.monotonic()))
                 self.checkpoint("intro CRC", 0, min_digests=3)
                 return
+            if any(state["mode"] == 6 for state in states):
+                # Enrollment can lag the first PLAY=6 observation. A held
+                # navigation Start across that boundary opens the native menu.
+                self.both("input", 0)
+                if all(state["mode"] == 6 for state in states) and any(
+                        state["minor"] == 2 for state in states):
+                    self.peers[0].input(START)
+                    self.wait_ticks(6, timeout=max(1, deadline - time.monotonic()))
+                    self.peers[0].input(0)
+                self.wait_ticks(12, timeout=max(1, deadline - time.monotonic()))
+                continue
             # Character-select routine 800297D8 uses horizontal edges to choose
             # PLAY+43, then Start/Cross to confirm. Keep that choice in every
             # native navigation pulse; never write campaign or stage RAM.
@@ -389,6 +413,21 @@ class Exercise:
             self.record["controls"].append(dict(seat=seat, held=hex(held), before=before,
                                                  after=after, delta_x=deltas))
             self.checkpoint(f"P{seat + 1} movement/attack CRC", start_tick)
+
+    def profile_policy(self) -> None:
+        policies = []
+        for peer in self.peers:
+            source = tomllib.loads((peer.directory / "game.toml").read_text(encoding="utf-8"))
+            log = peer.log.read_text(errors="replace")
+            selected = re.findall(r"mod selected fixed display aspect (\d+):(\d+)", log)
+            require(selected and selected[-1] == ("4", "3"),
+                    f"P{peer.seat + 1}: no trusted fixed 4:3 activation evidence")
+            require("dual-raster" in log,
+                    f"P{peer.seat + 1}: no CPU-authority OpenGL presentation evidence")
+            policies.append(dict(seat=peer.seat, offline_video_preferences=source["video"],
+                                 active_aspect="4:3", renderer="OpenGL dual-raster",
+                                 evidence="trusted activation and backend startup logs"))
+        self.record["profile_policy"] = policies
 
     def menus(self) -> None:
         for owner in (0, 1):
@@ -483,6 +522,7 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
         record["pids"] = [peer.process.pid for peer in peers]
         exercise = Exercise(args, peers, record)
         exercise.boot(campaign)
+        exercise.profile_policy()
         exercise.controls()
         exercise.menus()
         exercise.disconnect()
@@ -513,6 +553,39 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
         record["returncodes"] = [peer.process.poll() if peer.process else None for peer in peers]
         (case / "report.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     return record
+
+
+def reject_unsupported_renderers(args, directory: Path) -> list[dict]:
+    """Require a clear pre-boot rejection, with transport ports held closed."""
+    results = []
+    for renderer in ("software", "vulkan"):
+        case = directory / f"reject-{renderer}"
+        case.mkdir()
+        ports, reservations = reserve_ports()
+        peer = None
+        try:
+            peer = prepare_peer(args, case, 0, ports, False, args.session_id)
+            peer.argv[peer.argv.index("--renderer") + 1] = renderer
+            peer.argv[peer.argv.index("--headless-opengl") if "--headless-opengl"
+                      in peer.argv else peer.argv.index("--hidden-window")] = "--hidden-window"
+            peer.launch()
+            try:
+                code = peer.process.wait(timeout=15)
+            except subprocess.TimeoutExpired as error:
+                raise ValidationError(f"Unsupported {renderer} renderer did not fail before boot") from error
+            text = peer.log.read_text(errors="replace")
+            require(code != 0 and "netplay profile requires OpenGL retained textures" in text,
+                    f"Unsupported {renderer} renderer was not clearly rejected: {text[-2000:]}")
+            require("delay-sync active" not in text and "game entry" not in text,
+                    f"Unsupported {renderer} renderer continued to guest/transport startup")
+            results.append(dict(renderer=renderer, pid=peer.process.pid, returncode=code,
+                                argv=peer.argv, evidence=text[-2000:]))
+        finally:
+            if peer is not None:
+                peer.stop()
+            for reservation in reservations:
+                reservation.close()
+    return results
 
 
 def main() -> int:
@@ -550,6 +623,8 @@ def main() -> int:
     directory = (args.report_dir or args.game_root / ".cache/mmx4-coop-netplay" / tag).resolve()
     directory.mkdir(parents=True, exist_ok=False)
     report = dict(schema=1, status="running", success=False, started_utc=datetime.now(timezone.utc).isoformat(),
+                  validation_scope="Native input, menu ownership/freeze, state CRC agreement and disconnect; "
+                                   "captured screenshots require separate visual review",
                   executable=str(args.exe), executable_sha256=sha256_file(args.exe),
                   bios=str(args.bios), bios_sha256=sha256_file(args.bios), disc=str(args.disc),
                   config=str(args.config), config_sha256=sha256_file(args.config), cases=[])
@@ -557,6 +632,7 @@ def main() -> int:
     scenarios = (False, True) if args.scenario == "both" else (args.scenario == "jitter",)
     report_path = directory / "report.json"
     try:
+        report["renderer_rejections"] = reject_unsupported_renderers(args, directory)
         for jitter in scenarios:
             for campaign in campaigns:
                 print(f"Private pair: {'jitter' if jitter else 'delay'}, {'Zero' if campaign else 'X'} campaign", flush=True)
