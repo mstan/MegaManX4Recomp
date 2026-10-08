@@ -74,6 +74,24 @@ psxrecomp_add_implementation(psx-runtime
     LLE_SOURCES src/mods/mmx4_resident_reference.c
     CONTRACT_FILES src/mods/mmx4_resident_catalog.h
         "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
+# Trusted co-op callbacks contain simulation state outside guest RAM. Include
+# their source contract in the profile handshake so different spike builds
+# cannot join under the same fixed development version.
+set(MMX4_COOP_CONTRACT_FILES
+    game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_lifecycle.c
+    src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c
+    src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h)
+set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v2\n")
+foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_CONTRACT_FILES)
+    file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}" MMX4_COOP_SOURCE_HASH)
+    string(APPEND MMX4_COOP_CONTRACT "${MMX4_COOP_SOURCE_HASH}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}")
+endforeach()
+string(SHA256 MMX4_COOP_CONTRACT_HASH "${MMX4_COOP_CONTRACT}")
+# The framework limits compatibility IDs to 63 bytes; 160 hash bits fit.
+string(SUBSTRING "${MMX4_COOP_CONTRACT_HASH}" 0 40 MMX4_COOP_CONTRACT_SHORT_HASH)
+set_property(SOURCE src/mods/mmx4_coop_plugin.c APPEND PROPERTY COMPILE_DEFINITIONS
+    "MMX4_COOP_NETPLAY_COMPATIBILITY=\"mmx4-coop-delay-v2:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
 add_custom_command(TARGET psx-runtime POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"

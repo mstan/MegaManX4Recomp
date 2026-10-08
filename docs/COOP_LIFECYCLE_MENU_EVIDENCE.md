@@ -272,6 +272,17 @@ the same previous-frame timing. P1 wins a simultaneous contact; P2 may lead
 when only its contact bit is present. Actor ownership remains fixed throughout
 the resulting script.
 
+Boss-door type 8 in the same pool uses dispatch `800C1994` (table entry
+`800F2930`). Its waiting handler calls original read-only bounding/state
+query `800C1E7C`; successful contact sets personal PLAYER+C4=1 at `800C1BF4`.
+The door's `800C1D90` auto-walk advances that owner's X, and completion clears
+C4 at `800C1DD4`. This path does not call the general C0 script command pair.
+The lifecycle wrapper queries living P1 first and P2 only on a miss, keeps
+the door owner through native auto-walk, and treats C4 begin/end as shared
+control/transport boundaries. P1 wins simultaneous eligibility; a sole living
+P2 can enter. Focused regressions verify those ownership cases and preserve
+a P1 corpse while P2 finishes the modeled door.
+
 Checkpoint/door controller `800BD654` compares player X against the original
 threshold table `8010C02C` and requests actions 0x14/0x15. The leading living
 player may own its trigger; that owner persists through the script. Shared
@@ -279,13 +290,15 @@ checkpoint/story state advances once. Native script commands `80036AE4` and
 release `80036B18` are redirected to P2 if their caller still addresses a
 dead canonical P1.
 
-At script begin/end, living partners and their own mounted vehicles are
-transported to the scripted owner's position. Dead and withdrawn partners
-are excluded. Nonowner controls are neutral during the shared script while
-the owner's native auto-walk/warp proceeds. These boundaries require live
-validation against portal traversal, stage 5 rider completion, boss scenes,
-and final-stage checkpoint sequences; the focused test models prove ownership
-and single-dispatch bookkeeping only.
+At script begin, the living passenger leaves simulation with their own
+vehicle. Their HP and inventory remain intact; controller, projectile and
+terrain passes exclude that passenger. The passenger returns only after
+native C0/C3/C4, shared script gates and chained dialogue release control,
+and the owner has reached a grounded position. Original pose 2 provides the
+return animation. Dead and voluntarily withdrawn partners are excluded.
+The scripted owner's native auto-walk proceeds with one shared camera/world
+update. Broader portal, track-clear and final-stage sequences still require
+qualification beyond the native Jungle door cases below.
 
 ## Private native validation, 2026-10-08
 
@@ -331,3 +344,40 @@ two playable characters and eventually wiped the team. The added `8001FC20`
 capture and regression are being integrated before continuing the native
 checkpoint/boss test. Do not count that failed section load as a validation
 pass.
+
+## Resumed validation, 2026-10-08
+
+The section-load capture fix and retained-source menu rendering fix are now
+integrated. The failures above remain historical evidence. Both campaigns
+passed four native Jungle door/conversation cases: P1 owns the event, P2 owns
+the event, P1 is the sole survivor, and P2 is the sole survivor. The living
+passenger stays hidden through chained native locks, returns with preserved
+HP, and does not resurrect a fallen partner. The P2-owned conversation uses
+P2's controller input. Reports are private under
+`build-coop/qa-resume-final-x/doors-warp` and
+`build-coop/qa-resume-final-zero/doors`.
+
+P2 enrollment now preserves all three native camera enable flags. A camera
+pass projects the surviving or scripted owner as needed; the shared camera
+can scroll after enrollment and follow P2 through its door event. Door
+passengers are excluded from actor, terrain, projectile and shared contact
+processing until their native return animation is ready.
+
+The foot Select check observed withdrawal at 90 native ticks, retained HP 32
+and all recorded ammo, and rejoined beside the moving P1 after release/tap.
+The latest native bike check held Select for 112 ticks: both actors remained
+active, mounted and at HP 32, with the shared lives unchanged. This prohibition
+covers Marine Base checkpoint zero even during transient unmounted frames;
+foot withdrawal is available after the bike checkpoint has ended. The
+checkpoint policy and a survivor rescue during an incoming return animation
+also have lifecycle regression coverage. Reports are private under
+`build-coop/qa-resume-policy-x/select`.
+
+Zero's resumed stage-entry matrix passed all 13 entries with independent P2
+input. These are load/input checks, not completed stages. The candidate passed
+all seven game CTests and the focused two-peer checks recorded in
+`COOP_NETPLAY_EVIDENCE.md`. Candidate executable SHA256:
+`a9758f53f6d365b6ac6b8850f7e2071992c252e4990e3b7ee23fe66591b458f4`.
+This build is ready for the owner's first playtest; full boss/stage clears,
+moving-platform and armor behavior, a bike-track clear, and extended play
+still require qualification.

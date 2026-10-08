@@ -29,6 +29,10 @@ void mmx4_coop_lifecycle_reset(void);
 void mmx4_coop_lifecycle_enrolled(CPUState *cpu);
 void mmx4_coop_lifecycle_tick(CPUState *cpu);
 int mmx4_coop_lifecycle_can_tick(void);
+/* -1 during ordinary play; otherwise the native shared script's seat. */
+int mmx4_coop_lifecycle_script_owner(void);
+int mmx4_coop_lifecycle_hidden(unsigned seat);
+void mmx4_coop_clear_current_attacks(void);
 uint32_t mmx4_coop_lifecycle_digest(uint32_t seed);
 uint32_t mmx4_coop_combat_digest(uint32_t seed);
 #endif

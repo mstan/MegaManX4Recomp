@@ -90,3 +90,22 @@ The profile uses delay-sync and refuses rollback, savestates and rewind.
 Compatibility revision changes, or execution-contract source hashes, must
 identify incompatible compiled co-op logic; profile policy hashing alone
 does not hash the implementation of a callback.
+
+## Resumed candidate, 2026-10-08
+
+The door/Select lifecycle changes use compatibility revision
+`mmx4-coop-delay-v2` plus a 160-bit source-contract fingerprint of the co-op
+callbacks, headers and hook configuration. This prevents incompatible
+callback implementations from advertising the same trusted profile identity.
+
+One focused two-peer jitter run passed for each campaign on the exact same
+candidate executable. Both independently controlled actors, both native menu
+owners, core/mod CRC agreement and peer disconnect passed with 25 ms simulated
+latency and 10 ms jitter. Final matching samples were tick 3328 for X and tick
+3104 for Zero. The private report is
+`.cache/mmx4-coop-netplay/resumed-candidate-20261008/report.json`.
+Executable SHA256:
+`a9758f53f6d365b6ac6b8850f7e2071992c252e4990e3b7ee23fe66591b458f4`.
+All seven game CTests passed. The owner requested focused validation of the
+co-op integration; broader transport qualification belongs to the established
+netplay engine. These checks do not claim an online stage-clear matrix.

@@ -46,12 +46,19 @@ pool. A heart upgrade belongs to its collector; X owns armor upgrades.
 Both characters receive the corresponding defeated-boss ability.
 
 One player's death leaves the survivor playing. A team wipe consumes one
-shared retry. P2 may hold Select for 90 native player ticks to withdraw, then
-release and tap Select to rejoin at the grounded P1. Withdrawal is unavailable
-while riding or when P2 is the only survivor.
+shared retry. While P1 is alive, P2 may hold Select for 90 native ticks
+(1.5 seconds at the game's normal rate) to withdraw, then release and tap
+Select to rejoin beside P1. Rejoining waits for a safe native landing.
+Select withdrawal is disabled throughout Marine Base's bike sequence and
+while mounted. Shared scripted
+events take the nonowning living partner out of simulation and return them
+after the door and any chained dialogue release control. Fallen or voluntarily
+absent partners remain absent.
 
 Online, select the trusted `mmx4.coop` profile. Its compatibility identity is
-`mmx4-coop-delay-v1`. Online policy enables the required plugin, fixes the
+`mmx4-coop-delay-v2:<source fingerprint>`. CMake hashes the co-op callbacks,
+headers and hook configuration so incompatible spike builds cannot share
+the same profile identity. Online policy enables the required plugin, fixes the
 supported renderer/aspect, and excludes offline mod selections from gameplay.
 Both peers need the same build and original disc. Independent/split cameras
 remain a later enhancement.
@@ -112,6 +119,8 @@ Split cameras and host-state snapshots are intentionally deferred.
 
 The corrected Zero-campaign intro section transfer, later bike section and
 Sigma section have passed native load/control checks. The later bike section
-now mounts both players. The first private X-campaign netplay pair also passed
-independent controls, menus, matching core/mod digests and disconnect; the
-remaining campaign/jitter matrix is in progress.
+now mounts both players. Private delay and jitter pairs passed for both
+campaigns on the earlier checkpoint. The resumed spike also validates both
+players leading a native Jungle boss door and either sole survivor advancing
+the ensuing conversation under their own controller. Latest Select/bike and
+netplay reports are recorded in the narrower evidence documents.

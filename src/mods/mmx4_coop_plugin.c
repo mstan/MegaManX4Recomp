@@ -149,6 +149,7 @@ static void leave_second(void) {
 int mmx4_coop_ready(void) { return enrolled && !failed; }
 int mmx4_coop_projected(void) { return (int)projected; }
 int mmx4_coop_alive(unsigned seat) {
+    if(mmx4_coop_lifecycle_hidden(seat))return 0;
     if(seat && !enrolled)return 0;
     if((!seat && !projected) || (seat && projected))
         return psx_mod_read_byte(PLAYER) && (psx_mod_read_byte(PLAYER+0x5C)&0x7F)>0 && psx_mod_read_byte(PLAYER+4)<2;
@@ -158,6 +159,12 @@ int mmx4_coop_alive(unsigned seat) {
 uint8_t *mmx4_coop_second_body(void) {return second.body;}
 uint8_t *mmx4_coop_second_vehicle(void) {return second.vehicle;}
 uint8_t *mmx4_coop_first_vehicle(void) {return first.vehicle;}
+void mmx4_coop_clear_current_attacks(void) {
+    for(unsigned i=0;i<sizeof second.shots;++i)psx_mod_write_byte(SHOTS+i,0);
+    for(unsigned i=0;i<sizeof second.trails;++i)psx_mod_write_byte(TRAILS+i,0);
+    for(unsigned i=0;i<sizeof second.double_body;++i)psx_mod_write_byte(0x80175D58u+i,0);
+    for(unsigned i=0x8C;i<=0x92;++i)psx_mod_write_byte(PLAYER+i,0);
+}
 void mmx4_coop_enter_second(void) {enter_second();}
 void mmx4_coop_leave_second(void) {leave_second();}
 uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) {
@@ -240,6 +247,10 @@ static int enroll(CPUState *cpu) {
     uint32_t x=psx_mod_read_word(PLAYER+8),y=psx_mod_read_word(PLAYER+12);
     unsigned stage=psx_mod_read_byte(PLAY+0xC);
     unsigned on_chaser=psx_mod_read_byte(PLAYER+0xC5)==0xFF;
+    /* Native player initialization disables the shared camera at 8003558C.
+     * P1 already completed its spawn; P2 must not disable that camera again. */
+    uint8_t camera_enabled[3]={psx_mod_read_byte(0x801419F4u),
+        psx_mod_read_byte(0x80141A48u),psx_mod_read_byte(0x80141A9Cu)};
     uint32_t spawn_x=x+((stage==0 || stage==5)?24u<<16:0);
     enter_second();psx_mod_write_byte(PLAY+0x43,(uint8_t)counterpart);
     psx_mod_write_byte(PLAY+0x1E,0);
@@ -252,7 +263,10 @@ static int enroll(CPUState *cpu) {
         guest(cpu,0x80035A24,PLAYER,0);guest(cpu,0x80021C14,0,0);
     }
     guest(cpu,0x8002C614,PLAYER,0);
-    leave_second();project(PLAY,play,sizeof play);enrolled=1;
+    leave_second();project(PLAY,play,sizeof play);
+    psx_mod_write_byte(0x801419F4u,camera_enabled[0]);
+    psx_mod_write_byte(0x80141A48u,camera_enabled[1]);
+    psx_mod_write_byte(0x80141A9Cu,camera_enabled[2]);enrolled=1;
     mmx4_coop_lifecycle_enrolled(cpu);
     psx_mod_counter_add("mmx4.coop.enrolled",1);return 1;
 }
@@ -279,13 +293,23 @@ static void second_tick(CPUState *cpu,uint32_t address) {
     diagnostics();inside=0;
 }
 
+static int hidden_first_shots(CPUState *cpu,uint32_t address) {
+    if(projected || !mmx4_coop_ready() || !mmx4_coop_lifecycle_hidden(0))return 0;
+    second_tick(cpu,address);
+    return mmx4_coop_finish(cpu,0);
+}
 static int camera_target(CPUState *cpu,uint32_t address) {
+    int owner=mmx4_coop_lifecycle_script_owner();
     if(camera_call || projected || !mmx4_coop_ready() || !mmx4_coop_alive(1) ||
-       psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))return 0;
+       (owner<0 && (psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))) ||
+       owner==0)return 0;
     unsigned axis=address==0x80027AACu?8:12;
     uint32_t original=psx_mod_read_word(PLAYER+axis);
     int32_t partner=(int32_t)le32(second.body+axis);
-    int32_t target=mmx4_coop_alive(0)?(int32_t)(((int64_t)(int32_t)original+partner)/2):partner;
+    /* Native doors finish when the shared camera reaches their target.
+     * Averaging a frozen partner would prevent that equality indefinitely. */
+    int32_t target=owner==1 || !mmx4_coop_alive(0)?partner:
+        (int32_t)(((int64_t)(int32_t)original+partner)/2);
     camera_call=1;psx_mod_write_word(PLAYER+axis,(uint32_t)target);
     uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     psx_mod_write_word(PLAYER+axis,original);camera_call=0;
@@ -293,7 +317,8 @@ static int camera_target(CPUState *cpu,uint32_t address) {
 }
 static void constrain_team(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
-    if(projected || !mmx4_coop_ready() || psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))return;
+    if(projected || !mmx4_coop_ready() || mmx4_coop_lifecycle_script_owner()>=0 ||
+       psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))return;
     if(mmx4_coop_alive(0) && mmx4_coop_alive(1) && !second.body[0xC5] &&
        !psx_mod_read_byte(PLAYER+0xC5)) {
         int32_t x=(int32_t)psx_mod_read_word(PLAYER+8),p=(int32_t)le32(second.body+8);
@@ -313,6 +338,17 @@ static void constrain_team(CPUState *cpu,uint32_t address) {
             if(seat)second.body[0x5C]=0x80;else psx_mod_write_byte(PLAYER+0x5C,0x80);
         }
     }
+}
+static int camera_update(CPUState *cpu,uint32_t address) {
+    if(projected || !mmx4_coop_ready() || !mmx4_coop_alive(1) ||
+       (mmx4_coop_lifecycle_script_owner()!=1 && mmx4_coop_alive(0)))return 0;
+    /* 80027850 also checks player A4 and clamps the canonical body against
+     * scrolling bounds at 80027BE4. Changing only its target XY can crush a
+     * frozen P1 in a P2-led door. Run that one camera pass as its actual owner. */
+    constrain_team(cpu,address);
+    enter_second();
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    leave_second();return mmx4_coop_finish(cpu,result);
 }
 
 /* Private QA requests are committed at the native gameplay dispatch, never
@@ -570,13 +606,15 @@ static void activate(void) {
     if(diagnostic)diagnostics();
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
-    static const PSXModNetplayProfile profile={ID,"mmx4-coop-delay-v1",0,0,1,1u,NULL,state_digest,1};
+    static const PSXModNetplayProfile profile={ID,MMX4_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,NULL,state_digest,1};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_function_entry_plugin(ID,0x80035240,reset_player);
     psx_mod_register_function_entry_plugin(ID,0x80021340,second_tick);
+    psx_mod_register_function_filter_plugin(ID,0x80021340,hidden_first_shots);
     psx_mod_register_function_filter_plugin(ID,0x800241E8,render);
     psx_mod_register_function_entry_plugin(ID,0x80027850,constrain_team);
+    psx_mod_register_function_filter_plugin(ID,0x80027850,camera_update);
     psx_mod_register_function_filter_plugin(ID,0x80027A5C,camera_target);
     psx_mod_register_function_filter_plugin(ID,0x80027AAC,camera_target);
     psx_mod_register_function_filter_plugin(ID,0x8001FF50,development_fixture);
