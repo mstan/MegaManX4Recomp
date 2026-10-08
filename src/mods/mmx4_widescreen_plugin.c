@@ -138,6 +138,56 @@ static int mmx4_extra_placement(CPUState *cpu, uint32_t address) {
     cpu->gpr[2]=0;return 1;
 }
 static int signed_bound(int x) { return x<-32768?-32768:x>32767?32767:x; }
+/* Intro controller category3/type7 scans a separate twelve-record table,
+ * 8010B464, through800B6EB4. Reuse that scanner and its successful-allocation
+ * latches/pool, including the original vertical window. The bounded full-view
+ * scan also notices a stationary window resize; the native controller scans
+ * only when a layer scrolls. Beam geometry and animation stay native. */
+static void mmx4_searchlight_scan(CPUState *cpu, uint32_t address) {
+    (void)address;int margin=psx_mod_widescreen_x_margin();
+    if(margin<=0)return;
+    CPUState saved=*cpu;
+    for(unsigned layer=0;layer<3;++layer) {
+        uint32_t b=LAYERS+layer*0x54u;
+        int x=(int16_t)psx_mod_read_half(b+10),y=(int16_t)psx_mod_read_half(b+14);
+        *cpu=saved;cpu->gpr[29]-=32u;
+        uint32_t arg=cpu->gpr[29]+16u,old=psx_mod_read_word(arg);
+        cpu->gpr[4]=(uint32_t)signed_bound(x-48-margin);
+        cpu->gpr[5]=(uint32_t)signed_bound(x+368+margin);
+        cpu->gpr[6]=(uint32_t)signed_bound(y-48);
+        cpu->gpr[7]=(uint32_t)signed_bound(y+288);
+        psx_mod_write_word(arg,saved.gpr[4]);cpu->gpr[31]=0x800b6cb4u;
+        psx_dispatch_call(cpu,0x800b6eb4u,cpu->gpr[31]);
+        psx_mod_write_word(arg,old);
+        if(cpu->muldiv_ts_done>saved.muldiv_ts_done)saved.muldiv_ts_done=cpu->muldiv_ts_done;
+        if(cpu->gte_ts_done>saved.gte_ts_done)saved.gte_ts_done=cpu->gte_ts_done;
+    }
+    *cpu=saved;psx_mod_counter_add("mmx4.renderer.searchlight-scan",1);
+}
+static int mmx4_searchlight_visible(CPUState *cpu, uint32_t address) {
+    (void)address;int margin=psx_mod_widescreen_x_margin();
+    uint32_t actor=cpu->gpr[4];int layer=(int8_t)psx_mod_read_byte(actor+0x37u);
+    if(margin<=0 || layer<0 || layer>=3)return 0;
+    /* Original800D4024 tests the origin and beam centre against its extents,
+     * with uint16 wrap. Expand only those X tests; preserve both Y tests and
+     * the original return value convention. State2 retires an invisible beam,
+     * so widening spawning alone would immediately destroy fringe beams. */
+    int x0=(int16_t)psx_mod_read_half(actor+0x16u);
+    int x1=(int16_t)psx_mod_read_half(actor+0x1eu);
+    int y0=(int16_t)psx_mod_read_half(actor+0x1au);
+    int y1=(int16_t)psx_mod_read_half(actor+0x32u);
+    int dx=x1-x0,dy=y1-y0;if(dx<0)dx=-dx;if(dy<0)dy=-dy;
+    uint32_t b=LAYERS+(unsigned)layer*0x54u;
+    int x=(int)psx_mod_read_half(actor+10)-(int)psx_mod_read_half(b+10);
+    int y=(int)psx_mod_read_half(actor+14)-(int)psx_mod_read_half(b+14);
+    int origin=(uint16_t)(x+dx+margin)<(uint16_t)(320+2*dx+2*margin) &&
+        (uint16_t)(y+dy)<(uint16_t)(240+2*dy);
+    int centre=(uint16_t)(x+x0+dx/2+dx+margin)<(uint16_t)(320+2*dx+2*margin) &&
+        (uint16_t)(y+y0+dy/2+dy)<(uint16_t)(240+2*dy);
+    cpu->gpr[2]=(uint32_t)(origin || centre);
+    if(cpu->gpr[2])psx_mod_counter_add("mmx4.renderer.searchlight-visible",1);
+    return 1;
+}
 static void mmx4_scan_view(CPUState *cpu, uint32_t address) {
     (void)address;int margin=psx_mod_widescreen_x_margin();
     if(!placement_state)return;
@@ -204,6 +254,8 @@ static void mmx4_widescreen_activate(void) {
     (void)psx_mod_register_function_entry_plugin("mmx4.widescreen",0x80028db4u,mmx4_placement_reset);
     (void)psx_mod_register_instruction_plugin("mmx4.widescreen",0x80029284u,0xa2620000u,mmx4_placement_spawned);
     (void)psx_mod_register_function_filter_plugin("mmx4.widescreen",0x800293e8u,mmx4_extra_placement);
+    (void)psx_mod_register_function_entry_plugin("mmx4.widescreen",0x800b6c9cu,mmx4_searchlight_scan);
+    (void)psx_mod_register_function_filter_plugin("mmx4.widescreen",0x800d4024u,mmx4_searchlight_visible);
     char aspect[16];
     if(!psx_mod_option_value(PKG,"widescreen","aspect",aspect,sizeof aspect))strcpy(aspect,"adaptive");
     if(!strcmp(aspect,"16:9"))(void)psx_mod_set_fixed_display_aspect(16u,9u);
