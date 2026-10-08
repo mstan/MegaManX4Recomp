@@ -34,6 +34,7 @@ import uuid
 
 PLAY = 0x801721C0
 PLAYER = 0x801418C8
+MENU = 0x801754A0
 BODY_BYTES = 0xE4
 DIAGNOSTIC_MAGIC = 0x5834434F
 START, CROSS, SQUARE, LEFT, RIGHT = 0x0008, 0x4000, 0x8000, 0x0080, 0x0020
@@ -157,6 +158,7 @@ class Peer:
                     f"P{self.seat + 1}: trusted co-op profile did not activate")
             self.diagnostic = candidates[0]
         play = self.read(PLAY, 0x64)
+        menu = self.read(MENU, 0x34)
         diagnostic = self.read(self.diagnostic, 0x500)
         completed_context = struct.unpack_from("<I", diagnostic, 0x1C)[0] == 1
         first = (diagnostic[0x300:0x300 + BODY_BYTES] if completed_context
@@ -168,6 +170,7 @@ class Peer:
                     campaign=play[0x43], pause_suppressed=play[0x1C], script_gate=play[0x10],
                     frames=frames, enrolled=enrolled, failed=failed, banks=banks,
                     completed_context=completed_context,
+                    menu_main=menu[4], menu_sub=menu[5], menu_item=menu[0x14],
                     p1=body_state(first), p2=body_state(diagnostic[0x100:0x100 + BODY_BYTES]))
 
     def stop(self) -> None:
@@ -424,8 +427,19 @@ class Exercise:
                     f"P{peer.seat + 1}: no trusted fixed 4:3 activation evidence")
             require("dual-raster" in log,
                     f"P{peer.seat + 1}: no CPU-authority OpenGL presentation evidence")
+            scales = re.findall(r"GL GPU pipeline ready \(dual-raster, internal scale (\d+)x", log)
+            require(scales, f"P{peer.seat + 1}: missing actual GL presentation scale")
+            latency = int(peer.environment["RNET_SIM_LATENCY_MS"])
+            jitter = int(peer.environment["RNET_SIM_JITTER_MS"])
+            if latency:
+                banner = f"+{latency}ms recv delay, +/-{jitter}ms jitter"
+                held = [int(value) for value in re.findall(r"held=(\d+)", log)]
+                require("LINK SIMULATOR ENGAGED" in log and banner in log and held and max(held) > 0,
+                        f"P{peer.seat + 1}: requested link simulation has no held-packet evidence")
             policies.append(dict(seat=peer.seat, offline_video_preferences=source["video"],
                                  active_aspect="4:3", renderer="OpenGL dual-raster",
+                                 presentation_scale=int(scales[-1]),
+                                 link_simulation=dict(latency_ms=latency, jitter_ms=jitter),
                                  evidence="trusted activation and backend startup logs"))
         self.record["profile_policy"] = policies
 
@@ -436,7 +450,8 @@ class Exercise:
             self.peers[owner].input(START)
             self.wait_ticks(6)
             self.peers[owner].input(0)
-            before = self.wait_observation(f"P{owner + 1} menu opens", lambda state: state["minor"] == 2)
+            before = self.wait_observation(f"P{owner + 1} menu opens", lambda state:
+                                          state["minor"] == 2 and state["menu_main"] == 1)
             self.wait_ticks(36)
             after = self.both("observe")
             require(all(new["frames"] == old["frames"] for old, new in zip(before, after)),
@@ -451,7 +466,11 @@ class Exercise:
                 require(shot.is_file() and shot.stat().st_size > 64,
                         f"P{peer.seat + 1}: menu screenshot was not produced")
             self.peers[owner].input(START)
-            self.wait_ticks(6)
+            # Hold until the original interactive menu accepts the close.
+            # A sim-tick pulse can expire while nested guest code waits for
+            # a device, especially with a jittered transport.
+            self.wait_observation(f"P{owner + 1} menu accepts close", lambda state:
+                                  state["minor"] != 2 or state["menu_main"] == 2)
             self.peers[owner].input(0)
             self.wait_observation(f"P{owner + 1} menu closes", lambda state:
                                   state["mode"] == 6 and state["minor"] == 0)
