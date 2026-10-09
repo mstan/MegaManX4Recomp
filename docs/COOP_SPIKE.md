@@ -60,6 +60,9 @@ One player's death leaves the survivor playing. A team wipe consumes one
 shared retry. While P1 is alive, P2 may hold Select for 90 native ticks
 (1.5 seconds at the game's normal rate) to withdraw, then release and tap
 Select to rejoin beside P1. Rejoining waits for a safe native landing.
+Enrollment and foot teleporting use each character's original beam-in,
+landing, departure and beam-out animation. The partner is excluded from
+combat during that sequence, and native HP/ammo remain intact.
 Select withdrawal is disabled throughout Marine Base's bike sequence and
 while mounted. Shared scripted
 events take the nonowning living partner out of simulation and return them

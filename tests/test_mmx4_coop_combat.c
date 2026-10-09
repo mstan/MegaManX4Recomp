@@ -428,6 +428,18 @@ static void independent_hit_tokens(void) {
 int main(void) {
     CHECK(filter_count==13);
     accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();survivor_pools();independent_hit_tokens();
+    /* A nonlethal saber hit pauses its owner. The other seat continues;
+     * accepted-hit callbacks must not repeatedly arm that owner's +BD while
+     * the original player routine is counting down +BC. */
+    setup();hit_result[1]=1;second[0xBC]=5;
+    CHECK(!invoke(HIT) && native_calls[0]==1 && !native_calls[1]);
+    CHECK(second[0xBC]==5 && !second[0xBD] && !consumed);
+    hit_result[0]=1;
+    CHECK(invoke(HIT)==1 && consumed==1 && !native_calls[1]);
+    hit_result[0]=0;second[0xBC]=0;
+    CHECK(invoke(HIT)==1 && native_calls[1]==1 && consumed==2);
+    psx_mod_write_byte(MMX4_PLAYER+0xBC,5);second[0xBC]=0;
+    CHECK(invoke(HIT)==1 && native_calls[0]==3 && native_calls[1]==2);
     puts("X4 co-op combat boundary checks passed");
     return 0;
 }

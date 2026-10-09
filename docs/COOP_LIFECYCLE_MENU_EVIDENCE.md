@@ -381,3 +381,31 @@ all seven game CTests and the focused two-peer checks recorded in
 This build is ready for the owner's first playtest; full boss/stage clears,
 moving-platform and armor behavior, a bike-track clear, and extended play
 still require qualification.
+
+## Native teleport animation follow-up
+
+The owner requested actual Zero arrival/departure animation. Foot enrollment,
+Select transport and scripted passengers now use original `80035848`/pose 1
+arrival, `80031410` touchdown/pose 2, and `80035048`/`80031540` departure with
+poses 3/4. Arrival uses the previous terrain flags just as `800312F8` does
+before native action dispatch; omitting that refresh left the beam resting
+above the floor indefinitely in the first private check. Camera enable flags
+and the owner's shared pause-suppression byte are preserved around the
+passenger's arrival routine. Controls/collisions stay excluded through the
+animation. A mounted scripted passenger keeps its existing scoped suspension,
+and voluntary departure remains prohibited during the bike sequence.
+
+Select release/tap can queue the return while the outgoing animation finishes.
+Death of the scripted owner restores a living passenger safely during either
+arrival or departure. Lifecycle tests cover the new outgoing phase and the
+existing inventory/death/script invariants. The new build is staged separately
+under `build-coop-next` so the owner's running build and paused scene remain
+available.
+
+The final candidate passed controller-driven foot withdrawal/rejoin with all
+recorded HP/ammo retained, and held Select for 112 bike ticks with both riders
+still mounted. Native enrollment reached controllable Zero after its arrival.
+All seven game CTests passed. The owner encounter's uninterrupted combat
+recovery remains a playtest check (see the combat evidence's replay limits).
+Executable SHA256:
+`8eabd7b62c2d14be02ec2e7f8c092135409b4fed2e133199c12a3ed8c4d3b8ed`.

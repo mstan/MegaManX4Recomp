@@ -67,6 +67,38 @@ weapon/boss qualification remains required.
 
 ## Terrain and moving solids
 
+### Owner nonlethal Zero saber report, 2026-10-08
+
+A read-only capture of the owner's paused process recorded P2 Zero in action
+`30`, with HP 13, `BC=5` and `BD=1`; P1's freeze bytes were clear. The native
+player routine at `800311EC` consumes `BD` by resetting `BC` to five, otherwise
+counts `BC` down before progressing the action. Saber damage at `8002DEC8`
+reasserts `BD`. Native enemy pools at `80021238`/`80021450` stop checking
+collisions while the canonical player's `BC` is set. The co-op P2 retry was
+missing that per-seat gate, allowing its still-active saber to restart the
+pause continuously while the shared world ran for P1.
+
+Both contact and player-attack callbacks now honor each seat's native `BC`
+gate. This preserves the original five-tick pause and shared enemy update
+count while allowing its owner's animation to advance. Combat regression
+coverage verifies frozen P2 cannot be polled/retriggered, P1 still interacts,
+and P2 resumes when its own pause clears. The paused owner process was left
+running; its RAM and private player contexts are private diagnostic artifacts.
+
+The owner's X6 report matches its corresponding native `CC`/`CD` fields:
+`80034DCC` restarts the five-tick pause, `80020088` gates the enemy pool, and
+the existing P2 enemy-hit retry has no such gate. This separate X6 follow-up
+is tracked centrally as `beads-xuao`. At the owner's request the equivalent
+X6 fix was submitted separately in
+https://github.com/mstan/MegaManX6Recomp/pull/40, without rebuild/tests.
+
+The X4 combat regression passes. A controller-only encounter probe did not
+reach a nonlethal saber contact and is not a combat pass. A private replay of
+the owner's captured actors showed the countdown progressing and the saber
+pose ending, but a subsequent native story transition interrupted it; that
+also does not certify an uninterrupted recovery to idle. The exact enemy
+encounter therefore remains an owner playtest check for the new build.
+
 `80035EA4(a0=PLAYER)` installs player `+68`, the terrain box pointer: X uses
 `800F8BC4`, Zero uses `800F8BC8`; negative player `+C5` disables the on-foot
 box. Normal spawn calls this at `800359E4`. A prototype that directly forces

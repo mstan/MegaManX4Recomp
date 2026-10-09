@@ -42,6 +42,8 @@ static unsigned script_active, script_owner, script_serial;
 static unsigned warp_pending,warp_phase,warp_owner,warp_guard,warp_unlocked_ticks;
 static uint8_t warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible;
 static uint32_t warp_origin_x,warp_origin_y;
+static void start_arrival(CPUState *cpu,unsigned seat);
+static uint32_t body_word(const uint8_t *body,unsigned at);
 
 static void read_bytes(uint32_t address,uint8_t *out,unsigned count) {
     for(unsigned i=0;i<count;++i)out[i]=psx_mod_read_byte(address+i);
@@ -196,6 +198,12 @@ void mmx4_coop_lifecycle_enrolled(CPUState *cpu) {
         psx_mod_write_byte(PLAYER+6,0);
     }
     carry_resources=carry_dead=carry_first_dead=carry_departure=0;
+    if(!departed && body[4]==1 && !body[0xC5]) {
+        warp_owner=0;warp_active=body[0];warp_visible=body[3];
+        warp_vehicle_active=warp_vehicle_visible=0;
+        warp_origin_x=body_word(body,8);warp_origin_y=body_word(body,12);
+        start_arrival(cpu,1);
+    }
 }
 
 int mmx4_coop_lifecycle_can_tick(void) {
@@ -218,7 +226,29 @@ static uint32_t body_word(const uint8_t *body,unsigned at) {
     return (uint32_t)body[at]|(uint32_t)body[at+1]<<8|
         (uint32_t)body[at+2]<<16|(uint32_t)body[at+3]<<24;
 }
-static void warp_begin(void) {
+static void start_outgoing(CPUState *cpu,unsigned seat) {
+    if(seat)mmx4_coop_enter_second();
+    mmx4_coop_clear_current_attacks();
+    psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+0xBC,0);
+    psx_mod_write_byte(PLAYER+0xBD,0);
+    mmx4_coop_call(cpu,0x800350A4u,PLAYER,3);
+    mmx4_coop_call(cpu,0x80035048u,PLAYER,0);
+    if(seat)mmx4_coop_leave_second();
+    warp_phase=3;
+}
+static void start_arrival(CPUState *cpu,unsigned seat) {
+    if(seat)mmx4_coop_enter_second();
+    psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+6,0);
+    psx_mod_write_byte(PLAYER+0xBE,0);psx_mod_write_byte(PLAYER+0x89,0);
+    psx_mod_write_byte(PLAYER+0x70,0);psx_mod_write_byte(PLAYER+0x71,0);
+    psx_mod_write_byte(PLAYER+0xBC,0);psx_mod_write_byte(PLAYER+0xBD,0);
+    uint32_t y=psx_mod_read_word(PLAYER+12)-(96u<<16);
+    psx_mod_write_word(PLAYER+12,y);psx_mod_write_word(PLAYER+0x1C,y);
+    mmx4_coop_call(cpu,0x80035848u,PLAYER,0);
+    if(seat)mmx4_coop_leave_second();
+    warp_phase=2;
+}
+static void warp_begin(CPUState *cpu) {
     if(!warp_pending || mmx4_coop_projected())return;
     unsigned seat=warp_owner^1u;
     if(seat)mmx4_coop_enter_second();
@@ -227,10 +257,12 @@ static void warp_begin(void) {
     warp_vehicle_visible=psx_mod_read_byte(MMX4_VEHICLE+3);
     warp_origin_x=psx_mod_read_word(PLAYER+8);warp_origin_y=psx_mod_read_word(PLAYER+12);
     mmx4_coop_clear_current_attacks();
-    psx_mod_write_byte(PLAYER,0);psx_mod_write_byte(PLAYER+3,0);
     psx_mod_write_byte(MMX4_VEHICLE,0);psx_mod_write_byte(MMX4_VEHICLE+3,0);
+    unsigned mounted=psx_mod_read_byte(PLAYER+0xC5);
+    if(mounted) {psx_mod_write_byte(PLAYER,0);psx_mod_write_byte(PLAYER+3,0);}
     if(seat)mmx4_coop_leave_second();
     warp_pending=0;warp_phase=1;warp_unlocked_ticks=0;
+    if(!mounted)start_outgoing(cpu,seat);
     psx_mod_counter_add("mmx4.coop.script-departures",1);
 }
 static void position_return(CPUState *cpu,unsigned seat,uint32_t x,uint32_t y,
@@ -239,6 +271,7 @@ static void position_return(CPUState *cpu,unsigned seat,uint32_t x,uint32_t y,
     uint32_t vehicle_dx=psx_mod_read_word(MMX4_VEHICLE+8)-psx_mod_read_word(PLAYER+8);
     uint32_t vehicle_dy=psx_mod_read_word(MMX4_VEHICLE+12)-psx_mod_read_word(PLAYER+12);
     psx_mod_write_byte(PLAYER,active);psx_mod_write_byte(PLAYER+3,visible);
+    psx_mod_write_byte(PLAYER+4,1);
     psx_mod_write_word(PLAYER+8,x);psx_mod_write_word(PLAYER+12,y);
     psx_mod_write_word(PLAYER+0x18,x);psx_mod_write_word(PLAYER+0x1C,y);
     for(unsigned at=0x20;at<0x30;at+=4)psx_mod_write_word(PLAYER+at,0);
@@ -258,7 +291,7 @@ static void position_return(CPUState *cpu,unsigned seat,uint32_t x,uint32_t y,
     if(seat)mmx4_coop_leave_second();
 }
 static void warp_tick(CPUState *cpu) {
-    warp_begin();
+    warp_begin(cpu);
     if(!warp_phase || mmx4_coop_projected())return;
     unsigned seat=warp_owner^1u;
     const uint8_t *second=mmx4_coop_second_body();
@@ -270,9 +303,29 @@ static void warp_tick(CPUState *cpu) {
         psx_mod_read_byte(PLAY+0x1C) || (warp_owner?(second[0xC0]|second[0xC3]|second[0xC4]|second[0x67]):
             (psx_mod_read_byte(PLAYER+0xC0)|psx_mod_read_byte(PLAYER+0xC3)|
              psx_mod_read_byte(PLAYER+0xC4)|psx_mod_read_byte(PLAYER+0x67)));
+    if(warp_phase==3) {
+        if(!departed && !mmx4_coop_alive(warp_owner)) {
+            position_return(cpu,seat,warp_origin_x,warp_origin_y,
+                warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible);
+            if(seat)mmx4_coop_enter_second();
+            mmx4_coop_call(cpu,0x800343A4u,PLAYER,0);
+            if(seat)mmx4_coop_leave_second();
+            warp_phase=0;return;
+        }
+        if(seat)mmx4_coop_enter_second();
+        mmx4_coop_call(cpu,0x80031540u,PLAYER,0);
+        if(psx_mod_read_byte(PLAYER+4)==3) {
+            psx_mod_write_byte(PLAYER,0);psx_mod_write_byte(PLAYER+3,0);
+            warp_phase=departed?0u:1u;
+        }
+        if(seat)mmx4_coop_leave_second();
+        return;
+    }
     if(warp_phase==2 && !mmx4_coop_alive(warp_owner)) {
         /* The incoming player is alive even if their partner dies before
          * the return pose finishes; release control before team-wipe checks. */
+        position_return(cpu,seat,warp_origin_x,warp_origin_y,
+            warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible);
         if(seat)mmx4_coop_enter_second();
         mmx4_coop_call(cpu,0x800343A4u,PLAYER,0);warp_phase=0;
         if(seat)mmx4_coop_leave_second();
@@ -291,9 +344,9 @@ static void warp_tick(CPUState *cpu) {
         if(seat)mmx4_coop_enter_second();
         if(psx_mod_read_byte(PLAYER+0xC5))warp_phase=0;
         else {
-            psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+5,2);
-            psx_mod_write_byte(PLAYER+6,0);
-            mmx4_coop_call(cpu,0x800350A4u,PLAYER,2);warp_phase=2;
+            if(seat)mmx4_coop_leave_second();
+            start_arrival(cpu,seat);
+            if(seat)mmx4_coop_enter_second();
         }
         if(seat)mmx4_coop_leave_second();
     }else if(locked) {
@@ -306,9 +359,22 @@ static void warp_tick(CPUState *cpu) {
         warp_phase=1;warp_unlocked_ticks=0;
     }else {
         if(seat)mmx4_coop_enter_second();
-        mmx4_coop_call(cpu,0x80015DC8u,PLAYER,0);
-        if(!psx_mod_read_byte(PLAYER+0x46)) {
-            mmx4_coop_call(cpu,0x800343A4u,PLAYER,0);warp_phase=0;
+        uint8_t lock=psx_mod_read_byte(PLAY+0x1C);
+        uint8_t cameras[3]={psx_mod_read_byte(0x801419F4u),
+            psx_mod_read_byte(0x80141A48u),psx_mod_read_byte(0x80141A9Cu)};
+        /* Native 800312F8 refreshes this summary before action dispatch.
+         * The isolated arrival bypasses that control pass, so consume the
+         * preceding native terrain result before checking for touchdown. */
+        psx_mod_write_byte(PLAYER+0x89,(uint8_t)(psx_mod_read_byte(PLAYER+0x70)|
+            psx_mod_read_byte(PLAYER+0x71)));
+        mmx4_coop_call(cpu,0x80031410u,PLAYER,0);
+        warp_guard=1;mmx4_coop_call(cpu,0x8002C614u,PLAYER,0);warp_guard=0;
+        psx_mod_write_byte(PLAY+0x1C,lock);
+        psx_mod_write_byte(0x801419F4u,cameras[0]);
+        psx_mod_write_byte(0x80141A48u,cameras[1]);
+        psx_mod_write_byte(0x80141A9Cu,cameras[2]);
+        if(psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+5)==2) {
+            warp_phase=0;
             psx_mod_counter_add("mmx4.coop.script-rejoins",1);
         }
         if(seat)mmx4_coop_leave_second();
@@ -317,7 +383,15 @@ static void warp_tick(CPUState *cpu) {
 void mmx4_coop_lifecycle_tick(CPUState *cpu) {
     if(!mmx4_coop_ready() || mmx4_coop_projected())return;
     warp_tick(cpu);
-    if(warp_pending || warp_phase)return;
+    if(warp_pending || warp_phase) {
+        if(departed) {
+            uint16_t input=mmx4_coop_input(1);
+            if(!(input&SELECT))select_release=0;
+            else if(!select_release && !(select_previous&SELECT))rejoin_pending=1;
+            select_previous=input;
+        }
+        return;
+    }
     uint8_t *body=mmx4_coop_second_body();
     body[0xB9]|=psx_mod_read_byte(PLAY+0x59);
     unsigned stage=psx_mod_read_byte(PLAY+0x0C);
@@ -344,12 +418,12 @@ void mmx4_coop_lifecycle_tick(CPUState *cpu) {
                 departure_vehicle_active,departure_vehicle_visible);
             mmx4_coop_enter_second();
             if(!body[0xC5] || !departure_vehicle_active) {
-                mmx4_coop_call(cpu,0x800350A4u,PLAYER,2);
                 warp_owner=0;warp_phase=2;
                 warp_active=departure_active;warp_visible=departure_visible;
                 warp_vehicle_active=departure_vehicle_active;
                 warp_vehicle_visible=departure_vehicle_visible;
                 warp_origin_x=x;warp_origin_y=y;warp_unlocked_ticks=0;
+                mmx4_coop_leave_second();start_arrival(cpu,1);mmx4_coop_enter_second();
             }
             mmx4_coop_leave_second();
             departed=0;select_ticks=0;select_release=1;rejoin_pending=0;
@@ -364,7 +438,8 @@ void mmx4_coop_lifecycle_tick(CPUState *cpu) {
             departure_vehicle_active=vehicle[0];departure_vehicle_visible=vehicle[3];
             vehicle[0]=vehicle[3]=0;
             mmx4_coop_enter_second();mmx4_coop_clear_current_attacks();mmx4_coop_leave_second();
-            body[0]=body[3]=0;departed=1;select_release=1;select_ticks=0;
+            departed=1;select_release=1;select_ticks=0;
+            warp_owner=0;start_outgoing(cpu,1);
             psx_mod_counter_add("mmx4.coop.departures",1);
         }
     }else {select_ticks=0;if(!(input&SELECT))select_release=0;}
@@ -375,7 +450,7 @@ void mmx4_coop_lifecycle_tick(CPUState *cpu) {
  * through the core's call service. Only the outer filter completes the entry. */
 static int stage_normal(CPUState *cpu,uint32_t address) {
     if(normal_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
-    warp_begin();
+    warp_begin(cpu);
     if(warp_phase && !mmx4_coop_alive(warp_owner))warp_tick(cpu);
     uint16_t input[2]={mmx4_coop_input(0),mmx4_coop_input(1)};
     uint16_t edge[2]={(uint16_t)(input[0]&~menu_previous[0]),

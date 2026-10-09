@@ -88,6 +88,21 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         result=cpu->gpr[2];goto done;
     }
     switch(address) {
+    case 0x800350A4:
+        psx_mod_write_byte(MMX4_PLAYER+0x46,2);break;
+    case 0x80035048:
+        psx_mod_write_byte(MMX4_PLAYER+5,1);psx_mod_write_byte(MMX4_PLAYER+6,0);break;
+    case 0x80035848:
+        psx_mod_write_byte(MMX4_PLAYER+5,0);psx_mod_write_byte(MMX4_PLAYER+6,0);break;
+    case 0x80031540:
+        if(!psx_mod_read_byte(MMX4_PLAYER+6))psx_mod_write_byte(MMX4_PLAYER+6,1);
+        else {psx_mod_write_byte(MMX4_PLAYER+4,3);psx_mod_write_byte(MMX4_PLAYER+3,0);}
+        break;
+    case 0x80031410:
+        psx_mod_write_word(MMX4_PLAYER+12,psx_mod_read_word(MMX4_PLAYER+12)+(96u<<16));
+        psx_mod_write_byte(MMX4_PLAYER+4,1);psx_mod_write_byte(MMX4_PLAYER+5,2);
+        psx_mod_write_byte(MMX4_PLAYER+6,0);psx_mod_write_byte(MMX4_PLAYER+0x46,0);
+        break;
     case 0x8001FF8C:
         if(psx_mod_read_half(0x80166C0Cu)&0x800u)psx_mod_write_byte(MMX4_PLAY+1,2);
         else if(psx_mod_read_byte(MMX4_PLAYER+4)==3)psx_mod_write_byte(MMX4_PLAY+1,1);
@@ -375,6 +390,8 @@ int main(void) {
     CHECK(!psx_mod_read_byte(actor+0x72) && p2[0xC0]==1);
     CHECK(!psx_mod_read_byte(PLAYER+0xC0) && p2[0x5C]==12);
     mmx4_coop_lifecycle_tick(&cpu);
+    CHECK(warp_phase==3 && mmx4_coop_lifecycle_hidden(0));
+    mmx4_coop_lifecycle_tick(&cpu); /* Native departure finishes before hiding. */
     CHECK(!psx_mod_read_byte(PLAYER) && mmx4_coop_lifecycle_hidden(0));
     CHECK(psx_mod_read_word(PLAYER+8)==0);
     CHECK(psx_mod_read_byte(PLAYER+0x5C)==16);
@@ -415,6 +432,8 @@ int main(void) {
     CHECK(scene_calls==1 && script_active && script_owner==1 && p2[0xC4]==1);
     CHECK(mmx4_coop_lifecycle_script_owner()==1);
     CHECK(!psx_mod_read_byte(PLAYER+0xC4) && observed_campaign==0);
+    mmx4_coop_lifecycle_tick(&cpu);
+    CHECK(warp_phase==3 && mmx4_coop_lifecycle_hidden(0));
     mmx4_coop_lifecycle_tick(&cpu);
     CHECK(!psx_mod_read_byte(PLAYER) && psx_mod_read_word(PLAYER+8)==0);
     psx_mod_write_byte(actor+5,3);mmx4_coop_call(&cpu,0x800C1994u,actor,0);
