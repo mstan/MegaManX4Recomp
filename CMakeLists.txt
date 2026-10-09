@@ -82,7 +82,7 @@ psxrecomp_add_implementation(psx-runtime
 # cannot join under the same fixed development version.
 set(MMX4_COOP_CONTRACT_FILES
     game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_lifecycle.c
-    src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c
+    src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c src/mods/mmx4_coop_audio.c
     src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
     src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
     src/mods/mmx4_coop_split.c
@@ -99,7 +99,8 @@ set(MMX4_COOP_FRAMEWORK_CONTRACT_FILES
     runtime/src/render_pass.c runtime/include/mod_plugins.h
     runtime/src/mod_netplay.c runtime/include/mod_netplay.h
     runtime/src/mod_runtime.cpp runtime/src/mod_texture_banks.c
-    runtime/src/gpu.c runtime/include/mod_capcom_bg2d.h)
+    runtime/src/gpu.c runtime/include/mod_capcom_bg2d.h
+    runtime/src/spu.c runtime/include/spu.h runtime/src/mod_guest_services.c)
 foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_FRAMEWORK_CONTRACT_FILES)
     set(MMX4_COOP_SOURCE_PATH "${PSXRECOMP_V4_ROOT}/${MMX4_COOP_SOURCE}")
     file(SHA256 "${MMX4_COOP_SOURCE_PATH}" MMX4_COOP_SOURCE_HASH)
@@ -121,6 +122,10 @@ if(BUILD_TESTING)
     add_executable(mmx4_coop_assets_test tests/test_mmx4_coop_assets.c src/mods/mmx4_coop_assets.c)
     target_include_directories(mmx4_coop_assets_test PRIVATE src/mods)
     add_test(NAME mmx4_coop_assets_test COMMAND mmx4_coop_assets_test)
+    add_executable(mmx4_coop_audio_test tests/test_mmx4_coop_audio.c
+        src/mods/mmx4_coop_audio.c src/mods/mmx4_coop_assets.c)
+    target_include_directories(mmx4_coop_audio_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_audio_test COMMAND mmx4_coop_audio_test)
     add_executable(mmx4_coop_combat_test tests/test_mmx4_coop_combat.c
         src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_views.c)
     target_include_directories(mmx4_coop_combat_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")

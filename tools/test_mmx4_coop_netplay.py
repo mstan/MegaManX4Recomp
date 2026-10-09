@@ -253,7 +253,8 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
     shutil.copytree(settings, directory / "mods/bundled/mmx4.coop")
     (directory / "mods/state.toml").write_text(
         'format_version = 2\n\n[[feature]]\npackage_id = "mmx4.coop"\n'
-        f'id = "coop"\nenabled = false\n[feature.values]\ncameras = "{args.cameras}"\n', encoding="utf-8")
+        f'id = "coop"\nenabled = false\n[feature.values]\ncameras = "{args.cameras}"\n'
+        f'hud_layout = "{getattr(args, "hud_layout", "stacked")}"\n', encoding="utf-8")
     saves = directory / "saves"
     saves.mkdir()
     card_seed = getattr(args, 'card_seed', None)

@@ -14,6 +14,9 @@
 #define ALLOC 0x8002ADBCu
 #define EFFECT_ALLOC 0x8002AD3Cu
 #define EFFECT 0x8013E510u
+#define PARTICLE_ALLOC 0x8002AE50u
+#define PARTICLE_INIT 0x800CAE38u
+#define PARTICLE 0x80173CA0u
 #define MIRROR 0x80110000u
 #define ARMOR_UPDATE 0x8003D3F8u
 #define ARMOR_MOUNT 0x8003E0D0u
@@ -48,6 +51,7 @@ static unsigned armor_updates, mount_checks, mount_accept[2];
 static uint8_t observed_freeze;
 static unsigned token_model, attack_present[2];
 static uint8_t attack_token[2];
+static unsigned particle_initializations,particle_character;
 
 static uint8_t *address_ptr(uint32_t address) {
     uint32_t physical=address&0x1FFFFFFFu;
@@ -199,11 +203,21 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         return 0x12345678u;
     }
     if (address==ALLOC || address==0x8002AB74u || address==0x8002ACA4u ||
-        address==EFFECT_ALLOC) {
+        address==EFFECT_ALLOC || address==PARTICLE_ALLOC) {
         ++allocator_calls;
-        if (allocated_actor && address!=EFFECT_ALLOC)
+        if (allocated_actor && address!=EFFECT_ALLOC && address!=PARTICLE_ALLOC)
             psx_mod_write_byte(allocated_actor+0x65,0);
         return allocated_actor;
+    }
+    if(address==PARTICLE_INIT) {
+        ++particle_initializations;particle_character=psx_mod_read_byte(MMX4_PLAYER+2);
+        /* CAE38 reads these fields and P2's projected character assembly.
+         * Its native movement/draw remains one call at the shared pool tick. */
+        psx_mod_write_word(a0+8,psx_mod_read_word(MMX4_PLAYER+8));
+        psx_mod_write_word(a0+12,psx_mod_read_word(MMX4_PLAYER+12));
+        psx_mod_write_byte(a0+0x14,psx_mod_read_byte(MMX4_PLAYER+0x14));
+        psx_mod_write_byte(a0+4,1);
+        return 0xABCDEF01u;
     }
     if (address==AIM || address==0x80040CCCu || address==0x800419B8u) {
         ++ai_updates;
@@ -286,12 +300,43 @@ static void setup(void) {
     second_vehicle[0]=1;second_vehicle[8+2]=30;second_double[0]=1;
     psx_mod_write_word(ACTOR+0x68,0x800F8000u);
     mmx4_coop_combat_reset();
+    particle_initializations=particle_character=0;
     clear_calls();
 }
 static uint32_t invoke(uint32_t address) {
     CPUState cpu={0};cpu.gpr[4]=ACTOR;cpu.gpr[5]=0xAABBCCDDu;
     CHECK(filter(address)(&cpu,address));
     return cpu.gpr[2];
+}
+static void death_particle_ownership(void) {
+    for(unsigned character=0;character<2;++character) {
+        setup();second[2]=(uint8_t)character;
+        psx_mod_write_byte(MMX4_PLAYER+2,(uint8_t)(1-character));
+        psx_mod_write_byte(MMX4_PLAY+0x43,(uint8_t)(1-character));
+        second[0x14]=7;allocated_actor=PARTICLE;
+        mmx4_coop_enter_second();CHECK(invoke(PARTICLE_ALLOC)==PARTICLE);mmx4_coop_leave_second();
+        /* P2 is dead; it can even rejoin elsewhere before deferred init. */
+        alive[1]=0;second[10]=99;second[14]=77;second[0x14]=8;
+        psx_mod_write_byte(PARTICLE+1,0x11);
+        uint8_t p1[sizeof second],p2[sizeof second];
+        memcpy(p1,address_ptr(MMX4_PLAYER),sizeof p1);memcpy(p2,second,sizeof p2);
+        CPUState cpu={0};cpu.gpr[4]=PARTICLE;
+        CHECK(filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT) && cpu.gpr[2]==0xABCDEF01u);
+        CHECK(particle_initializations==1 && particle_character==character);
+        CHECK(psx_mod_read_word(PARTICLE+8)==30u<<16 && psx_mod_read_word(PARTICLE+12)==20u<<16);
+        CHECK(psx_mod_read_byte(PARTICLE+0x14)==7 && !projected);
+        CHECK(!memcmp(p1,address_ptr(MMX4_PLAYER),sizeof p1) && !memcmp(p2,second,sizeof p2));
+        CHECK(!filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT));
+        /* A P1 allocation reusing the slot must clear its former P2 owner. */
+        mmx4_coop_enter_second();invoke(PARTICLE_ALLOC);mmx4_coop_leave_second();
+        invoke(PARTICLE_ALLOC);psx_mod_write_byte(PARTICLE+4,0);
+        CHECK(!filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT));
+        /* Reset removes pending ownership, and unrelated effect types pass. */
+        mmx4_coop_enter_second();invoke(PARTICLE_ALLOC);mmx4_coop_leave_second();
+        psx_mod_write_byte(PARTICLE+1,0x12);CHECK(!filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT));
+        mmx4_coop_combat_reset();psx_mod_write_byte(PARTICLE+1,0x11);
+        CHECK(!filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT));
+    }
 }
 static void accepted_events(void) {
     const uint32_t addresses[]={CONTACT,HIT};
@@ -545,9 +590,10 @@ static void split_native_targets(void) {
     redirects[0](&cpu,0x80021300u);CHECK(cpu.gpr[2]==NATIVE_AI);
 }
 int main(void) {
-    CHECK(filter_count==13);
+    CHECK(filter_count==15);
     accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();survivor_pools();independent_hit_tokens();
     split_native_targets();
+    death_particle_ownership();
     /* A nonlethal saber hit pauses its owner. The other seat continues;
      * accepted-hit callbacks must not repeatedly arm that owner's +BD while
      * the original player routine is counting down +BC. */

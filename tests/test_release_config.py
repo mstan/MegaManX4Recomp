@@ -12,6 +12,13 @@ def config(path):
 
 
 class ReleaseConfigTest(unittest.TestCase):
+    def test_two_player_launcher_contract(self):
+        # This selects both the visible Netplay entry point and the P2
+        # Controls row; compiling netplay support alone does not expose them.
+        for path in (ROOT / "game.toml", ROOT / "packaging/release/game.toml"):
+            with self.subTest(path=path):
+                self.assertEqual(config(path)["game"]["players"], 2)
+
     def test_coop_camera_choices(self):
         package = config(ROOT / "mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml")
         cameras = next(option for option in package["option"] if option["id"] == "cameras")
@@ -28,6 +35,14 @@ class ReleaseConfigTest(unittest.TestCase):
                 self.assertEqual(video["internal_resolution"], "1080p")
                 self.assertEqual(video["resolution_reference_lines"], 240)
                 self.assertNotIn("supersampling", video)
+
+    def test_coop_hud_choices(self):
+        package = config(ROOT / "mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml")
+        layout = next(option for option in package["option"] if option["id"] == "hud_layout")
+        self.assertEqual(layout["feature"], "coop")
+        self.assertEqual(layout["default"], "stacked")
+        self.assertEqual([(choice["value"], choice["label"]) for choice in layout["choice"]],
+                         [("stacked", "Stacked"), ("side_by_side", "Side by side")])
 
     def test_portable_player_contract_matches_development(self):
         dev = config(ROOT / "game.toml")

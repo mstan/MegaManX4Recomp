@@ -41,6 +41,7 @@ static SpriteBank view_banks[4096];
 static UiBank view_ui_banks[4096];
 static unsigned view_bank_count,view_ui_bank_count,local_view_call,local_view_seat;
 static unsigned ui_bank_count,hud_call;
+static unsigned hud_side_by_side;
 static uint32_t hud_arena;
 static uint32_t world_packet_used;
 static unsigned bank_count,inside,enrolled,failed,rendering;
@@ -129,7 +130,8 @@ static int load_character(unsigned character) {
        !mmx4_coop_arc_asset(a->file,a->size,5,&gfx) || gfx.size!=0x8000)return 0;
     project(a->menu_gfx,gfx.data,gfx.size);
     a->ui_pixels=calloc(1024*512,sizeof(uint16_t));
-    a->loaded=a->ui_pixels && retain_ui(a,&ui) && retain_ui(a,&gfx);
+    a->loaded=a->ui_pixels && retain_ui(a,&ui) && retain_ui(a,&gfx) &&
+        mmx4_coop_audio_load(character,a->file,a->size);
     return (int)a->loaded;
 }
 static void enter_second(void) {
@@ -489,15 +491,17 @@ static uint16_t ui_tile(uint16_t page,uint16_t clut,uint16_t uv,int private_colo
     *b=(UiBank){page,clut,uv,id,{0},counterpart};memcpy(b->colors,colors,32);return id;
 }
 static int coop_hud(CPUState *cpu,uint32_t address) {
-    if(hud_call || projected || !mmx4_coop_ready() || psx_mod_read_byte(PLAY)!=6)return 0;
+    if(hud_call || projected || !mmx4_coop_ready() || psx_mod_read_byte(PLAY)!=6 ||
+       psx_mod_read_byte(PLAY+1)!=0)return 0;
     int own_hud=split_views && psx_mod_local_view_scope();
     hud_call=1;uint32_t result=own_hud && local_view_seat?0:
         guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     if(own_hud && !local_view_seat) {hud_call=0;return mmx4_coop_finish(cpu,result);}
     if(psx_mod_read_byte(PLAY+0x1F) && second.body[0]) {
-        /* Keep both native meters in one left column. Own-player Split views
-         * use the original upper position; the shared view stacks P2 below. */
-        int offset_y=own_hud?0:104;
+        /* Both layouts share the native left anchor. Own-player Split views
+         * use the original position; Unified offsets only the second group. */
+        int offset_x=!own_hud && hud_side_by_side?56:0;
+        int offset_y=!own_hud && !hud_side_by_side?104:0;
         uint32_t pools[3],base=hud_arena+(psx_mod_read_word(SCRATCH)&1u)*0x8000;
         for(unsigned i=0;i<3;++i) {pools[i]=psx_mod_read_word(SCRATCH+0x108+i*4);psx_mod_write_word(SCRATCH+0x108+i*4,base+i*0x1000);}
         enter_second();
@@ -511,19 +515,22 @@ static int coop_hud(CPUState *cpu,uint32_t address) {
             uint32_t link=psx_mod_read_word(at),uv=psx_mod_read_word(at+12);
             uint16_t page=(uint16_t)psx_mod_read_word(mode+4),bank=ui_tile(page,(uint16_t)(uv>>16),(uint16_t)uv,0);
             if(!bank || dst+80>base+0x8000) {failed=7;break;}
-            int x=(int16_t)psx_mod_read_half(at+8),y=(int16_t)psx_mod_read_half(at+10)+offset_y;
+            int x=(int16_t)psx_mod_read_half(at+8)+offset_x,y=(int16_t)psx_mod_read_half(at+10)+offset_y;
             uint32_t q[10]={link,0x2C808080,0,0,0,0,0,0,0,0};
             for(unsigned i=0;i<4;++i) {
                 q[2+i*2]=(uint16_t)(x+(i&1)*16)|((uint32_t)(uint16_t)(y+(i>>1)*16)<<16);
                 q[3+i*2]=(i&1)*16|((i>>1)*16<<8);
             }
             triangle(dst,dst+40,q,0,1,2,bank);triangle(dst+40,link,q,2,1,3,bank);
-            psx_mod_anchor_hud_primitive(dst,0);psx_mod_anchor_hud_primitive(dst+40,0);psx_mod_write_word(at,dst&0xFFFFFF);
+            psx_mod_anchor_hud_primitive(dst,-1);psx_mod_anchor_hud_primitive(dst+40,-1);psx_mod_write_word(at,dst&0xFFFFFF);
         }
         /* Original 80025588 emits flat POLY_F4, six words including tag. */
         for(uint32_t at=base+0x2000;at<bar_end && !failed;at+=24) {
-            for(unsigned xy=8;xy<=20;xy+=4)psx_mod_write_half(at+xy+2,(uint16_t)(psx_mod_read_half(at+xy+2)+offset_y));
-            psx_mod_anchor_hud_primitive(at,0);
+            for(unsigned xy=8;xy<=20;xy+=4) {
+                psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+offset_x));
+                psx_mod_write_half(at+xy+2,(uint16_t)(psx_mod_read_half(at+xy+2)+offset_y));
+            }
+            psx_mod_anchor_hud_primitive(at,-1);
         }
         leave_second();
         for(unsigned i=0;i<3;++i)psx_mod_write_word(SCRATCH+0x108+i*4,pools[i]);
@@ -573,7 +580,8 @@ static void render_actor(CPUState *cpu,uint32_t actor,uint32_t base) {
     }
 }
 static int render(CPUState *cpu,uint32_t address) {
-    if(rendering || inside || projected || failed || !enrolled || psx_mod_read_byte(PLAY)!=6)return 0;
+    if(rendering || inside || projected || failed || !enrolled || psx_mod_read_byte(PLAY)!=6 ||
+       psx_mod_read_byte(PLAY+1)!=0)return 0;
     rendering=1;
     uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     enter_second();
@@ -588,7 +596,8 @@ static int render(CPUState *cpu,uint32_t address) {
 }
 static int render_owned_effect(CPUState *cpu,uint32_t address) {
     (void)address;
-    if(rendering || projected || !mmx4_coop_ready() || psx_mod_read_byte(PLAY)!=6)return 0;
+    if(rendering || projected || !mmx4_coop_ready() || psx_mod_read_byte(PLAY)!=6 ||
+       psx_mod_read_byte(PLAY+1)!=0)return 0;
     uint32_t actor=cpu->gpr[4],assembly=psx_mod_read_word(actor+0x3C);
     if(assembly<assets[counterpart].assembly || assembly-assets[counterpart].assembly>=0xC000)return 0;
     rendering=1;
@@ -683,10 +692,13 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 static void activate(void) {
-    char cameras[16];
+    char cameras[16],layout[24];
     if(!psx_mod_current_option_value("cameras",cameras,sizeof cameras))strcpy(cameras,"unified");
+    hud_side_by_side=psx_mod_current_option_value("hud_layout",layout,sizeof layout) &&
+        !strcmp(layout,"side_by_side");
     split_views=mmx4_coop_views_requested(psx_mod_netplay_is_active(),cameras);
     memset(&first,0,sizeof first);memset(&second,0,sizeof second);
+    mmx4_coop_audio_reset();
     bank_count=ui_bank_count=inside=enrolled=failed=rendering=projected=camera_call=camera_update_call=hud_call=upload_guard=0;
     view_bank_count=view_ui_bank_count=local_view_call=local_view_seat=0;
     if(!mmx4_coop_split_activate())failed=1;

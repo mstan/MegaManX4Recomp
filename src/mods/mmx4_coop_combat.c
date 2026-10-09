@@ -16,6 +16,11 @@
 #define EFFECT_POOL 0x8013E510u
 #define EFFECT_STRIDE 0x70u
 #define EFFECT_CAPACITY 32u
+#define PARTICLE_ALLOCATE 0x8002AE50u
+#define PARTICLE_INITIALIZE 0x800CAE38u
+#define PARTICLE_POOL 0x80173CA0u
+#define PARTICLE_STRIDE 0x60u
+#define PARTICLE_CAPACITY 64u
 #define ARMOR_UPDATE 0x8003D3F8u
 #define ARMOR_MOUNT 0x8003E0D0u
 #define ACTOR_DISPATCH 0x8F7FFF00u
@@ -39,6 +44,10 @@ static unsigned solid_count;
 static unsigned combat_call, solid_call, allocation_call, aim_call;
 static unsigned effect_allocation_call;
 static uint8_t second_effect_owner[EFFECT_CAPACITY];
+/* The type-11 death effect defers its character assembly and position reads
+ * until the shared pool pass. Keep the allocation-time origin through rejoin. */
+static struct { uint32_t x,y; uint8_t owner,screen; } particles[PARTICLE_CAPACITY];
+static unsigned particle_allocation_call,particle_init_call;
 static unsigned armor_call, armor_owner, armor_skip_update;
 static unsigned survivor_pool_call;
 static unsigned actor_call,actor_suspended,actor_owner;
@@ -211,6 +220,51 @@ static int allocate_effect(CPUState *cpu, uint32_t address) {
     /* This must also run during enrollment before ready(), and clear an old
      * owner when a shared world/P1 allocator reuses the original slot. */
     return mmx4_coop_finish(cpu,actor);
+}
+
+static int particle_slot(uint32_t actor) {
+    if(actor<PARTICLE_POOL || actor>=PARTICLE_POOL+PARTICLE_CAPACITY*PARTICLE_STRIDE ||
+       (actor-PARTICLE_POOL)%PARTICLE_STRIDE)return -1;
+    return (int)((actor-PARTICLE_POOL)/PARTICLE_STRIDE);
+}
+static int allocate_particle(CPUState *cpu,uint32_t address) {
+    if(particle_allocation_call)return 0;
+    particle_allocation_call=1;
+    uint32_t actor=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    particle_allocation_call=0;
+    int slot=particle_slot(actor);
+    if(slot>=0) {
+        memset(&particles[slot],0,sizeof particles[slot]);
+        if(mmx4_coop_projected()) {
+            particles[slot].owner=1;
+            particles[slot].x=psx_mod_read_word(MMX4_PLAYER+8);
+            particles[slot].y=psx_mod_read_word(MMX4_PLAYER+12);
+            particles[slot].screen=psx_mod_read_byte(MMX4_PLAYER+0x14);
+        }
+    }
+    return mmx4_coop_finish(cpu,actor);
+}
+static int initialize_death_particle(CPUState *cpu,uint32_t address) {
+    uint32_t actor=cpu->gpr[4];int slot=particle_slot(actor);
+    if(particle_init_call || !mmx4_coop_ready() || slot<0 || !particles[slot].owner ||
+       psx_mod_read_byte(actor+1)!=0x11 || psx_mod_read_byte(actor+4))return 0;
+    particle_init_call=1;
+    int entered=!mmx4_coop_projected();
+    if(entered)mmx4_coop_enter_second();
+    uint32_t x=psx_mod_read_word(MMX4_PLAYER+8),y=psx_mod_read_word(MMX4_PLAYER+12);
+    uint8_t screen=psx_mod_read_byte(MMX4_PLAYER+0x14);
+    psx_mod_write_word(MMX4_PLAYER+8,particles[slot].x);
+    psx_mod_write_word(MMX4_PLAYER+12,particles[slot].y);
+    psx_mod_write_byte(MMX4_PLAYER+0x14,particles[slot].screen);
+    /* The normal projection also supplies P2's private assembly/palette.
+     * Do not require alive(): this callback belongs to an already dead seat. */
+    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+    psx_mod_write_word(MMX4_PLAYER+8,x);psx_mod_write_word(MMX4_PLAYER+12,y);
+    psx_mod_write_byte(MMX4_PLAYER+0x14,screen);
+    if(entered)mmx4_coop_leave_second();
+    particles[slot].owner=0;
+    particle_init_call=0;
+    return mmx4_coop_finish(cpu,result);
 }
 
 void mmx4_coop_combat_project_end(uint32_t vehicle_mirror) {
@@ -480,6 +534,8 @@ void mmx4_coop_combat_reset(void) {
     if (mmx4_coop_projected()) return;
     memset(solids,0,sizeof solids);
     memset(second_effect_owner,0,sizeof second_effect_owner);
+    memset(particles,0,sizeof particles);
+    particle_allocation_call=particle_init_call=0;
     memset(hits,0,sizeof hits);
     hit_count=0;
     solid_count=0;
@@ -512,6 +568,13 @@ uint32_t mmx4_coop_combat_digest(uint32_t seed) {
     }
     for (unsigned i=0;i<EFFECT_CAPACITY;++i)
         seed=digest_byte(seed,second_effect_owner[i]);
+    for(unsigned i=0;i<PARTICLE_CAPACITY;++i) {
+        seed=digest_byte(seed,particles[i].owner);
+        if(particles[i].owner) {
+            seed=digest_word(seed,particles[i].x);seed=digest_word(seed,particles[i].y);
+            seed=digest_byte(seed,particles[i].screen);
+        }
+    }
     seed=digest_byte(seed,(uint8_t)armor_owner);
     seed=digest_byte(seed,(uint8_t)armor_skip_update);
     seed=digest_word(seed,hit_count);
@@ -539,6 +602,8 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_combat) {
     psx_mod_register_function_filter_plugin(COOP_ID,0x8002ACA4u,allocate_actor);
     psx_mod_register_function_filter_plugin(COOP_ID,0x8002ADBCu,allocate_actor);
     psx_mod_register_function_filter_plugin(COOP_ID,EFFECT_ALLOCATE,allocate_effect);
+    psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_ALLOCATE,allocate_particle);
+    psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_INITIALIZE,initialize_death_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,ARMOR_UPDATE,armor_world_update);
     psx_mod_register_function_filter_plugin(COOP_ID,0x80021234u,survivor_actor_pool);
     psx_mod_register_function_filter_plugin(COOP_ID,0x8002144Cu,survivor_actor_pool);

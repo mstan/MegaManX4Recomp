@@ -2,6 +2,9 @@
 #define MMX4_COOP_INTERNAL_H
 #include <stdint.h>
 #include "cpu_state.h"
+
+void mmx4_coop_audio_reset(void);
+int mmx4_coop_audio_load(unsigned character,const uint8_t *file,uint32_t size);
 #include "mod_plugins.h"
 #include "mmx4_coop_views.h"
 #define MMX4_PLAYER 0x801418C8u

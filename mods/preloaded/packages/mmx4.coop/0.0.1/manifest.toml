@@ -32,6 +32,20 @@ label = "Unified"
 value = "split"
 label = "Split (Experimental)"
 
+[[option]]
+feature = "coop"
+id = "hud_layout"
+label = "HUD layout"
+description = "Unified views stack the meters by default. Side by side restores the previous two-column layout. Split views keep only the local player's meter at its native position."
+type = "choice"
+default = "stacked"
+[[option.choice]]
+value = "stacked"
+label = "Stacked"
+[[option.choice]]
+value = "side_by_side"
+label = "Side by side"
+
 [[plugin]]
 feature = "coop"
 id = "mmx4.coop"

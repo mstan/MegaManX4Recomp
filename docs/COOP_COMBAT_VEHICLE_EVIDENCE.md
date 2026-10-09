@@ -357,3 +357,20 @@ consumed once, moving platforms carrying both players, differing facing and
 overlapping saber/buster hit tokens, Ride Armor exclusive ownership, and both
 campaigns' bosses/terrain. These observations provide hook boundaries; no
 live validation was performed by this evidence worker.
+
+## P2 death particles (2026-10-09)
+
+Owner testing confirmed P1 remains alive, but P2 particles originate at P1 and
+Zero/P2 uses blue particles. `80035D34` allocates type `11` from `8002AE50`,
+the distinct 64-slot pool at `80173CA0` with stride `60`. It sets the effect
+type/direction but leaves position and character resources for deferred init.
+Dispatch table `800F2980[11]` points to `800CADF8`; initialization `800CAE38`
+reads PLAYER+8/+C/+14 and scratchpad+1C (character assembly).
+
+The adapter records P2's origin/screen during allocation and projects its
+character resources only around the deferred initializer. It preserves both
+bodies and the original once-per-pool-tick movement/draw, including after P2
+dies or rejoins elsewhere. Allocation reuse and stage reset clear ownership;
+pending origins participate in the co-op digest. Boundary tests cover both
+characters, distant P1, dead/repositioned P2 and reuse. Native color/origin
+confirmation remains with the owner.
