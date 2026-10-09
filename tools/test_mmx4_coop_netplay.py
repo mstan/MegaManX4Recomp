@@ -180,13 +180,18 @@ class Peer:
         menu = self.read(MENU, 0x34)
         diagnostic = self.read(self.diagnostic, 0x500)
         completed_context = struct.unpack_from("<I", diagnostic, 0x1C)[0] == 1
+        # Pair world identity/lives with the completed player bodies. Live
+        # mode/menu gates must remain live: diagnostics stop advancing while
+        # the native menu freezes gameplay and during non-gameplay loading.
+        world = (diagnostic[0x400:0x464] if completed_context and
+                 play[0] == 6 and diagnostic[0x400] == 6 else play)
         first = (diagnostic[0x300:0x300 + BODY_BYTES] if completed_context
                  else self.read(PLAYER, BODY_BYTES))
         magic, frames, enrolled, failed, banks = struct.unpack_from("<5I", diagnostic)
         require(magic == DIAGNOSTIC_MAGIC, f"P{self.seat + 1}: invalid co-op diagnostic header")
         require(failed == 0, f"P{self.seat + 1}: co-op plugin reported failure")
-        return dict(mode=play[0], minor=play[1], stage=play[0xC], section=play[0xD],
-                    campaign=play[0x43], lives=play[0x44],
+        return dict(mode=play[0], minor=play[1], stage=world[0xC], section=world[0xD],
+                    campaign=world[0x43], lives=world[0x44],
                     pause_suppressed=play[0x1C], script_gate=play[0x10],
                     frames=frames, enrolled=enrolled, failed=failed, banks=banks,
                     completed_context=completed_context,
@@ -478,13 +483,15 @@ class Exercise:
         # The card reader enters this mode before its asynchronous directory
         # read finishes. Let the original reader populate the data list.
         self.wait_ticks(90)
-        for unused in range(0 if campaign else 2):
+        continue_data = getattr(self.args, 'continue_data', None)
+        for unused in range(continue_data - 1 if continue_data else (0 if campaign else 2)):
             pulse(DOWN)
         pulse(CROSS)
         wait_native('saved data confirmation', lambda f, p: p[0] == 0 and p[1] == 4)
         pulse(CROSS)
         wait_native('loaded stage selection', lambda f, p: p[0] == 3 and p[1] == 4)
-        require(all(p[0x43] == campaign and p[0x59] == 255 for p in self.both('read', PLAY, 0x64)),
+        expected_rewards = getattr(self.args, 'expected_rewards', 255)
+        require(all(p[0x43] == campaign and p[0x59] == expected_rewards for p in self.both('read', PLAY, 0x64)),
                 'Continue loaded a different campaign or Maverick rewards')
         for peer in self.peers:
             peer.request('screenshot_hires', path=str(peer.directory / 'continue-stage-select.png'))
@@ -955,6 +962,8 @@ def main() -> int:
     parser.add_argument("--config", type=Path)
     parser.add_argument("--card-seed", type=Path)
     parser.add_argument("--continue-jungle", action="store_true")
+    parser.add_argument("--continue-data", type=int, choices=range(1, 4))
+    parser.add_argument("--expected-rewards", type=lambda value: int(value, 0), default=255)
     parser.add_argument("--report-dir", type=Path)
     parser.add_argument("--campaign", choices=("both", "x", "zero"), default="both")
     parser.add_argument("--scenario", choices=("both", "delay", "jitter"), default="both")

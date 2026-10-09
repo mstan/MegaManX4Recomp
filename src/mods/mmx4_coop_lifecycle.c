@@ -721,6 +721,8 @@ static int scene_actor_canonical(CPUState *cpu,uint32_t address) {
     unsigned serial=script_serial;
     unsigned old_door=address==0x800C1994u?(owner?
         mmx4_coop_second_body()[0xC4]:psx_mod_read_byte(PLAYER+0xC4)):0;
+    uint8_t canonical_camera[0xFC];
+    int own_camera=owner && mmx4_coop_split_scene_camera_begin(owner,canonical_camera);
     scene_guard=1;uint32_t result;
     if(owner) {
         uint8_t contact[4];static const unsigned at[]={0x72,0x74,0x76,0x78};
@@ -752,6 +754,8 @@ static int scene_actor_canonical(CPUState *cpu,uint32_t address) {
             (address==0x800C1994u && !new_door &&
                 (psx_mod_read_byte(actor+4)>=2 || psx_mod_read_byte(actor+5)>=4))))))
         memset(record,0,sizeof *record);
+    if(own_camera)mmx4_coop_split_scene_camera_end(owner,canonical_camera,
+        script_active && script_owner==owner && (new_door || serial!=script_serial));
     return mmx4_coop_finish(cpu,result);
 }
 static int scene_actor(CPUState *cpu,uint32_t address) {

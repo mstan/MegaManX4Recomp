@@ -40,6 +40,12 @@ int psx_mod_register_function_entry_plugin(const char *id,uint32_t a,PSXModFunct
 }
 void psx_mod_counter_add(const char *name,uint32_t amount) {(void)name;(void)amount;}
 void mmx4_coop_menu_assets(CPUState *cpu,unsigned seat) {(void)cpu;(void)seat;}
+int mmx4_coop_split_scene_camera_begin(unsigned owner,uint8_t canonical[0xFC]) {
+    (void)owner;(void)canonical;return 0;
+}
+void mmx4_coop_split_scene_camera_end(unsigned owner,const uint8_t canonical[0xFC],int committed) {
+    (void)owner;(void)canonical;(void)committed;
+}
 uint8_t mmx4_coop_solid_contact_bits(uint32_t actor,unsigned seat) {
     return seat?p2_solid_bits:psx_mod_read_byte(actor+0x72);
 }

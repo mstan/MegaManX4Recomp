@@ -350,6 +350,43 @@ native kill/re-entry/pool exhaustion, every stage/actor family, long sessions
 and a live Internet room/relay match still need playtesting. Historical failed
 reports below remain failures and identify the exact candidates they tested.
 
+### Native camera-area and checkpoint routing follow-up
+
+The original-input online Jungle route exposed another singleton assumption:
+native stage actors `800B56F4` (camera area) and `800B6A0C` (checkpoint) inspect
+only the projected PLAYER. On `41c2b44`, P2 reaches the authored rectangle at
+(2120,1179), but the native camera target stays at max X=1808 and clamps further
+progress. Evidence is retained at
+`build-coop-split/qa-online-boss-route-zero-coherent`.
+
+Split now chooses an eligible living player for one original stage callback.
+Each player inside a camera area receives its native camera-variable
+assignments and foreground mode 2; other shared variables and checkpoint
+writes run once. Ordinary follow retains that view's authored dead zones and
+room metadata. A P2-led scene starts in P2's cached camera and commits it only
+when a shared script begins. Unified behavior is unchanged. The native-call
+model fails against the prior source; it covers separated and simultaneous
+area activation, one shared write, P2 checkpoints, metadata retention and
+scene-camera restore/commit. The simultaneous-area mode assertion separately
+fails before copying the native mode byte to both eligible views.
+
+The first room-fix executable (`73514079...`) passes all ten title checks.
+Its private two-peer Zero-campaign route advances P2 to (2253,1179) while P1
+remains at (56,138), with matching core/mod CRCs through tick 31452. Both
+independent OpenGL views were inspected. Lower Jungle bounds subsequently
+advance to max X=5584/Y=1280. The generated Web-Spider-undefeated Continue
+card loads successfully through the original frontend in both campaigns.
+These input-driver probes remain incomplete: native pits killed P2 before
+the boss door, and a long survivor command exceeded the probe's tick timeout.
+They are not boss-door qualification passes.
+
+The candidate including the simultaneous-area mode correction is
+`build-coop-split-roomfix-final/MegaManX4Recomp.exe`, SHA256
+`390429b843f361e90f1ad1aa28548ae8b1df3d048cc0cce7f1b2ce8de79ad0d2`.
+All twelve configured CTests pass, including the ten title checks and both
+framework/catalog audits. Central issue `beads-eio.9.10` remains in progress
+while original online door/dialogue handoff is tested.
+
 ### Earlier Split integration evidence
 
 Native Split evidence: `build-coop-split/qa-split-render-phase-fixed/report.json`

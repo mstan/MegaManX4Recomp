@@ -9,7 +9,7 @@
 #define STATE_BYTES (VISITS_OFFSET+MMX4_COOP_PLACEMENTS/8u)
 
 static uint32_t state;
-static unsigned scanning,bounds_call,supplemental;
+static unsigned scanning,bounds_call,supplemental,spatial_call;
 
 static void copy_bytes(uint32_t destination,uint32_t source,unsigned size) {
     for(unsigned offset=0;offset<size;++offset)
@@ -23,14 +23,14 @@ static void write_bytes(uint32_t destination,const uint8_t *bytes,unsigned size)
 }
 static int available(void) {
     return state && mmx4_coop_split_views() && mmx4_coop_ready() &&
-        (!mmx4_coop_projected() || mmx4_coop_combat_actor_context()) &&
+        (!mmx4_coop_projected() || mmx4_coop_combat_actor_context() || spatial_call) &&
         psx_mod_read_byte(MMX4_PLAY)==6 &&
         !psx_mod_local_view_scope();
 }
 void mmx4_coop_split_reset(void) {
     if(!state || mmx4_coop_projected() || psx_mod_local_view_scope())return;
     for(unsigned offset=0;offset<STATE_BYTES;offset+=4)psx_mod_write_word(state+offset,0);
-    scanning=bounds_call=supplemental=0;
+    scanning=bounds_call=supplemental=spatial_call=0;
 }
 int mmx4_coop_split_activate(void) {
     state=mmx4_coop_split_views()?psx_mod_memory_alloc(STATE_BYTES,4):0;
@@ -73,6 +73,18 @@ static void initialize_cameras(void) {
     copy_bytes(state+16u+CAMERA_BYTES,CAMERA,CAMERA_BYTES);
     psx_mod_write_word(state,1);
 }
+int mmx4_coop_split_scene_camera_begin(unsigned owner,uint8_t canonical[0xFC]) {
+    if(!available() || owner>1 || mmx4_coop_lifecycle_script_owner()>=0 ||
+       psx_mod_read_byte(MMX4_PLAY+0x10) || psx_mod_read_byte(MMX4_PLAY+0x1C))return 0;
+    initialize_cameras();read_bytes(CAMERA,canonical,CAMERA_BYTES);
+    copy_bytes(CAMERA,state+16u+owner*CAMERA_BYTES,CAMERA_BYTES);
+    return 1;
+}
+void mmx4_coop_split_scene_camera_end(unsigned owner,const uint8_t canonical[0xFC],int committed) {
+    copy_bytes(state+16u+owner*CAMERA_BYTES,CAMERA,CAMERA_BYTES);
+    if(committed)psx_mod_write_word(state+8u,owner+1u);
+    else write_bytes(CAMERA,canonical,CAMERA_BYTES);
+}
 void mmx4_coop_split_camera_prepare(unsigned owner) {
     if(!available() || owner>1)return;
     initialize_cameras();
@@ -101,12 +113,9 @@ void mmx4_coop_split_camera(CPUState *cpu,unsigned owner) {
         return;
     }
     uint32_t shadow=state+16u+other*CAMERA_BYTES;
-    for(unsigned offset=0;offset<0x54u;++offset)
-        /* +1C..23 are current limits; +24..2B are their native targets.
-         * Importing another view's targets makes 27AFC/27B70 scroll these
-         * limits toward that actor's room, then 27BE4 drags or kills an idle
-         * partner. Common scripts synchronize both whole records above. */
-        if(offset<8u || offset>=0x2Cu)psx_mod_write_byte(shadow+offset,canonical[offset]);
+    /* Current/target limits, dead zones and authored room metadata belong
+     * to the individual view. Shared scripts synchronize whole records above. */
+    for(unsigned offset=0;offset<8u;++offset)psx_mod_write_byte(shadow+offset,canonical[offset]);
     copy_bytes(CAMERA,shadow,CAMERA_BYTES);
     if(other)mmx4_coop_enter_second();
     mmx4_coop_call(cpu,0x80027850u,0,0);
@@ -116,6 +125,74 @@ void mmx4_coop_split_camera(CPUState *cpu,unsigned owner) {
     if(other)mmx4_coop_leave_second();
     write_bytes(CAMERA,canonical,CAMERA_BYTES);
     psx_mod_counter_add("mmx4.coop.split-camera-ticks",1);
+}
+static int ram_range(uint32_t address,unsigned bytes) {
+    return address>=0x80010000u && address<0x80200000u && bytes<=0x80200000u-address;
+}
+static int in_camera_area(uint32_t parameters,Mmx4CoopViewActor actor) {
+    return actor.active && ram_range(parameters,10u) &&
+        actor.world_x<=(int)psx_mod_read_half(parameters) &&
+        actor.world_x>=(int)psx_mod_read_half(parameters+2u) &&
+        actor.world_y<=(int)psx_mod_read_half(parameters+4u) &&
+        actor.world_y>=(int)psx_mod_read_half(parameters+6u);
+}
+static void apply_camera_area(uint32_t parameters,uint32_t destination) {
+    /* Retail 800B5798: region bounds then IDs in 8010AE74's (variable,value)
+     * table, resolved through 8010AF9C. Only camera variables are per view;
+     * the one original callback applies any shared variables once. */
+    psx_mod_write_byte(destination+0x47u,2);
+    for(unsigned index=4;index<36 && ram_range(parameters+index*2u,2);++index) {
+        unsigned id=psx_mod_read_half(parameters+index*2u);if(!id)break;
+        if(id>74u)break;
+        uint32_t pair=0x8010AE74u+(id-1u)*4u;
+        unsigned variable=psx_mod_read_half(pair);if(variable>=256u)break;
+        uint32_t target=psx_mod_read_word(0x8010AF9Cu+variable*4u);
+        if(target>=CAMERA && target+2u<=CAMERA+CAMERA_BYTES && !(target&1u))
+            psx_mod_write_half(destination+target-CAMERA,psx_mod_read_half(pair+2u));
+    }
+}
+static int spatial_stage_actor(CPUState *cpu,uint32_t address) {
+    if(spatial_call || !available() || mmx4_coop_projected())return 0;
+    uint32_t actor=cpu->gpr[4];
+    if(actor<0x80142F98u || actor>=0x80143598u || (actor-0x80142F98u)%0x30u)return 0;
+    Mmx4CoopViewActor actors[2];mmx4_coop_split_actors(actors);
+    unsigned kind=address==0x800B56F4u?0u:6u;
+    if(psx_mod_read_byte(actor+1u)!=kind)return 0;
+    initialize_cameras();
+    uint32_t parameters=psx_mod_read_byte(actor+4u)?psx_mod_read_word(actor+0x18u):0;
+    Mmx4CoopViewActor eligible[2]={actors[0],actors[1]};
+    for(unsigned seat=0;seat<2;++seat) {
+        if(!kind && ram_range(parameters,10u))eligible[seat].active=(unsigned)in_camera_area(parameters,actors[seat]);
+        if(kind)eligible[seat].active=actors[seat].active &&
+            ((psx_mod_read_byte(actor+2u)&0xF0u)?
+                actors[seat].world_y>=(int16_t)psx_mod_read_half(actor+14u):
+                actors[seat].world_x>=(int16_t)psx_mod_read_half(actor+10u));
+    }
+    int scene=mmx4_coop_lifecycle_script_owner();
+    unsigned target=scene>=0?(unsigned)scene:mmx4_coop_view_nearest(
+        eligible[0].active || eligible[1].active?eligible:actors,
+        (int16_t)psx_mod_read_half(actor+10u),(int16_t)psx_mod_read_half(actor+14u),0);
+    uint8_t canonical[CAMERA_BYTES];
+    int own_camera=target && mmx4_coop_split_scene_camera_begin(target,canonical);
+    spatial_call=1;
+    uint8_t campaign=psx_mod_read_byte(MMX4_PLAY+0x43);
+    if(target) {mmx4_coop_enter_second();psx_mod_write_byte(MMX4_PLAY+0x43,campaign);}
+    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+    if(target) {
+        psx_mod_write_byte(MMX4_PLAY+0x43,psx_mod_read_byte(MMX4_PLAYER+2));
+        mmx4_coop_leave_second();
+    }
+    spatial_call=0;
+    if(own_camera)mmx4_coop_split_scene_camera_end(target,canonical,0);
+    if(!kind && scene<0 && !psx_mod_read_byte(MMX4_PLAY+0x10) && !psx_mod_read_byte(MMX4_PLAY+0x1C)) {
+        parameters=psx_mod_read_word(actor+0x18u);
+        for(unsigned seat=0;seat<2;++seat)if(in_camera_area(parameters,actors[seat])) {
+            apply_camera_area(parameters,state+16u+seat*CAMERA_BYTES);
+            if(seat==(unsigned)(!mmx4_coop_alive(0)))apply_camera_area(parameters,CAMERA);
+        }
+    }
+    psx_mod_counter_add(target?"mmx4.coop.p2-spatial-stage":"mmx4.coop.p1-spatial-stage",1);
+    return mmx4_coop_finish(cpu,result);
 }
 static unsigned eligible_regions(PSXPlacementRect regions[2]) {
     Mmx4CoopView views[2];Mmx4CoopViewActor actors[2];
@@ -242,6 +319,8 @@ static int actor_bounds(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop_split) {
+    psx_mod_register_function_filter_plugin(COOP_ID,0x800B56F4u,spatial_stage_actor);
+    psx_mod_register_function_filter_plugin(COOP_ID,0x800B6A0Cu,spatial_stage_actor);
     psx_mod_register_function_entry_plugin(COOP_ID,0x80028DB4u,reset_placements);
     psx_mod_register_function_filter_plugin(COOP_ID,0x80028E24u,scan_players);
     psx_mod_register_function_filter_plugin(COOP_ID,0x800293E8u,placement_allocate);
