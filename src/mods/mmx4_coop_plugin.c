@@ -20,7 +20,8 @@
 #define TRAILS 0x80141AB0u
 #define PAD 0x80166C08u
 #define FRAME_ARENA 0x40000u
-#define SECOND_HUD_OFFSET 56
+/* Keep both native meters in one left-anchored column. */
+#define SECOND_HUD_Y 104
 typedef struct {
     uint8_t body[0xE4], shots[0x9C0], trails[0x120], double_body[0xE4],vehicle[0xB0];
 } PlayerContext;
@@ -476,7 +477,7 @@ static int coop_hud(CPUState *cpu,uint32_t address) {
             uint32_t link=psx_mod_read_word(at),uv=psx_mod_read_word(at+12);
             uint16_t page=(uint16_t)psx_mod_read_word(mode+4),bank=ui_tile(page,(uint16_t)(uv>>16),(uint16_t)uv,0);
             if(!bank || dst+80>base+0x8000) {failed=7;break;}
-            int x=(int16_t)psx_mod_read_half(at+8)+SECOND_HUD_OFFSET,y=(int16_t)psx_mod_read_half(at+10);
+            int x=(int16_t)psx_mod_read_half(at+8),y=(int16_t)psx_mod_read_half(at+10)+SECOND_HUD_Y;
             uint32_t q[10]={link,0x2C808080,0,0,0,0,0,0,0,0};
             for(unsigned i=0;i<4;++i) {
                 q[2+i*2]=(uint16_t)(x+(i&1)*16)|((uint32_t)(uint16_t)(y+(i>>1)*16)<<16);
@@ -487,7 +488,7 @@ static int coop_hud(CPUState *cpu,uint32_t address) {
         }
         /* Original 80025588 emits flat POLY_F4, six words including tag. */
         for(uint32_t at=base+0x2000;at<bar_end && !failed;at+=24) {
-            for(unsigned xy=8;xy<=20;xy+=4)psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+SECOND_HUD_OFFSET));
+            for(unsigned xy=8;xy<=20;xy+=4)psx_mod_write_half(at+xy+2,(uint16_t)(psx_mod_read_half(at+xy+2)+SECOND_HUD_Y));
             psx_mod_tag_hud_primitive(at,-1);
         }
         leave_second();
