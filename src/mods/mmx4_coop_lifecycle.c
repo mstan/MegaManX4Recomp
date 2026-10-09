@@ -18,10 +18,12 @@ typedef struct {
     uint8_t campaign, hp, max_hp, armor, upgrade, ammo[16], hearts, weapon;
 } Inventory;
 typedef struct { uint32_t actor; uint8_t owner; } PickupOwner;
-typedef struct { uint32_t actor; uint8_t owner; } SceneOwner;
+typedef struct { uint32_t actor,serial; uint8_t owner; } SceneOwner;
 /* Exposes the combat module's independent previous-frame solid history. */
 uint8_t mmx4_coop_solid_contact_bits(uint32_t actor,unsigned seat);
 static Inventory second_inventory, saved_inventory;
+static Inventory view_second_inventory,view_saved_inventory;
+static unsigned view_inventory_initialized,view_inventory_projected;
 static PickupOwner pickups[PICKUP_CAPACITY];
 static SceneOwner scenes[32];
 static uint16_t menu_previous[2], select_previous;
@@ -37,7 +39,7 @@ static uint8_t departure_vehicle_active, departure_vehicle_visible;
 static unsigned menu_active, menu_owner, menu_projecting;
 static unsigned normal_guard, menu_guard, world_guard, pickup_guard;
 static unsigned collect_guard, init_guard, reward_guard, death_guard, capsule_guard;
-static unsigned scene_guard, script_pool_guard, command_guard, control_guard;
+static unsigned scene_guard, script_pool_guard, command_guard, control_guard,text_guard;
 static unsigned script_active, script_owner, script_serial;
 static unsigned warp_pending,warp_phase,warp_owner,warp_guard,warp_unlocked_ticks;
 static uint8_t warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible;
@@ -88,6 +90,14 @@ void mmx4_coop_lifecycle_restore(void) {
     if(!inventory_projected)return;
     inventory_read(&second_inventory);
     inventory_write(&saved_inventory);inventory_projected=0;
+}
+void mmx4_coop_lifecycle_view_save(void) {
+    view_second_inventory=second_inventory;view_saved_inventory=saved_inventory;
+    view_inventory_initialized=inventory_initialized;view_inventory_projected=inventory_projected;
+}
+void mmx4_coop_lifecycle_view_restore(void) {
+    second_inventory=view_second_inventory;saved_inventory=view_saved_inventory;
+    inventory_initialized=view_inventory_initialized;inventory_projected=view_inventory_projected;
 }
 
 static PickupOwner *pickup_record(uint32_t actor,int create) {
@@ -216,6 +226,15 @@ int mmx4_coop_lifecycle_script_owner(void) {
 }
 int mmx4_coop_lifecycle_hidden(unsigned seat) {
     return (warp_pending || warp_phase) && seat==(warp_owner^1u);
+}
+void mmx4_coop_lifecycle_camera_bounds(CPUState *cpu,unsigned owner) {
+    unsigned seat=owner^1u;
+    if(!mmx4_coop_ready() || mmx4_coop_projected() ||
+       !psx_mod_read_byte(0x801419F4u) || !mmx4_coop_alive(seat))return;
+    if(seat)mmx4_coop_enter_second();
+    if(!psx_mod_read_byte(PLAYER+0xBC))
+        mmx4_coop_call(cpu,0x80027BE4u,0x801419B0u,0);
+    if(seat)mmx4_coop_leave_second();
 }
 static void request_script_departure(unsigned owner) {
     if(script_active && !warp_pending && !warp_phase && mmx4_coop_alive(owner^1u)) {
@@ -519,7 +538,7 @@ static int menu_world(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
-static int pickup_init(CPUState *cpu,uint32_t address) {
+static int pickup_init_canonical(CPUState *cpu,uint32_t address) {
     if(init_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];pickup_forget(actor);
     uint8_t hearts=psx_mod_read_byte(PLAY+0x5A);
@@ -531,7 +550,10 @@ static int pickup_init(CPUState *cpu,uint32_t address) {
     init_guard=0;psx_mod_write_byte(PLAY+0x5A,hearts);
     return mmx4_coop_finish(cpu,result);
 }
-static int pickup_collect(CPUState *cpu,uint32_t address) {
+static int pickup_init(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,pickup_init_canonical);
+}
+static int pickup_collect_canonical(CPUState *cpu,uint32_t address) {
     if(collect_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];
     uint8_t state=psx_mod_read_byte(actor+4);
@@ -554,7 +576,10 @@ static int pickup_collect(CPUState *cpu,uint32_t address) {
     }
     collect_guard=0;return mmx4_coop_finish(cpu,result);
 }
-static int pickup_update(CPUState *cpu,uint32_t address) {
+static int pickup_collect(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,pickup_collect_canonical);
+}
+static int pickup_update_canonical(CPUState *cpu,uint32_t address) {
     if(pickup_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];PickupOwner *record=pickup_record(actor,0);
     if(!record || !record->owner)return 0;
@@ -572,13 +597,19 @@ static int pickup_update(CPUState *cpu,uint32_t address) {
     if(psx_mod_read_byte(actor+4)!=2)pickup_forget(actor);
     return mmx4_coop_finish(cpu,result);
 }
-static int reward(CPUState *cpu,uint32_t address) {
+static int pickup_update(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,pickup_update_canonical);
+}
+static int reward_canonical(CPUState *cpu,uint32_t address) {
     if(reward_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     reward_guard=1;
     uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     reward_guard=0;
     mmx4_coop_second_body()[0xB9]|=psx_mod_read_byte(PLAY+0x59);
     return mmx4_coop_finish(cpu,result);
+}
+static int reward(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,reward_canonical);
 }
 static int death_animation(CPUState *cpu,uint32_t address) {
     if(death_guard || !mmx4_coop_ready())return 0;
@@ -592,7 +623,7 @@ static int death_animation(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
-static int x_capsule(CPUState *cpu,uint32_t address) {
+static int x_capsule_canonical(CPUState *cpu,uint32_t address) {
     if(capsule_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];
     /* Every capsule component reads the canonical X body, including child
@@ -609,6 +640,9 @@ static int x_capsule(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
+static int x_capsule(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,x_capsule_canonical);
+}
 static SceneOwner *scene_record(uint32_t actor,int create) {
     SceneOwner *empty=NULL;
     for(unsigned i=0;i<sizeof scenes/sizeof scenes[0];++i) {
@@ -641,7 +675,18 @@ static int stage_scripts(CPUState *cpu,uint32_t address) {
     uint32_t result=call_story_as_second(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     script_pool_guard=0;return mmx4_coop_finish(cpu,result);
 }
-static int scene_actor(CPUState *cpu,uint32_t address) {
+static int script_text(CPUState *cpu,uint32_t address) {
+    if(text_guard || !mmx4_coop_ready() || mmx4_coop_projected() ||
+       !script_active || script_owner!=1)return 0;
+    uint8_t pad[6];read_bytes(PAD,pad,sizeof pad);
+    for(unsigned index=0;index<3;++index)psx_mod_write_half(PAD+index*2u,story_pad[index]);
+    text_guard=1;
+    uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    text_guard=0;write_bytes(PAD,pad,sizeof pad);
+    psx_mod_counter_add("mmx4.coop.p2-dialogue-ticks",1);
+    return mmx4_coop_finish(cpu,result);
+}
+static int scene_actor_canonical(CPUState *cpu,uint32_t address) {
     if(scene_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];unsigned owner=0;
     SceneOwner *record=scene_record(actor,0);
@@ -695,12 +740,12 @@ static int scene_actor(CPUState *cpu,uint32_t address) {
         script_active=1;script_owner=owner;++script_serial;
         request_script_departure(owner);
     }else if(address==0x800C1994u && old_door && !new_door &&
-             script_active && script_owner==owner) {
+             script_active && script_owner==owner && record && record->serial==script_serial) {
         script_active=0;
     }
     if(serial!=script_serial) {
         record=scene_record(actor,1);
-        if(record)record->owner=(uint8_t)owner;
+        if(record) {record->owner=(uint8_t)owner;record->serial=script_serial;}
     }
     if(record && (!psx_mod_read_byte(actor) ||
         (!script_active && (psx_mod_read_byte(actor+4)>=3 ||
@@ -708,6 +753,9 @@ static int scene_actor(CPUState *cpu,uint32_t address) {
                 (psx_mod_read_byte(actor+4)>=2 || psx_mod_read_byte(actor+5)>=4))))))
         memset(record,0,sizeof *record);
     return mmx4_coop_finish(cpu,result);
+}
+static int scene_actor(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,scene_actor_canonical);
 }
 static int script_command(CPUState *cpu,uint32_t address) {
     if(command_guard || !mmx4_coop_ready())return 0;
@@ -801,6 +849,7 @@ uint32_t mmx4_coop_lifecycle_digest(uint32_t seed) {
     }
     for(unsigned i=0;i<sizeof scenes/sizeof scenes[0];++i) {
         seed=hash_word(seed,scenes[i].actor);seed=hash_byte(seed,scenes[i].owner);
+        seed=hash_word(seed,scenes[i].serial);
     }
     return seed;
 }
@@ -817,6 +866,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_lifecycle) {
     psx_mod_register_function_filter_plugin(ID,0x8001FA24u,reward);
     psx_mod_register_function_filter_plugin(ID,0x80035A6Cu,death_animation);
     psx_mod_register_function_filter_plugin(ID,0x8002166Cu,stage_scripts);
+    psx_mod_register_function_filter_plugin(ID,0x80021D20u,script_text);
     psx_mod_register_function_filter_plugin(ID,0x800C2BE0u,scene_actor);
     psx_mod_register_function_filter_plugin(ID,0x800C1994u,scene_actor);
     psx_mod_register_function_filter_plugin(ID,0x800BD654u,scene_actor);

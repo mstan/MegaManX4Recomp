@@ -12,6 +12,14 @@ def config(path):
 
 
 class ReleaseConfigTest(unittest.TestCase):
+    def test_coop_camera_choices(self):
+        package = config(ROOT / "mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml")
+        cameras = next(option for option in package["option"] if option["id"] == "cameras")
+        self.assertEqual(cameras["feature"], "coop")
+        self.assertEqual(cameras["default"], "unified")
+        self.assertEqual([(choice["value"], choice["label"]) for choice in cameras["choice"]],
+                         [("unified", "Unified"), ("split", "Split")])
+
     def test_display_defaults(self):
         for path in (ROOT / "game.toml", ROOT / "packaging/release/game.toml"):
             with self.subTest(path=path):

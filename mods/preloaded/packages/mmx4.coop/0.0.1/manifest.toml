@@ -18,6 +18,20 @@ description = "Development only. Two native characters. Requires OpenGL and a fr
 group = "Experimental"
 default_enabled = false
 
+[[option]]
+feature = "coop"
+id = "cameras"
+label = "Netplay cameras"
+description = "Unified shares a camera. Split gives each online player an independent view of the shared world. The host chooses for both peers; offline play always uses Unified."
+type = "choice"
+default = "unified"
+[[option.choice]]
+value = "unified"
+label = "Unified"
+[[option.choice]]
+value = "split"
+label = "Split"
+
 [[plugin]]
 feature = "coop"
 id = "mmx4.coop"

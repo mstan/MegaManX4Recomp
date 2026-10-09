@@ -80,18 +80,34 @@ psxrecomp_add_implementation(psx-runtime
 set(MMX4_COOP_CONTRACT_FILES
     game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_lifecycle.c
     src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c
-    src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h)
-set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v2\n")
+    src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
+    src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
+    src/mods/mmx4_coop_split.c
+    src/mods/mmx4_widescreen_plugin.c
+    mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml)
+set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
 foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_CONTRACT_FILES)
     file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}" MMX4_COOP_SOURCE_HASH)
     string(APPEND MMX4_COOP_CONTRACT "${MMX4_COOP_SOURCE_HASH}\n")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}")
 endforeach()
+set(MMX4_COOP_FRAMEWORK_CONTRACT_FILES
+    runtime/src/psx_cycles.c runtime/include/psx_cycle_freeze.h
+    runtime/src/render_pass.c runtime/include/mod_plugins.h
+    runtime/src/mod_netplay.c runtime/include/mod_netplay.h
+    runtime/src/mod_runtime.cpp runtime/src/mod_texture_banks.c
+    runtime/src/gpu.c runtime/include/mod_capcom_bg2d.h)
+foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_FRAMEWORK_CONTRACT_FILES)
+    set(MMX4_COOP_SOURCE_PATH "${PSXRECOMP_V4_ROOT}/${MMX4_COOP_SOURCE}")
+    file(SHA256 "${MMX4_COOP_SOURCE_PATH}" MMX4_COOP_SOURCE_HASH)
+    string(APPEND MMX4_COOP_CONTRACT "${MMX4_COOP_SOURCE_HASH}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MMX4_COOP_SOURCE_PATH}")
+endforeach()
 string(SHA256 MMX4_COOP_CONTRACT_HASH "${MMX4_COOP_CONTRACT}")
 # The framework limits compatibility IDs to 63 bytes; 160 hash bits fit.
 string(SUBSTRING "${MMX4_COOP_CONTRACT_HASH}" 0 40 MMX4_COOP_CONTRACT_SHORT_HASH)
 set_property(SOURCE src/mods/mmx4_coop_plugin.c APPEND PROPERTY COMPILE_DEFINITIONS
-    "MMX4_COOP_NETPLAY_COMPATIBILITY=\"mmx4-coop-delay-v2:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
+    "MMX4_COOP_NETPLAY_COMPATIBILITY=\"mmx4-coop-delay-v3:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
 add_custom_command(TARGET psx-runtime POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
@@ -102,17 +118,34 @@ if(BUILD_TESTING)
     add_executable(mmx4_coop_assets_test tests/test_mmx4_coop_assets.c src/mods/mmx4_coop_assets.c)
     target_include_directories(mmx4_coop_assets_test PRIVATE src/mods)
     add_test(NAME mmx4_coop_assets_test COMMAND mmx4_coop_assets_test)
-    add_executable(mmx4_coop_combat_test tests/test_mmx4_coop_combat.c src/mods/mmx4_coop_combat.c)
+    add_executable(mmx4_coop_combat_test tests/test_mmx4_coop_combat.c
+        src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_views.c)
     target_include_directories(mmx4_coop_combat_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_combat_test COMMAND mmx4_coop_combat_test)
     add_executable(mmx4_coop_lifecycle_test tests/test_mmx4_coop_lifecycle.c)
     target_include_directories(mmx4_coop_lifecycle_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_lifecycle_test COMMAND mmx4_coop_lifecycle_test)
+    add_executable(mmx4_coop_views_test tests/test_mmx4_coop_views.c src/mods/mmx4_coop_views.c)
+    target_include_directories(mmx4_coop_views_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_views_test COMMAND mmx4_coop_views_test)
+    add_executable(mmx4_coop_split_test tests/test_mmx4_coop_split.c
+        src/mods/mmx4_coop_split.c src/mods/mmx4_coop_views.c)
+    target_include_directories(mmx4_coop_split_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_split_test COMMAND mmx4_coop_split_test)
     find_package(Python3 3.11 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         add_test(NAME mmx4_release_config_test
             COMMAND "${Python3_EXECUTABLE}"
                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_release_config.py")
+        add_test(NAME mmx4_playtest_save_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prepare_mmx4_playtest_save.py")
+        add_test(NAME mmx4_coop_hook_registration_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmx4_coop_hook_registration.py")
+        add_test(NAME mmx4_coop_netplay_harness_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmx4_coop_netplay_harness.py")
     endif()
     add_executable(mmx4_preloaded_mods_test
         tests/test_preloaded_mods.cpp

@@ -1,6 +1,7 @@
 """Create private, original-format pre-final-stage X/Zero memory cards.
 
-Reads palette/icon/title assets from the owner's original SLUS-00561 executable.
+Reads palette/icon/title assets and default button bindings from the owner's
+original SLUS-00561 executable.
 Writes only new files, never replaces a player's existing card. The record map
 comes from original routines 8001C07C/8001C210; 8001FA24 sets story progress 5
 when the eighth Maverick is cleared. This is generated playtest progress.
@@ -59,6 +60,7 @@ def card_image(binary, campaign):
     record[1] = 32
     record[4] = 0xff  # all eight Maverick weapons/techniques
     record[5] = 5     # native story state immediately after eighth clear
+    record[8:40] = asset(0x800ee430, 32)
     saved[512:554] = record
     card[8192:16384] = saved
     return card

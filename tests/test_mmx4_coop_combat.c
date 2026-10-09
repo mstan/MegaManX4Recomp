@@ -20,17 +20,24 @@
 #define AIM 0x80042824u
 #define ACTOR 0x80165A30u
 #define DOUBLE_BODY 0x80175D58u
+#define NATIVE_AI 0x80040000u
+#define ACTOR_DISPATCH 0x8F7FFF00u
 uint8_t mmx4_coop_solid_contact_bits(uint32_t actor,unsigned seat);
 
 typedef struct { uint32_t address; PSXModFunctionFilterCallback callback; } Filter;
 static Filter filters[32];
 static unsigned filter_count;
-static PSXModFunctionEntryCallback reset_callback;
+int psx_mod_local_view_scope(void) {return 0;}
 static uint8_t ram[0x200000];
 static uint8_t second[0xE4], first_saved[0xE4];
 static uint8_t second_vehicle[0xB0], first_vehicle[0xB0];
 static uint8_t second_double[0xE4], first_double[0xE4];
-static unsigned projected, ready, alive[2];
+static unsigned projected, ready, alive[2],split;
+static PSXModFunctionEntryCallback redirects[2],actor_dispatch;
+static unsigned pool_updates,actor_updates[2],bounds_updates,ai_contact,ai_solid;
+static unsigned ai_direct_write,ai_canonical;
+static uint8_t saved_campaign;
+static uint32_t ai_target_x[2];
 static uint32_t hit_result[2], allocated_actor;
 static unsigned native_calls[2], consumed, ai_updates, allocator_calls;
 static uint8_t observed_sides[2], observed_carried[2];
@@ -61,17 +68,23 @@ void psx_mod_write_word(uint32_t address,uint32_t value) {
     for (unsigned i=0;i<4;++i) psx_mod_write_byte(address+i,(uint8_t)(value>>(8*i)));
 }
 void psx_mod_counter_add(const char *name,uint32_t delta) { (void)name;(void)delta; }
-int psx_mod_register_function_entry_plugin(const char *id,uint32_t address,
-                                          PSXModFunctionEntryCallback callback) {
-    CHECK(!strcmp(id,"mmx4.coop") && address==0x80035240u);
-    reset_callback=callback;
-    return 1;
-}
 int psx_mod_register_function_filter_plugin(const char *id,uint32_t address,
                                            PSXModFunctionFilterCallback callback) {
     CHECK(!strcmp(id,"mmx4.coop") && filter_count<32);
     filters[filter_count++]=(Filter){address,callback};
     return 1;
+}
+int psx_mod_register_instruction_plugin(const char *id,uint32_t address,uint32_t word,
+    PSXModFunctionEntryCallback callback) {
+    CHECK(!strcmp(id,"mmx4.coop") && word==0x0040F809u);
+    CHECK(address==0x80021300u || address==0x80021518u);
+    redirects[address==0x80021518u]=callback;return 1;
+}
+int psx_mod_register_guest_function_plugin(const char *id,uint32_t address,
+    PSXModFunctionEntryCallback callback) {
+    CHECK(!strcmp(id,"mmx4.coop") && address==ACTOR_DISPATCH);
+    CHECK((address&0x1FFFFFFFu)>=0x0F000000u && (address&0x1FFFFFFFu)<0x10000000u);
+    actor_dispatch=callback;return 1;
 }
 static PSXModFunctionFilterCallback filter(uint32_t address) {
     for (unsigned i=0;i<filter_count;++i)
@@ -81,8 +94,21 @@ static PSXModFunctionFilterCallback filter(uint32_t address) {
 }
 int mmx4_coop_ready(void) { return (int)ready; }
 int mmx4_coop_projected(void) { return (int)projected; }
+int mmx4_coop_split_views(void) {return (int)split;}
+int mmx4_coop_lifecycle_script_owner(void) {return -1;}
 int mmx4_coop_alive(unsigned seat) { CHECK(seat<2);return (int)alive[seat]; }
 uint8_t *mmx4_coop_second_body(void) { return second; }
+uint8_t *mmx4_coop_first_body(void) {return first_saved;}
+void mmx4_coop_split_actors(Mmx4CoopViewActor actors[2]) {
+    for(unsigned seat=0;seat<2;++seat) {
+        const uint8_t *body=seat?second:first_saved;
+        int16_t world_x=seat==projected?(int16_t)psx_mod_read_half(MMX4_PLAYER+10):
+            (int16_t)((uint16_t)body[10]|(uint16_t)body[11]<<8);
+        int16_t world_y=seat==projected?(int16_t)psx_mod_read_half(MMX4_PLAYER+14):
+            (int16_t)((uint16_t)body[14]|(uint16_t)body[15]<<8);
+        actors[seat]=(Mmx4CoopViewActor){world_x,world_y,alive[seat]};
+    }
+}
 uint8_t *mmx4_coop_second_vehicle(void) { return second_vehicle; }
 uint8_t *mmx4_coop_first_vehicle(void) { CHECK(projected);return first_vehicle; }
 void mmx4_coop_enter_second(void) {
@@ -93,6 +119,8 @@ void mmx4_coop_enter_second(void) {
     memcpy(address_ptr(MMX4_PLAYER),second,sizeof second);
     memcpy(address_ptr(MMX4_VEHICLE),second_vehicle,sizeof second_vehicle);
     memcpy(address_ptr(DOUBLE_BODY),second_double,sizeof second_double);
+    saved_campaign=psx_mod_read_byte(MMX4_PLAY+0x43);
+    psx_mod_write_byte(MMX4_PLAY+0x43,second[2]);
     projected=1;
 }
 void mmx4_coop_leave_second(void) {
@@ -103,6 +131,8 @@ void mmx4_coop_leave_second(void) {
     memcpy(address_ptr(MMX4_PLAYER),first_saved,sizeof first_saved);
     memcpy(address_ptr(MMX4_VEHICLE),first_vehicle,sizeof first_vehicle);
     memcpy(address_ptr(DOUBLE_BODY),first_double,sizeof first_double);
+    CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==second[2]);
+    psx_mod_write_byte(MMX4_PLAY+0x43,saved_campaign);
     projected=0;
 }
 int mmx4_coop_finish(CPUState *cpu,uint32_t result) { cpu->gpr[2]=result;return 1; }
@@ -111,7 +141,8 @@ uint16_t mmx4_coop_input(unsigned seat) { (void)seat;return 0; }
 uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) {
     (void)a1;
     /* Re-entered native dispatch must decline the active host filter. */
-    if (address!=ARMOR_MOUNT) CHECK(!filter(address)(cpu,address));
+    if (address!=ARMOR_MOUNT && address!=NATIVE_AI && address!=0x8002B3C0u)
+        CHECK(!filter(address)(cpu,address));
     unsigned seat=projected;
     if (address==ARMOR_UPDATE || address==ARMOR_MOUNT) {
         if (address==ARMOR_UPDATE) ++armor_updates;
@@ -181,11 +212,44 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         return 0x87654321u;
     }
     if (address==0x80021234u || address==0x8002144Cu) {
+        if(split) {
+            ++pool_updates;
+            CHECK(!projected && !psx_mod_read_byte(MMX4_PLAYER+0xBC));
+            unsigned shots=address==0x8002144Cu;
+            uint32_t first=shots?0x8013F328u:0x8013BED0u;
+            for(unsigned index=0;index<2;++index) {
+                uint32_t actor=first+index*0x9Cu;
+                if(!psx_mod_read_byte(actor))continue;
+                CPUState dispatch=*cpu;dispatch.gpr[4]=actor;dispatch.gpr[2]=NATIVE_AI;
+                redirects[shots](&dispatch,shots?0x80021518u:0x80021300u);
+                CHECK(dispatch.gpr[2]==ACTOR_DISPATCH);
+                actor_dispatch(&dispatch,ACTOR_DISPATCH);
+                CHECK(!projected && !psx_mod_read_byte(MMX4_PLAYER+0xBC));
+            }
+            return 0x1234u;
+        }
         ++ai_updates;
         observed_target_x=psx_mod_read_word(MMX4_PLAYER+8);
         observed_target_y=psx_mod_read_word(MMX4_PLAYER+12);
         observed_freeze=psx_mod_read_byte(MMX4_PLAYER+0xBC);
         return 0x1234u;
+    }
+    if(address==0x8002B3C0u) {++bounds_updates;return 0;}
+    if(address==NATIVE_AI) {
+        CHECK(mmx4_coop_combat_actor_context());
+        ++actor_updates[seat];
+        ai_target_x[seat]=psx_mod_read_word(MMX4_PLAYER+8);
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==0);
+        if(ai_direct_write)psx_mod_write_byte(MMX4_PLAYER+0x5C,
+            psx_mod_read_byte(MMX4_PLAYER+0x5C)-1u);
+        if(ai_contact)filter(CONTACT)(cpu,CONTACT);
+        if(ai_solid)filter(SOLID)(cpu,SOLID);
+        if(ai_canonical) {
+            CHECK(mmx4_coop_combat_canonical_call(cpu,CONTACT,filter(CONTACT)));
+        }
+        CHECK(projected==seat && mmx4_coop_combat_actor_context());
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==0);
+        return 0x12345678u;
     }
     CHECK(0);
     return 0;
@@ -197,12 +261,13 @@ static void clear_calls(void) {
     armor_updates=mount_checks=0;
 }
 static void setup(void) {
-    CHECK(reset_callback);
     memset(ram,0,sizeof ram);
     memset(second,0,sizeof second);
     memset(second_vehicle,0,sizeof second_vehicle);
     memset(second_double,0,sizeof second_double);
-    projected=0;ready=1;alive[0]=alive[1]=1;
+    projected=split=0;ready=1;alive[0]=alive[1]=1;
+    pool_updates=bounds_updates=ai_contact=ai_solid=ai_direct_write=ai_canonical=0;
+    memset(actor_updates,0,sizeof actor_updates);
     hit_result[0]=hit_result[1]=0;
     allocated_actor=ACTOR;
     mount_accept[0]=mount_accept[1]=0;
@@ -216,11 +281,11 @@ static void setup(void) {
     psx_mod_write_byte(DOUBLE_BODY,1);
     psx_mod_write_byte(MMX4_VEHICLE,1);
     psx_mod_write_word(MMX4_VEHICLE+8,10u<<16);
-    second[4]=1;second[0x5C]=32;
+    second[2]=1;second[4]=1;second[0x5C]=32;
     second[8+2]=30;second[12+2]=20;
     second_vehicle[0]=1;second_vehicle[8+2]=30;second_double[0]=1;
     psx_mod_write_word(ACTOR+0x68,0x800F8000u);
-    CPUState cpu={0};reset_callback(&cpu,0x80035240u);
+    mmx4_coop_combat_reset();
     clear_calls();
 }
 static uint32_t invoke(uint32_t address) {
@@ -281,7 +346,7 @@ static void independent_solids(void) {
     CHECK(allocator_calls==1 && empty==mmx4_coop_combat_digest(2166136261u));
     CHECK(!mmx4_coop_solid_contact_bits(ACTOR,1));
     invoke(SOLID);CHECK(!observed_sides[1] && !observed_vehicle_sides[1]);
-    CPUState cpu={0};reset_callback(&cpu,0x80035240u);
+    mmx4_coop_combat_reset();
     CHECK(empty==mmx4_coop_combat_digest(2166136261u));
     invoke(SOLID);CHECK(!observed_sides[1]);
 }
@@ -334,9 +399,9 @@ static void effect_ownership(void) {
     mmx4_coop_combat_project_end(MIRROR);
     CHECK(psx_mod_read_word(EFFECT+0x50)==MMX4_VEHICLE);
     CHECK(invoke(EFFECT_ALLOC)==EFFECT);
-    CPUState cpu={0};reset_callback(&cpu,0x80035240u);
+    mmx4_coop_combat_reset();
     CHECK(empty!=mmx4_coop_combat_digest(2166136261u)); /* Projection reset is inert. */
-    mmx4_coop_leave_second();reset_callback(&cpu,0x80035240u);
+    mmx4_coop_leave_second();mmx4_coop_combat_reset();
     CHECK(empty==mmx4_coop_combat_digest(2166136261u));
 }
 static uint32_t invoke_armor(void) {
@@ -425,9 +490,64 @@ static void independent_hit_tokens(void) {
     setup();token_model=1;attack_present[1]=1;attack_token[1]=0;
     CHECK(invoke(HIT)==1 && invoke(HIT)==1 && consumed==2); /* Native zero-token semantics. */
 }
+static void setup_split_actors(unsigned shots) {
+    setup();split=1;
+    uint32_t first=shots?0x8013F328u:0x8013BED0u;
+    for(unsigned index=0;index<2;++index) {
+        uint32_t actor=first+index*0x9Cu;
+        psx_mod_write_byte(actor,1);psx_mod_write_byte(actor+3,1);
+        psx_mod_write_word(actor+8,(index?29u:11u)<<16);
+        psx_mod_write_word(actor+12,20u<<16);
+        psx_mod_write_word(actor+0x68,0x800F8000u);
+    }
+}
+static void split_native_targets(void) {
+    const uint32_t pools[]={0x80021234u,0x8002144Cu};
+    for(unsigned shots=0;shots<2;++shots) {
+        setup_split_actors(shots);ai_direct_write=1;
+        CHECK(invoke(pools[shots])==0x1234u);
+        CHECK(pool_updates==1 && actor_updates[0]==1 && actor_updates[1]==1);
+        CHECK(ai_target_x[0]==10u<<16 && ai_target_x[1]==30u<<16);
+        CHECK(psx_mod_read_byte(MMX4_PLAYER+0x5C)==31 && second[0x5C]==31);
+        CHECK(!projected && !mmx4_coop_combat_actor_context());
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==0);
+        setup_split_actors(shots);psx_mod_write_byte(MMX4_PLAYER+0xBC,5);
+        invoke(pools[shots]);
+        CHECK(!actor_updates[0] && actor_updates[1]==1 && bounds_updates==1);
+        CHECK(psx_mod_read_byte(MMX4_PLAYER+0xBC)==5);
+        setup_split_actors(shots);second[0xBC]=5;invoke(pools[shots]);
+        CHECK(actor_updates[0]==1 && !actor_updates[1] && bounds_updates==1);
+        CHECK(second[0xBC]==5 && !psx_mod_read_byte(MMX4_PLAYER+0xBC));
+        setup_split_actors(shots);alive[0]=0;invoke(pools[shots]);
+        CHECK(!actor_updates[0] && actor_updates[1]==2);
+        setup_split_actors(shots);alive[1]=0;invoke(pools[shots]);
+        CHECK(actor_updates[0]==2 && !actor_updates[1]);
+        setup_split_actors(shots);alive[0]=alive[1]=0;invoke(pools[shots]);
+        CHECK(!actor_updates[0] && !actor_updates[1]);
+        setup_split_actors(shots);ai_contact=1;hit_result[0]=1;invoke(pools[shots]);
+        CHECK(native_calls[0]==2 && !native_calls[1] && consumed==2);
+        CHECK(psx_mod_read_byte(MMX4_PLAYER+0x5C)==30 && second[0x5C]==32);
+        setup_split_actors(shots);ai_contact=1;hit_result[1]=1;invoke(pools[shots]);
+        CHECK(native_calls[0]==2 && native_calls[1]==2 && consumed==2);
+        CHECK(psx_mod_read_byte(MMX4_PLAYER+0x5C)==32 && second[0x5C]==30);
+        setup_split_actors(shots);ai_solid=1;invoke(pools[shots]);
+        CHECK(native_calls[0]==2 && native_calls[1]==2);
+        CHECK(psx_mod_read_word(MMX4_PLAYER+8)==14u<<16);
+        CHECK(second[10]==34 && psx_mod_read_byte(MMX4_PLAY+0x43)==0);
+        setup_split_actors(shots);ai_canonical=1;invoke(pools[shots]);
+        CHECK(native_calls[0]==2 && native_calls[1]==2 && !projected);
+        setup_split_actors(shots);
+        uint32_t first=shots?0x8013F328u:0x8013BED0u;
+        psx_mod_write_word(first+8,20u<<16);psx_mod_write_byte(first+0x9Cu,0);
+        invoke(pools[shots]);CHECK(actor_updates[0]==1 && !actor_updates[1]);
+    }
+    setup();CPUState cpu={0};cpu.gpr[2]=NATIVE_AI;cpu.gpr[4]=0x8013BED0u;
+    redirects[0](&cpu,0x80021300u);CHECK(cpu.gpr[2]==NATIVE_AI);
+}
 int main(void) {
     CHECK(filter_count==13);
     accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();survivor_pools();independent_hit_tokens();
+    split_native_targets();
     /* A nonlethal saber hit pauses its owner. The other seat continues;
      * accepted-hit callbacks must not repeatedly arm that owner's +BD while
      * the original player routine is counting down +BC. */

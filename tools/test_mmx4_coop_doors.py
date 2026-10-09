@@ -18,7 +18,7 @@ def body_state(body):
     x, y = struct.unpack_from('<ii', body, 8)
     return dict(active=body[0], visible=body[3], character=body[2], state=body[4], action=body[5],
                 hp=body[0x5c] & 127, x=x/65536, y=y/65536,
-                door=body[0xc4], script=body[0xc0])
+                door=body[0xc4], script=body[0xc0], grounded=bool(body[0x89] & 8))
 
 
 def snapshot(runtime):
@@ -107,11 +107,12 @@ def run_case(runtime, campaign, owner, survivor, output):
             while time.monotonic() < deadline:
                 state = snapshot(runtime)
                 partner = state['players'][owner ^ 1]
-                if partner['active'] and partner['visible']:
+                if partner['active'] and partner['visible'] and partner['state'] == 1 and \
+                        partner['action'] == 2 and partner['grounded']:
                     break
                 time.sleep(.05)
             else:
-                raise TimeoutError('Script passenger did not return')
+                raise TimeoutError('Script passenger return animation did not finish grounded')
             record['after_return'] = state
             if not partner['hp'] or abs(partner['x'] - state['players'][owner]['x']) > 40:
                 raise AssertionError('Living partner did not return beside the owner')

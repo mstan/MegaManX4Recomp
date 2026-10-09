@@ -409,3 +409,152 @@ All seven game CTests passed. The owner encounter's uninterrupted combat
 recovery remains a playtest check (see the combat evidence's replay limits).
 Executable SHA256:
 `8eabd7b62c2d14be02ec2e7f8c092135409b4fed2e133199c12a3ed8c4d3b8ed`.
+
+## Jungle left-boundary follow-up, 2026-10-08
+
+The owner's Zero-campaign Jungle report reproduced through an input-only boot,
+native stage-load fixture, and 1.2 seconds of Left on both seats. P1 Zero
+stopped at X=8.5, Y=138; P2 X reached X=-79.5, Y=274.789 and fell outside the
+map. The camera minimum was zero. No actor positions were written.
+
+Original `80027BE4` applies horizontal bounds to singleton `PLAYER+10`.
+Instructions `80027C9C` through `80027CC0` read the camera minimum at `+1E`,
+compare the player's integer X minus eight, and store minimum plus eight as
+a halfword. The fractional coordinate remains unchanged. Calling this native
+bounds routine under the other living player's projection after the one
+shared camera update applies the same left boundary without a Jungle-specific
+coordinate or a second target/scroll update. Disabled cameras, hidden/dead
+partners and native hit pause remain excluded.
+
+The initial candidate did not change the live result: the core registered an
+entry hook and a filter at `80027850`, but mod registration accepts only one
+handler per address per plugin. The earlier entry silently rejected the camera
+filter. The camera filter now also performs the existing team constraint.
+The same audit removed the unreachable `80021340` hidden-shot filter while
+retaining its existing second-player tick entry and native shot pass, and
+consolidated the `80035240` player/combat resets. A registration regression
+checks numeric and symbolic addresses across all co-op modules, including
+physical-address aliases, so these collisions cannot silently recur.
+
+The corrected live run stopped both players at X=8.5 with HP 32 and native
+state 1; Zero remained at Y=138 and X at Y=139. P2-only Right moved X to 46
+while Zero stayed at 8.5; P1-only Right then moved Zero to 42. The edge capture
+was visually inspected. Unknown dispatch total/unique were both zero.
+The final candidate repeated the edge test with two seconds of Left: both
+again stopped at X=8.5. Independent Right moved P2 X to 44 and P1 Zero to 40.
+Final private evidence is under `build-coop-next/qa-boundary-final-campaign-1`.
+All seven focused game CTests pass. The scoped lifecycle test covers both
+character pairings, integer-only left/right native bound writes, P2-owned
+camera projection, and disabled/frozen/hidden/dead guards. The live result
+qualifies the reported left edge, not every stage's scrolling boundary.
+Executable SHA256:
+`d062abc387c979ef4e681612ec9bf1697b5e5cbc15ed390333d5e7c6dfd682c8`.
+
+A supplementary P2-led Jungle door smoke on the intermediate candidate
+entered the boss room but stalled at the first native conversation despite
+confirmation input. Its failed report is retained under
+`build-coop-next/qa-boundary-jungle-door`; it is not a qualification pass.
+Removing the formerly unreachable shot filter preserves the prior native
+shot-pass behavior, but the final candidate's repeat also stalled at the same
+conversation (`build-coop-next/qa-boundary-final-jungle-door`). The reported
+left edge remains independently validated; the supplementary conversation
+stall requires separate investigation and is not attributed to a specific
+change without a baseline comparison.
+
+## Chained door/dialogue owner correction, 2026-10-09
+
+Fresh private original-disc P2-led Jungle evidence retained at
+`build-coop-split/qa-door-before-text-owner` reproduces the first-line stall;
+the failed screenshot was inspected. Native `80021D20` updates the shared
+text singleton once, through `80022730`. Reads `80022E0C` / `80022E48` consume
+the raw PAD edge low byte, outside the second player's private controller
+pass. A scoped pad-only owner wrapper preserves native text state/timing and
+canonical campaign, but alone does not fix the stall (`qa-door-text-owner-fixed`).
+
+The original world updates enemies before item/door actors. Native door
+auto-walk `800C1D90` clears C4 at `800C1DD4`; the co-op wrapper then discarded
+script ownership even after a newer boss command had superseded that door.
+The native text wrapper ran for only 183 ticks before losing its owner. Each
+scene now records its script serial and only clears that same generation.
+The command-generation and pad-routing regressions both fail before their
+fixes and pass afterwards. Scene serials participate in the gameplay digest.
+
+`qa-door-text-generation-fixed/report.json` passes the Zero-campaign P2 owner
+door/conversation with canonical campaign 1, unchanged lives 2, both HP 32,
+released C0/gate and no dispatch misses. The native text owner runs 1325 ticks,
+and the inspected final capture shows the dialogue dismissed and living Zero
+returning through the original arrival beam beside X. This first run captures
+the arrival in progress, not its finished grounded pose; the harness now
+waits for grounded action 2. Both owners/campaigns and corpse preservation
+remain pending. This does not yet qualify online Split script transitions.
+
+Completed follow-up: `qa-door-owner-survivor-zero-final/report.json` and
+`qa-door-owner-survivor-x-final/report.json` pass all eight combinations of
+campaign, door owner and sole-survivor status on the exact `88c8941b...`
+candidate. Each records zero dispatch misses, unchanged shared lives and
+canonical campaign, completed native dialogue, grounded action-2 return for
+living passengers and unchanged state-3/HP-0 corpses. Grounded return and
+lone-survivor screenshots were inspected in both campaigns. Central issue
+`beads-eio.9.6` is closed for this narrow verified bug. The full Split feature
+still requires online script/death/retry and room-option qualification.
+
+## Independent HUD layout follow-up, 2026-10-08
+
+The owner's Jungle screenshot and a read-only live capture show both native
+HUDs overlapping at the upper-left. The two characters already have separate
+HP, selected weapons and ammo; this report concerns presentation. Native
+`800253F0`, `80025188`, `80024F5C` and `8002509C` remain the HUD producers.
+The normal buster/saber has no consumable ammo bar; a weapon/ability that uses
+energy retains its own native indicator.
+
+P1 retains its original upper-left HUD. P2's native UI sprites and flat bar
+packets move together to the upper-right, using the live display width and
+packet-guarded right anchoring. The fixed `+56` offset and legacy HUD role
+allowed the authored-map camera origin to shift P2's widget independently of
+P1's dedicated native HUD arena. The guarded anchor service excluded every
+GPU-DMA aperture packet because it checked only main RAM. The framework now
+also validates complete allocated aperture ranges and uses the common packet
+key for anchor lookup; ordinary packets and unallocated ranges stay protected.
+
+The real GPU execution regression first failed on an aperture HUD anchor, then
+passed after the range correction. It covers CPU/DMA address aliases, left,
+centre and right anchors, packet-word guards, nonaliasing main RAM, allocation
+boundaries, and suppression of camera-origin shift/padding for the HUD while
+untagged packets retain the world view. Three focused framework tests and all
+seven game CTests pass.
+
+The replacement is staged separately in `build-coop-hud` with the existing
+device settings and a launcher that selects the unchanged online-playtest
+cards. The owner's running `build-coop-next` executable/session remains
+untouched pending restart approval. In-game appearance and independent bar
+response still require that final live check. Candidate SHA256:
+`c1be77980e43ac35f4955415d6d6368b5667c3351c8f8a640d9357b071a247fe`.
+
+## Vertically stacked HUD and Split survivor bounds, 2026-10-09
+
+The owner requested vertically stacked lifebars. The current layout keeps
+P1 at its original upper-left position and moves all P2 HUD sprite and flat
+bar vertices down 104 native pixels with the same left packet anchor. Split
+keeps the viewed character's original single HUD. Native Unified captures in
+both campaigns were inspected in `qa-stacked-hud-unified`; the separate X4
+[HUD PR #17](https://github.com/mstan/MegaManX4Recomp/pull/17) targets the frozen
+co-op branch. X6's corresponding
+[PR #41](https://github.com/mstan/MegaManX6Recomp/pull/41) targets master and
+has inspected native 4:3/21:9 captures.
+
+The P1-first online Split traversal found that importing P1's target room
+limits into P2's saved camera dragged the neutral partner forward before
+native death. Keeping each view's current and target limits (`+1C..2B`) fixes
+that drift. A surviving P2 also restores its saved camera before the original
+primary follow/clamp pass when ownership changes. Script/gate-owned camera
+records still synchronize fully. The native-call clamp model fails before
+the correction and passes afterwards.
+
+`qa-split-independent-bounds-survivor/report.json` passes both campaigns on
+`c12c9b09...`: native-card Continue, original Jungle hazards, P1 death with
+neutral P2 staying at X=8.5/HP32, both peers presenting the survivor's view,
+then native team wipe/retry with one life spent and both characters revived.
+Core/mod CRCs match through X 8619 / Zero 9124, including both menus and
+native disconnect. Survivor/retry OpenGL captures were inspected. All ten
+title CTests pass. This qualifies that online death/retry path; online
+boss-door conversation and complete campaigns remain broader checks.

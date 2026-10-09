@@ -4,10 +4,12 @@ Example (run only after rebuilding the co-op title):
   python tools/test_mmx4_coop_netplay.py --exe build-coop/MegaManX4Recomp.exe \
       --bios psxrecomp-v4/bios/SCPH1001.BIN --disc "mmx4/Mega Man X4.cue"
 
-Each case copies the executable into its own run directory, uses an empty mod
-catalog and private saves, and binds newly reserved loopback UDP/TCP ports. The
-trusted profile must enable co-op itself. No RAM writes, save loads, lobby rooms,
-or simulation-layer pad overrides are used. Only PIDs created here are stopped.
+Each case copies the executable and its declared settings manifest into its own
+run directory, disables offline co-op, uses private saves, and binds newly reserved
+loopback UDP/TCP ports. The trusted profile must enable co-op itself. Optional
+card seeds are cloned and loaded through native Continue. No RAM writes,
+save-state loads, live lobby rooms or simulation-layer pad overrides are used.
+Only PIDs created here are stopped.
 Native state reads are asynchronous observations; matching sim-tick CRCs and
 the existing matched-state watermark provide the network agreement evidence.
 """
@@ -15,7 +17,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -38,6 +40,8 @@ MENU = 0x801754A0
 BODY_BYTES = 0xE4
 DIAGNOSTIC_MAGIC = 0x5834434F
 START, CROSS, SQUARE, LEFT, RIGHT = 0x0008, 0x4000, 0x8000, 0x0080, 0x0020
+UP, DOWN, FRONT = 0x0010, 0x0040, 0x80173C70
+CIRCLE = 0x2000
 CRC_LINE = re.compile(
     r"rb live dig local sim=(\d+) core=([0-9a-fA-F]{8}).*? mod=([0-9a-fA-F]{8})"
 )
@@ -99,6 +103,7 @@ class Peer:
     process: subprocess.Popen | None = None
     diagnostic: int | None = None
     output: object | None = None
+    request_timings: dict = field(default_factory=dict)
 
     @property
     def log(self) -> Path:
@@ -118,6 +123,19 @@ class Peer:
         return self.process is not None and self.process.poll() is None
 
     def request(self, cmd: str, *, allow_error: bool = False, **fields) -> dict:
+        started = time.monotonic()
+        try:
+            return self._request(cmd, allow_error=allow_error, **fields)
+        finally:
+            elapsed_ms = (time.monotonic() - started) * 1000
+            row = self.request_timings.setdefault(cmd, dict(count=0, max_ms=0, total_ms=0))
+            row['count'] += 1
+            row['max_ms'] = max(row['max_ms'], round(elapsed_ms, 3))
+            row['total_ms'] += round(elapsed_ms, 3)
+            if elapsed_ms >= 750:
+                print(f'P{self.seat + 1} debug {cmd}: {elapsed_ms:.0f} ms', flush=True)
+
+    def _request(self, cmd: str, *, allow_error: bool = False, **fields) -> dict:
         require(self.running(), f"P{self.seat + 1} process exited before {cmd}")
         with socket.create_connection(("127.0.0.1", self.tcp), timeout=2) as connection:
             connection.settimeout(3)
@@ -126,7 +144,8 @@ class Peer:
                 line = stream.readline(2 * 1024 * 1024)
             require(bool(line), f"P{self.seat + 1} closed its debug connection during {cmd}")
             result = json.loads(line)
-        require(result.get("id") == 1, f"Unexpected debug response ID for {cmd}")
+        require(result.get("id") == 1,
+                f"P{self.seat + 1}: unexpected debug response for {cmd}: {result}")
         require(allow_error or result.get("ok") is True, f"P{self.seat + 1}: {cmd}: {result}")
         return result
 
@@ -167,7 +186,8 @@ class Peer:
         require(magic == DIAGNOSTIC_MAGIC, f"P{self.seat + 1}: invalid co-op diagnostic header")
         require(failed == 0, f"P{self.seat + 1}: co-op plugin reported failure")
         return dict(mode=play[0], minor=play[1], stage=play[0xC], section=play[0xD],
-                    campaign=play[0x43], pause_suppressed=play[0x1C], script_gate=play[0x10],
+                    campaign=play[0x43], lives=play[0x44],
+                    pause_suppressed=play[0x1C], script_gate=play[0x10],
                     frames=frames, enrolled=enrolled, failed=failed, banks=banks,
                     completed_context=completed_context,
                     menu_main=menu[4], menu_sub=menu[5], menu_item=menu[0x14],
@@ -188,6 +208,7 @@ class Peer:
 
 def body_state(body: bytes) -> dict:
     return dict(active=body[0], character=body[2], visible=body[3], state=body[4],
+                action=body[5], grounded=bool(body[0x89] & 8),
                 hp=body[0x5C] & 0x7F, x=struct.unpack_from("<i", body, 8)[0] / 65536,
                 y=struct.unpack_from("<i", body, 12)[0] / 65536)
 
@@ -221,11 +242,21 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
     for dll in args.exe.parent.glob("*.dll"):
         if dll.is_file():
             shutil.copy2(dll, directory / dll.name)
-    # No installed/bundled offline packages, no personal state selections.
     (directory / "mods").mkdir()
-    (directory / "mods/state.toml").write_text("format_version = 2\n", encoding="utf-8")
+    settings = args.exe.parent / "mods/bundled/mmx4.coop"
+    require(settings.is_dir(), "Built executable is missing its declared co-op settings package")
+    shutil.copytree(settings, directory / "mods/bundled/mmx4.coop")
+    (directory / "mods/state.toml").write_text(
+        'format_version = 2\n\n[[feature]]\npackage_id = "mmx4.coop"\n'
+        f'id = "coop"\nenabled = false\n[feature.values]\ncameras = "{args.cameras}"\n', encoding="utf-8")
     saves = directory / "saves"
     saves.mkdir()
+    card_seed = getattr(args, 'card_seed', None)
+    if card_seed is not None:
+        for name in ('card1.mcd', 'card2.mcd'):
+            source_card = card_seed / name
+            require(source_card.is_file(), f'Missing private save seed: {source_card}')
+            shutil.copy2(source_card, saves / name)
     source = args.config.read_text(encoding="utf-8")
     original = tomllib.loads(source)
     game_exe = Path(original["game"]["exe"])
@@ -256,6 +287,7 @@ def prepare_peer(args, case: Path, seat: int, ports: list[int], jitter: bool,
     environment = {key: value for key, value in os.environ.items()
                    if not key.upper().startswith(("PSX_", "RNET_"))}
     environment.update(PSX_NET_TRANSPORT="lan", PSX_NET_MODE="delay",
+                       PSX_RENDER_PASS_VERIFY="1",
                        RNET_SIM_LATENCY_MS=str(args.latency if jitter else 0),
                        RNET_SIM_JITTER_MS=str(args.jitter if jitter else 0),
                        RNET_SIM_SEED=str(args.seed + seat), RNET_SIM_LOSS_PCT="0")
@@ -339,6 +371,9 @@ class Exercise:
                     time.sleep(.2)
             else:
                 raise ValidationError(f"P{peer.seat + 1}: debug server did not become ready")
+        if getattr(self.args, 'continue_jungle', False):
+            self.boot_continue_jungle(campaign, deadline)
+            return
         direction = RIGHT if campaign else LEFT
         pulse = 0
         previous = None
@@ -390,6 +425,92 @@ class Exercise:
             pulse += 1
         raise ValidationError("Input-only navigation failed to enroll X and Zero in the intro")
 
+    def boot_continue_jungle(self, campaign: int, deadline: float) -> None:
+        """Use the native front-end thread, card reader and stage selector.
+
+        PLAY is still zero in the main menu. Watching PLAY alone skips Continue
+        and accepts Game Start instead; FRONT is the original 8001DAF8 thread.
+        The read-only card clones contain Zero in data 1 and normal X in data 3.
+        """
+        navigation = self.record.setdefault('continue_navigation', [])
+
+        def pulse(buttons: int) -> None:
+            self.peers[0].input(buttons)
+            self.wait_ticks(12, timeout=max(1, deadline - time.monotonic()))
+            self.peers[0].input(0)
+            self.wait_ticks(12, timeout=max(1, deadline - time.monotonic()))
+
+        def wait_native(label, predicate, intro=False):
+            previous = None
+            while time.monotonic() < deadline:
+                self.both('status')
+                fronts = self.both('read', FRONT, 0x20)
+                plays = self.both('read', PLAY, 0x64)
+                key = [(f[0], f[1], p[0], p[1]) for f, p in zip(fronts, plays)]
+                if key != previous:
+                    navigation.append(dict(label=label, modes=key))
+                    print(f'{label}: native front/PLAY {key}', flush=True)
+                    previous = key
+                if all(predicate(f, p) for f, p in zip(fronts, plays)) and all(
+                        not fade[0] for fade in self.both('read', 0x80141BDC, 1)):
+                    return plays
+                if intro and all(f[0] != 6 for f in fronts):
+                    pulse(START)
+                elif label == 'loaded stage selection' and all(p[0] == 3 and p[1] == 9 for p in plays):
+                    # Original story dialogue after loading the all-Mavericks
+                    # save needs the campaign controller's confirm edges.
+                    pulse(CROSS)
+                else:
+                    self.wait_ticks(8, timeout=max(1, deadline - time.monotonic()))
+            raise ValidationError(f'{label}: native input navigation timed out')
+
+        wait_native('main menu', lambda f, p: f[0] == 6 and f[1] == 1, intro=True)
+        self.wait_ticks(24)
+        pulse(DOWN)
+        require(all(f[2] == 1 for f in self.both('read', FRONT, 0x20)),
+                'Continue was not selected in the native main menu')
+        pulse(CROSS)
+        wait_native('Continue card choice', lambda f, p: f[0] == 7 and f[1] == 3)
+        pulse(CROSS)
+        wait_native('memory card slot choice', lambda f, p: p[0] == 0 and p[1] == 1)
+        pulse(CROSS)
+        wait_native('saved data list', lambda f, p: p[0] == 0 and p[1] == 3)
+        # The card reader enters this mode before its asynchronous directory
+        # read finishes. Let the original reader populate the data list.
+        self.wait_ticks(90)
+        for unused in range(0 if campaign else 2):
+            pulse(DOWN)
+        pulse(CROSS)
+        wait_native('saved data confirmation', lambda f, p: p[0] == 0 and p[1] == 4)
+        pulse(CROSS)
+        wait_native('loaded stage selection', lambda f, p: p[0] == 3 and p[1] == 4)
+        require(all(p[0x43] == campaign and p[0x59] == 255 for p in self.both('read', PLAY, 0x64)),
+                'Continue loaded a different campaign or Maverick rewards')
+        for peer in self.peers:
+            peer.request('screenshot_hires', path=str(peer.directory / 'continue-stage-select.png'))
+        # 8002E994: Up moves the cleared-save centre cursor (8) to top-left (0).
+        pulse(UP)
+        require(all(p[3] == 0 for p in self.both('read', PLAY, 0x64)),
+                'Native stage cursor did not select Jungle')
+        pulse(CROSS)
+        while time.monotonic() < deadline:
+            states = self.both('observe')
+            if all(s['mode'] == 6 and s['minor'] == 0 and s['enrolled'] and
+                   not s['pause_suppressed'] and not s['script_gate'] and
+                   all(s[b]['state'] == 1 and s[b]['hp'] > 0 for b in ('p1', 'p2'))
+                   for s in states):
+                require(all(s['stage'] == 1 and s['campaign'] == campaign for s in states),
+                        'Native Continue did not reach the requested Jungle campaign')
+                self.record['observations'].append(dict(name='Continue Jungle enrolled', peers=states))
+                self.checkpoint('Continue Jungle CRC', 0, min_digests=3)
+                return
+            # The original boss introduction/mission transition accepts confirm.
+            if all(s['mode'] != 6 for s in states):
+                pulse(CROSS)
+            else:
+                self.wait_ticks(8, timeout=max(1, deadline - time.monotonic()))
+        raise ValidationError('Native Jungle did not become playable after Continue')
+
     def controls(self) -> None:
         for seat, held, expected in ((0, RIGHT | SQUARE, "right"), (1, LEFT | SQUARE, "left")):
             self.both("input", 0)
@@ -401,6 +522,15 @@ class Exercise:
                         and all(state[body]["active"] and state[body]["hp"] > 0
                                 for body in ("p1", "p2")))
             before = self.wait_observation(f"P{seat + 1} movement baseline", ordinary)
+            if expected == 'left' and all(state[f'p{seat + 1}']['x'] <= 16 for state in before):
+                # Continue may spawn P2 at Jungle's native left boundary.
+                # Exercise the permitted direction instead of expecting a
+                # correctly clamped actor to walk outside the level.
+                held, expected = RIGHT | SQUARE, 'right'
+            if getattr(self.args, 'continue_jungle', False):
+                # A fully upgraded Zero can enter a stationary native
+                # technique on Sword. Test loaded-stage movement separately.
+                held &= ~SQUARE
             start_tick = max(int(status["tick"]) for status in self.both("status"))
             self.peers[seat].input(held)
             self.wait_ticks(36)
@@ -415,7 +545,8 @@ class Exercise:
                     f"P{seat + 1} died before its controls could be qualified")
             self.record["controls"].append(dict(seat=seat, held=hex(held), before=before,
                                                  after=after, delta_x=deltas))
-            self.checkpoint(f"P{seat + 1} movement/attack CRC", start_tick)
+            kind = 'movement' if getattr(self.args, 'continue_jungle', False) else 'movement/attack'
+            self.checkpoint(f"P{seat + 1} {kind} CRC", start_tick)
 
     def profile_policy(self) -> None:
         policies = []
@@ -442,6 +573,206 @@ class Exercise:
                                  link_simulation=dict(latency_ms=latency, jitter_ms=jitter),
                                  evidence="trusted activation and backend startup logs"))
         self.record["profile_policy"] = policies
+
+    def split_presentation_probe(self) -> None:
+        self.wait_ticks(12)
+        probes = []
+        for peer in self.peers:
+            counters = {row["name"]: int(row["count"]) for row in peer.request("mod_counters")["counters"]}
+            stats = peer.request("render_pass_stats")
+            probe = dict(seat=peer.seat, counters=counters, render_pass_stats=stats)
+            probes.append(probe)
+            self.record["split_presentation_probe"] = probes
+            require(counters.get("mmx4.coop.local-view-committed", 0) > 0,
+                    f"P{peer.seat + 1}: no committed own view: {stats}")
+            require(counters.get("mmx4.coop.local-view-state-leak", 0) == 0,
+                    f"P{peer.seat + 1}: own view changed host gameplay state")
+            require(stats.get("verify_mismatch", 0) == 0,
+                    f"P{peer.seat + 1}: sandbox restoration mismatch: {stats}")
+            require(stats.get("verify_checks", 0) > 0 and stats.get("local_views", 0) > 0,
+                    f"P{peer.seat + 1}: no verified sandbox draw: {stats}")
+            require(all(stats.get(key, 0) == 0 for key in ("watchdog", "vram_leaks", "device_reads")),
+                    f"P{peer.seat + 1}: local draw sandbox fault: {stats}")
+            path = peer.directory / "split-intro-presented.png"
+            probe["screenshot"] = peer.request("screenshot_hires", path=str(path))
+        start_tick = max(int(status["tick"]) for status in self.both("status"))
+        self.checkpoint("Split own-view CRC", start_tick)
+
+    def split_world_observation(self, label: str) -> dict:
+        views = []
+        for peer in self.peers:
+            counters = {row['name']: int(row['count']) for row in peer.request('mod_counters')['counters']}
+            address = counters.get('mmx4.coop.split-state', 0)
+            require(address != 0, 'Missing native independent camera state')
+            layers = peer.read(address + 16, 2 * 0xFC)
+            cameras = [dict(x=struct.unpack_from('<h', layers, seat * 0xFC + 10)[0],
+                            y=struct.unpack_from('<h', layers, seat * 0xFC + 14)[0]) for seat in (0, 1)]
+            pool = peer.read(0x8013BED0, 48 * 0x9C)
+            actors = [dict(slot=index, type=pool[index * 0x9C + 1],
+                           state=pool[index * 0x9C + 4], hp=pool[index * 0x9C + 0x5C],
+                           x=struct.unpack_from('<h', pool, index * 0x9C + 10)[0],
+                           y=struct.unpack_from('<h', pool, index * 0x9C + 14)[0])
+                      for index in range(48) if pool[index * 0x9C]]
+            image = peer.directory / f'{label}-presented.png'
+            capture = peer.request('screenshot_hires', path=str(image))
+            stats = peer.request('render_pass_stats')
+            require(all(stats.get(key, 0) == 0 for key in
+                        ('verify_mismatch', 'watchdog', 'vram_leaks', 'device_reads')) and
+                    counters.get('mmx4.coop.local-view-state-leak', 0) == 0,
+                    f'P{peer.seat + 1}: own-view sandbox fault during {label}: {stats}')
+            views.append(dict(seat=peer.seat, cameras=cameras, enemies=actors,
+                              counters=counters, capture=capture, render_pass_stats=stats,
+                              players=peer.observe()))
+        observation = dict(name=label, peers=views)
+        self.record.setdefault('split_world', []).append(observation)
+        return observation
+
+    def split_separation_probe(self) -> None:
+        self.both('input', 0)
+        before = self.split_world_observation('split-before-separation')
+        first_x = before['peers'][0]['players']['p1']['x']
+        start_tick = max(int(status['tick']) for status in self.both('status'))
+        reached = False
+        try:
+            for pulse in range(30):
+                self.peers[1].input(RIGHT | CROSS | CIRCLE)
+                self.wait_ticks(12)
+                self.peers[1].input(RIGHT)
+                self.wait_ticks(10)
+                states = self.both('observe')
+                self.record.setdefault('separation_controls', []).append(dict(pulse=pulse, peers=states))
+                require(all(state['p1']['hp'] and state['p2']['hp'] and
+                            state['p1']['state'] < 2 and state['p2']['state'] < 2 for state in states),
+                        'A player fell during input-only separation; retain the failure evidence')
+                if all(state['p2']['x'] - state['p1']['x'] > 640 for state in states):
+                    reached = True
+                    break
+            require(reached, 'P2 did not reach an independent distant view with native input')
+        finally:
+            self.both('input', 0)
+            self.split_world_observation('split-separated')
+        separated = self.record['split_world'][-1]
+        require(all(abs(peer['cameras'][1]['x'] - peer['cameras'][0]['x']) > 416
+                    for peer in separated['peers']), 'Native activation rectangles still overlap horizontally')
+        require(all(abs(peer['players']['p1']['x'] - first_x) < 48 for peer in separated['peers']),
+                'Distant P2 pulled the stationary P1')
+        remote_actors = []
+        for peer in separated['peers']:
+            first, second = peer['cameras']
+            actors = [actor for actor in peer['enemies'] if
+                      second['x'] - 64 < actor['x'] < second['x'] + 384 and
+                      not first['x'] - 64 < actor['x'] < first['x'] + 384]
+            require(actors, 'No native enemies activated around the distant player')
+            gap = [actor for actor in peer['enemies'] if
+                   first['x'] + 384 < actor['x'] < second['x'] - 64]
+            require(not gap, f'Native intro enemy occupies the empty horizontal view gap: {gap}')
+            remote_actors.append(actors)
+        self.record['split_interest_evidence'] = dict(remote_only_enemies=remote_actors,
+                                                     empty_gap_snapshot=True)
+        self.checkpoint('Split separated-world CRC', start_tick)
+        start_tick = max(int(status['tick']) for status in self.both('status'))
+        returned = False
+        try:
+            for pulse in range(30):
+                self.peers[1].input(LEFT | CROSS | CIRCLE)
+                self.wait_ticks(12)
+                self.peers[1].input(LEFT)
+                self.wait_ticks(10)
+                states = self.both('observe')
+                require(all(state['p1']['hp'] and state['p2']['hp'] for state in states),
+                        'A player died during input-only overlap/rejoin')
+                if all(abs(state['p2']['x'] - state['p1']['x']) < 80 for state in states):
+                    returned = True
+                    break
+            require(returned, 'Native controller traversal did not rejoin the views')
+        finally:
+            self.both('input', 0)
+            self.split_world_observation('split-rejoined')
+        rejoined = self.record['split_world'][-1]
+        for seat, peer in enumerate(rejoined['peers']):
+            live = {(actor['slot'], actor['type']): actor for actor in peer['enemies']}
+            for previous in remote_actors[seat]:
+                actor = live.get((previous['slot'], previous['type']))
+                if actor is not None:
+                    require(any(camera['x'] - 64 < actor['x'] < camera['x'] + 384
+                                for camera in peer['cameras']),
+                            'Previously remote native enemy persists outside both returned views')
+        self.record['split_interest_evidence']['remote_retained_or_despawned_after_rejoin'] = True
+        self.checkpoint('Split overlap-rejoin CRC', start_tick)
+
+    def split_team_retry_probe(self) -> None:
+        self.both('input', 0)
+        initial = self.both('observe')
+        first_victim = int(getattr(self.args, 'split_first_death', 'p2') == 'p2')
+        survivor = first_victim ^ 1
+        fallback_counter = f'mmx4.coop.local-view-seat-{survivor}'
+        previous_fallback = self.peers[first_victim].request('mod_counters')['counters']
+        fallback_count = next((row['count'] for row in previous_fallback if
+                               row['name'] == fallback_counter), 0)
+        lives = initial[0]['lives']
+        require(lives > 0 and all(state['lives'] == lives for state in initial),
+                'Native shared-life baseline is not eligible for a retry')
+        start_tick = max(int(status['tick']) for status in self.both('status'))
+        history = []
+        self.record['split_death_retry'] = dict(initial=initial, first_victim=first_victim, history=history)
+        for victim in (first_victim, survivor):
+            finished = False
+            previous_x, stuck = None, 0
+            try:
+                for pulse in range(150):
+                    # Walk into native hazards; climb a blocking ledge when
+                    # walking stops. Attacking continuously can clear the
+                    # very enemies needed to exercise original fatal contact.
+                    held = RIGHT | (CROSS if stuck >= 3 else 0)
+                    self.peers[victim].input(held)
+                    self.wait_ticks(12)
+                    self.peers[victim].input(RIGHT)
+                    self.wait_ticks(8)
+                    states = self.both('observe')
+                    x = states[0][f'p{victim + 1}']['x']
+                    stuck = stuck + 1 if previous_x is not None and abs(x - previous_x) < 1 else 0
+                    previous_x = x
+                    history.append(dict(victim=victim, pulse=pulse, held=held, peers=states))
+                    if pulse % 10 == 0:
+                        print(f'P{victim + 1} native hazard traversal: x={x}, '
+                              f"HP={states[0][f'p{victim + 1}']['hp']}", flush=True)
+                    if victim == first_victim:
+                        require(all(state[f'p{survivor + 1}']['hp'] > 0 for state in states),
+                                'Stationary survivor died before the intended first death')
+                    if all(state[f'p{victim + 1}']['hp'] == 0 and
+                           state[f'p{victim + 1}']['state'] >= 2 for state in states):
+                        finished = True
+                        break
+                    if victim == survivor and all(state['lives'] == ((lives - 1) & 255) for state in states):
+                        finished = True
+                        break
+                require(finished, f'P{victim + 1} did not enter native death/retry with controller traversal')
+            finally:
+                self.peers[victim].input(0)
+            if victim == first_victim:
+                fallen_body, living_body = f'p{victim + 1}', f'p{survivor + 1}'
+                self.wait_observation(f'Split P{victim + 1} native death completes', lambda state:
+                                      state[fallen_body]['hp'] == 0 and state[fallen_body]['state'] == 3 and
+                                      state[living_body]['hp'] > 0 and state['lives'] == lives)
+                self.wait_ticks(8)
+                fallen = self.split_world_observation(f'split-p{victim + 1}-fallen')
+                require(all(peer['cameras'][0] == peer['cameras'][1] for peer in fallen['peers']),
+                        'Fallen local peer did not adopt the survivor camera')
+                require(fallen['peers'][victim]['counters'].get(fallback_counter, 0) > fallback_count,
+                        'Fallen local peer did not actually present the surviving seat')
+                self.checkpoint('Split survivor-world CRC', start_tick)
+                start_tick = max(int(status['tick']) for status in self.both('status'))
+        revived = self.wait_observation('Split shared native checkpoint retry', lambda state:
+                                       state['mode'] == 6 and state['minor'] == 0 and state['enrolled'] and
+                                       state['lives'] == ((lives - 1) & 255) and
+                                       state['p1']['hp'] > 0 and state['p1']['state'] == 1 and
+                                       state['p2']['hp'] > 0 and state['p2']['state'] == 1)
+        require(all(state['campaign'] == self.campaign for state in revived),
+                'Team retry changed the shared campaign')
+        self.record['split_death_retry']['revived'] = revived
+        self.wait_ticks(90)
+        self.split_world_observation('split-team-retried')
+        self.checkpoint('Split native team-retry CRC', start_tick)
 
     def menus(self) -> None:
         for owner in (0, 1):
@@ -495,10 +826,6 @@ class Exercise:
                                    evidence="native peer disconnect exit reason")
                 break
             require(host.running(), "Survivor exited without reporting a peer disconnect")
-            try:
-                observation = host.request("netplay_status")
-            except OSError:
-                pass
             time.sleep(.2)
         require(not observation or observation.get("evidence") == "native peer disconnect exit reason",
                 f"Survivor did not notice private peer disconnect: {observation}")
@@ -525,7 +852,8 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
     case.mkdir()
     ports, reservations = reserve_ports()
     record = dict(campaign="zero" if campaign else "x", scenario="jitter" if jitter else "delay",
-                  status="running", success=False, ports=ports, offline_catalog="empty isolated catalog",
+                  status="running", success=False, ports=ports,
+                  offline_catalog=f"declared settings manifest only; offline co-op disabled; {args.cameras}",
                   session_id=args.session_id + index, boot_modes=[], checkpoints=[], observations=[], controls=[])
     peers, exercise = [], None
     try:
@@ -543,6 +871,14 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
         exercise.boot(campaign)
         exercise.profile_policy()
         exercise.controls()
+        record['hud_captures'] = [peer.request('screenshot_hires',
+            path=str(peer.directory / 'coop-hud-presented.png')) for peer in peers]
+        if args.cameras == "split":
+            exercise.split_presentation_probe()
+            if args.split_separation:
+                exercise.split_separation_probe()
+            if args.split_death_retry:
+                exercise.split_team_retry_probe()
         exercise.menus()
         exercise.disconnect()
         record.update(status="passed", success=True)
@@ -556,6 +892,8 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
                 try:
                     observed["netplay_status"] = peer.request("netplay_status", allow_error=True)
                     observed["co_op"] = peer.observe()
+                    observed["render_pass_stats"] = peer.request("render_pass_stats", allow_error=True)
+                    observed["mod_counters"] = peer.request("mod_counters", allow_error=True)
                 except Exception as diagnostic_error:
                     observed["diagnostic_error"] = str(diagnostic_error)
             if peer.log.exists():
@@ -570,6 +908,7 @@ def run_case(args, directory: Path, campaign: int, jitter: bool, index: int) -> 
             for peer in peers:
                 peer.stop()
         record["returncodes"] = [peer.process.poll() if peer.process else None for peer in peers]
+        record['debug_request_timings'] = [peer.request_timings for peer in peers]
         (case / "report.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     return record
 
@@ -614,10 +953,16 @@ def main() -> int:
     parser.add_argument("--bios", type=Path, required=True)
     parser.add_argument("--disc", type=Path, required=True)
     parser.add_argument("--config", type=Path)
+    parser.add_argument("--card-seed", type=Path)
+    parser.add_argument("--continue-jungle", action="store_true")
     parser.add_argument("--report-dir", type=Path)
     parser.add_argument("--campaign", choices=("both", "x", "zero"), default="both")
     parser.add_argument("--scenario", choices=("both", "delay", "jitter"), default="both")
     parser.add_argument("--frontend", choices=("headless-opengl", "hidden-window"), default="headless-opengl")
+    parser.add_argument("--cameras", choices=("unified", "split"), default="unified")
+    parser.add_argument("--split-separation", action="store_true")
+    parser.add_argument("--split-death-retry", action="store_true")
+    parser.add_argument("--split-first-death", choices=('p1', 'p2'), default='p2')
     parser.add_argument("--delay", type=int, default=2)
     parser.add_argument("--latency", type=int, default=25)
     parser.add_argument("--jitter", type=int, default=10)
@@ -627,7 +972,13 @@ def main() -> int:
     parser.add_argument("--phase-timeout", type=float, default=45)
     parser.add_argument("--disconnect-timeout", type=float, default=15)
     args = parser.parse_args()
+    require(not args.continue_jungle or args.card_seed is not None,
+            '--continue-jungle requires private --card-seed clones')
+    require(not args.split_separation or args.cameras == 'split', '--split-separation requires Split')
+    require(not args.split_death_retry or args.cameras == 'split', '--split-death-retry requires Split')
     args.game_root = args.game_root.resolve()
+    if args.card_seed is not None:
+        args.card_seed = args.card_seed.resolve()
     for name in ("exe", "bios", "disc"):
         value = getattr(args, name).resolve()
         parser.error(f"{name} file does not exist: {value}") if not value.is_file() else None

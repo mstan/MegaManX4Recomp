@@ -7,6 +7,32 @@ below are static evidence; gameplay assertions still need live qualification.
 
 ## Combat ownership
 
+### Split native target scopes
+
+The original enemy pool `80021234` contains 48 slots at `8013BED0`, stride
+`9C`; enemy shots `8002144C` contain 32 at `8013F328`, stride `9C`. Their
+whole-pool and per-slot `PLAYER+BC` reads precede dispatch. Native callbacks
+are dispatched by `jalr v0` at `80021300` / `80021518` (word `0040F809`),
+with NOP delay slots and reconvergence at `80021308` / `80021520`. Original
+global freeze checks and flag-8 exceptions remain in the native pool.
+
+Only Split scopes the real per-seat hurt gate and nearest eligible full
+body around that one callback. A frozen target takes the original visible
+bounds-only `8002B3C0` path, not another AI update. P1 wins distance ties;
+shared scenes retain their event owner. P2 projection pins the shared
+campaign for story decisions and restores its own identity before inventory
+capture. Collision/solids/pickups/rewards/scene callbacks temporarily return
+to canonical context, preserve accepted-event ordering and resume P2 AI.
+Private-player projections are not mistaken for AI scopes. Real two-body
+coordinates remain available to union lifetime checks throughout.
+
+The registered synthetic dispatcher is `8F7FFF00`, normalized physical
+`0F7FFF00`. An earlier `9F` alias was outside the supported function aperture
+and produced a native dispatch miss; that failed report is retained. Guarded
+instruction emission precedes the generated target latch, verified after
+real regeneration. Focused ownership models pass; broad enemy-family and
+distant-stage original-executable qualification remain required.
+
 | Address | Verified role | Relevant behavior |
 | --- | --- | --- |
 | `8002D9BC` | Enemy/projectile contact against native player; `a0` is the attacker | Resolves body collision, native damage/armor reduction, knockback direction, and hurt state. Returns zero on no accepted contact, one on accepted contact. |

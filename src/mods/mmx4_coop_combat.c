@@ -18,6 +18,7 @@
 #define EFFECT_CAPACITY 32u
 #define ARMOR_UPDATE 0x8003D3F8u
 #define ARMOR_MOUNT 0x8003E0D0u
+#define ACTOR_DISPATCH 0x8F7FFF00u
 /* Core accessors: first is the saved world context only while projected. */
 uint8_t *mmx4_coop_second_vehicle(void);
 uint8_t *mmx4_coop_first_vehicle(void);
@@ -40,6 +41,9 @@ static unsigned effect_allocation_call;
 static uint8_t second_effect_owner[EFFECT_CAPACITY];
 static unsigned armor_call, armor_owner, armor_skip_update;
 static unsigned survivor_pool_call;
+static unsigned actor_call,actor_suspended,actor_owner;
+static uint32_t actor_function,actor_pending,actor_pool;
+static uint8_t actor_campaign,pool_first_freeze;
 static HitContact hits[SOLID_CAPACITY];
 static unsigned hit_count;
 
@@ -85,7 +89,27 @@ static int world_ready(void) {
         psx_mod_read_byte(MMX4_PLAY)==6;
 }
 
-static int accepted_hit(CPUState *cpu, uint32_t address) {
+int mmx4_coop_combat_actor_context(void) {
+    return actor_call && !actor_suspended && (!mmx4_coop_projected() || actor_owner==1);
+}
+
+int mmx4_coop_combat_canonical_call(CPUState *cpu,uint32_t address,
+    PSXModFunctionFilterCallback callback) {
+    if(!actor_call || !actor_owner || actor_suspended || !mmx4_coop_projected())
+        return callback(cpu,address);
+    actor_suspended=1;
+    psx_mod_write_byte(MMX4_PLAY+0x43,psx_mod_read_byte(MMX4_PLAYER+2));
+    mmx4_coop_leave_second();
+    uint32_t result;
+    if(callback(cpu,address))result=cpu->gpr[2];
+    else result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    mmx4_coop_enter_second();
+    psx_mod_write_byte(MMX4_PLAY+0x43,actor_campaign);
+    actor_suspended=0;
+    return mmx4_coop_finish(cpu,result);
+}
+
+static int accepted_hit_canonical(CPUState *cpu, uint32_t address) {
     if (combat_call || !world_ready()) return 0;
     combat_call=1;
     uint32_t actor=cpu->gpr[4], arg=cpu->gpr[5];
@@ -123,6 +147,10 @@ static int accepted_hit(CPUState *cpu, uint32_t address) {
     /* The original actor caller applies the selected result and advances its
      * state once. In particular, one consumable attack cannot hit both seats. */
     return mmx4_coop_finish(cpu,result);
+}
+
+static int accepted_hit(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,accepted_hit_canonical);
 }
 
 static SolidContact *solid_record(uint32_t actor, int create) {
@@ -186,7 +214,7 @@ static int allocate_effect(CPUState *cpu, uint32_t address) {
 }
 
 void mmx4_coop_combat_project_end(uint32_t vehicle_mirror) {
-    if (!vehicle_mirror || !mmx4_coop_projected()) return;
+    if (!vehicle_mirror || !mmx4_coop_projected() || psx_mod_local_view_scope()) return;
     for (unsigned i=0;i<EFFECT_CAPACITY;++i) {
         if (!second_effect_owner[i]) continue;
         uint32_t actor=EFFECT_POOL+i*EFFECT_STRIDE;
@@ -283,7 +311,7 @@ static int armor_world_update(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
-static int solid_player_contact(CPUState *cpu, uint32_t address) {
+static int solid_player_contact_canonical(CPUState *cpu, uint32_t address) {
     if (solid_call || !world_ready()) return 0;
     uint32_t actor=cpu->gpr[4], arg=cpu->gpr[5];
     /* Only original actor RAM is eligible; these fields are not present in
@@ -326,6 +354,10 @@ static int solid_player_contact(CPUState *cpu, uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
+static int solid_player_contact(CPUState *cpu,uint32_t address) {
+    return mmx4_coop_combat_canonical_call(cpu,address,solid_player_contact_canonical);
+}
+
 static uint64_t distance_squared(int16_t ax, int16_t ay,
                                  int16_t bx, int16_t by) {
     int64_t dx=(int64_t)ax-bx, dy=(int64_t)ay-by;
@@ -333,7 +365,7 @@ static uint64_t distance_squared(int16_t ax, int16_t ay,
 }
 
 static int aim_at_participant(CPUState *cpu, uint32_t address) {
-    if (aim_call || !world_ready() || !mmx4_coop_alive(1)) return 0;
+    if (aim_call || actor_call || !world_ready() || !mmx4_coop_alive(1)) return 0;
     uint32_t actor=cpu->gpr[4];
     if ((actor&3u) || actor<0x80010000u || actor>0x801FFF80u) return 0;
     uint8_t *second=mmx4_coop_second_body();
@@ -362,9 +394,68 @@ static int aim_at_participant(CPUState *cpu, uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
+static void redirect_actor(CPUState *cpu,uint32_t address) {
+    if(!survivor_pool_call || !mmx4_coop_split_views() || actor_call ||
+       mmx4_coop_projected() || psx_mod_local_view_scope())return;
+    uint32_t first=address==0x80021300u?0x8013BED0u:0x8013F328u;
+    unsigned capacity=address==0x80021300u?48u:32u;
+    uint32_t pool=address==0x80021300u?0x80021234u:0x8002144Cu;
+    uint32_t actor=cpu->gpr[4],function=cpu->gpr[2];
+    if(actor_pool!=pool || actor<first || actor>=first+capacity*0x9Cu ||
+       (actor-first)%0x9Cu || (function&3u) || function<0x80010000u ||
+       function>=0x8012F800u || actor_pending)return;
+    actor_pending=actor;actor_function=function;
+    cpu->gpr[2]=ACTOR_DISPATCH;
+}
+
+static void update_actor(CPUState *cpu,uint32_t address) {
+    (void)address;
+    uint32_t actor=actor_pending,function=actor_function;
+    actor_pending=actor_function=0;
+    if(!actor || !function || actor_call || !survivor_pool_call)return;
+    actor_call=1;
+    psx_mod_write_byte(MMX4_PLAYER+0xBC,pool_first_freeze);
+    Mmx4CoopViewActor actors[2];mmx4_coop_split_actors(actors);
+    int owner=mmx4_coop_lifecycle_script_owner();
+    unsigned target=owner>=0?(unsigned)owner:mmx4_coop_view_nearest(actors,
+        (int16_t)psx_mod_read_half(actor+10),(int16_t)psx_mod_read_half(actor+14),0);
+    actor_owner=target;
+    actor_campaign=psx_mod_read_byte(MMX4_PLAY+0x43);
+    uint32_t result=0;
+    if(actors[target].active) {
+        if(target) {
+            mmx4_coop_enter_second();
+            psx_mod_write_byte(MMX4_PLAY+0x43,actor_campaign);
+        }
+        if(psx_mod_read_byte(MMX4_PLAYER+0xBC)) {
+            if(psx_mod_read_byte(actor+3))result=mmx4_coop_call(cpu,0x8002B3C0u,actor,0);
+        }else {
+            result=mmx4_coop_call(cpu,function,actor,cpu->gpr[5]);
+            psx_mod_counter_add(target?"mmx4.coop.p2-native-ai":"mmx4.coop.p1-native-ai",1);
+        }
+        if(target) {
+            psx_mod_write_byte(MMX4_PLAY+0x43,psx_mod_read_byte(MMX4_PLAYER+2));
+            mmx4_coop_leave_second();
+        }
+    }
+    pool_first_freeze=psx_mod_read_byte(MMX4_PLAYER+0xBC);
+    psx_mod_write_byte(MMX4_PLAYER+0xBC,0);
+    actor_campaign=0;actor_call=actor_owner=0;
+    mmx4_coop_finish(cpu,result);
+}
+
 static int survivor_actor_pool(CPUState *cpu,uint32_t address) {
-    if (survivor_pool_call || !world_ready() || mmx4_coop_alive(0) ||
-        !mmx4_coop_alive(1)) return 0;
+    if (survivor_pool_call || !world_ready() || psx_mod_local_view_scope())return 0;
+    if(mmx4_coop_split_views()) {
+        survivor_pool_call=1;actor_pool=address;
+        pool_first_freeze=psx_mod_read_byte(MMX4_PLAYER+0xBC);
+        psx_mod_write_byte(MMX4_PLAYER+0xBC,0);
+        uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+        psx_mod_write_byte(MMX4_PLAYER+0xBC,pool_first_freeze);
+        survivor_pool_call=0;actor_pool=0;pool_first_freeze=0;
+        return mmx4_coop_finish(cpu,result);
+    }
+    if(mmx4_coop_alive(0) || !mmx4_coop_alive(1))return 0;
     survivor_pool_call=1;
     uint32_t x=psx_mod_read_word(MMX4_PLAYER+8);
     uint32_t y=psx_mod_read_word(MMX4_PLAYER+12);
@@ -384,9 +475,7 @@ static int survivor_actor_pool(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
-static void reset_combat(CPUState *cpu, uint32_t address) {
-    (void)cpu;
-    (void)address;
+void mmx4_coop_combat_reset(void) {
     /* P2 enrollment invokes the native initializer within a projection. */
     if (mmx4_coop_projected()) return;
     memset(solids,0,sizeof solids);
@@ -398,6 +487,9 @@ static void reset_combat(CPUState *cpu, uint32_t address) {
     effect_allocation_call=0;
     armor_call=armor_owner=armor_skip_update=0;
     survivor_pool_call=0;
+    actor_call=actor_suspended=actor_owner=0;
+    actor_function=actor_pending=actor_pool=0;
+    actor_campaign=pool_first_freeze=0;
 }
 
 static uint32_t digest_byte(uint32_t seed, uint8_t value) {
@@ -428,11 +520,18 @@ uint32_t mmx4_coop_combat_digest(uint32_t seed) {
         seed=digest_byte(seed,hits[i].token[0]);
         seed=digest_byte(seed,hits[i].token[1]);
     }
+    seed=digest_word(seed,actor_function);
+    seed=digest_word(seed,actor_pending);
+    seed=digest_word(seed,actor_pool);
+    seed=digest_byte(seed,(uint8_t)actor_call);
+    seed=digest_byte(seed,(uint8_t)actor_suspended);
+    seed=digest_byte(seed,(uint8_t)actor_owner);
+    seed=digest_byte(seed,actor_campaign);
+    seed=digest_byte(seed,pool_first_freeze);
     return seed;
 }
 
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop_combat) {
-    psx_mod_register_function_entry_plugin(COOP_ID,0x80035240u,reset_combat);
     psx_mod_register_function_filter_plugin(COOP_ID,CONTACT,accepted_hit);
     psx_mod_register_function_filter_plugin(COOP_ID,ENEMY_HIT,accepted_hit);
     psx_mod_register_function_filter_plugin(COOP_ID,SOLID_CONTACT,solid_player_contact);
@@ -446,4 +545,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_combat) {
     psx_mod_register_function_filter_plugin(COOP_ID,0x80040CCCu,aim_at_participant);
     psx_mod_register_function_filter_plugin(COOP_ID,0x800419B8u,aim_at_participant);
     psx_mod_register_function_filter_plugin(COOP_ID,0x80042824u,aim_at_participant);
+    psx_mod_register_instruction_plugin(COOP_ID,0x80021300u,0x0040F809u,redirect_actor);
+    psx_mod_register_instruction_plugin(COOP_ID,0x80021518u,0x0040F809u,redirect_actor);
+    psx_mod_register_guest_function_plugin(COOP_ID,ACTOR_DISPATCH,update_actor);
 }

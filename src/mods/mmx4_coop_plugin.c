@@ -7,7 +7,9 @@
 #include "sio.h"
 #include "mmx4_coop_assets.h"
 #include "mmx4_coop_internal.h"
+#include "mmx4_coop_views.h"
 #include "mod_netplay.h"
+#include "psx_netplay.h"
 #include "gpu.h"
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +22,6 @@
 #define TRAILS 0x80141AB0u
 #define PAD 0x80166C08u
 #define FRAME_ARENA 0x40000u
-#define SECOND_HUD_OFFSET 56
 typedef struct {
     uint8_t body[0xE4], shots[0x9C0], trails[0x120], double_body[0xE4],vehicle[0xB0];
 } PlayerContext;
@@ -36,6 +37,9 @@ static PlayerContext second,first;
 static CharacterAssets assets[2];
 static SpriteBank banks[4096];
 static UiBank ui_banks[4096];
+static SpriteBank view_banks[4096];
+static UiBank view_ui_banks[4096];
+static unsigned view_bank_count,view_ui_bank_count,local_view_call,local_view_seat;
 static unsigned ui_bank_count,hud_call;
 static uint32_t hud_arena;
 static uint32_t world_packet_used;
@@ -48,6 +52,8 @@ static uint16_t previous_input;
 static unsigned counterpart;
 static unsigned projected;
 static unsigned camera_call;
+static unsigned camera_update_call;
+static unsigned split_views;
 static uint32_t fixture_sequence;
 static unsigned menu_texture_owner=2;
 static unsigned upload_guard;
@@ -148,6 +154,7 @@ static void leave_second(void) {
 }
 int mmx4_coop_ready(void) { return enrolled && !failed; }
 int mmx4_coop_projected(void) { return (int)projected; }
+int mmx4_coop_split_views(void) { return (int)split_views; }
 int mmx4_coop_alive(unsigned seat) {
     if(mmx4_coop_lifecycle_hidden(seat))return 0;
     if(seat && !enrolled)return 0;
@@ -157,6 +164,7 @@ int mmx4_coop_alive(unsigned seat) {
     return body[0] && (body[0x5C]&0x7F)>0 && body[4]<2;
 }
 uint8_t *mmx4_coop_second_body(void) {return second.body;}
+uint8_t *mmx4_coop_first_body(void) {return first.body;}
 uint8_t *mmx4_coop_second_vehicle(void) {return second.vehicle;}
 uint8_t *mmx4_coop_first_vehicle(void) {return first.vehicle;}
 void mmx4_coop_clear_current_attacks(void) {
@@ -232,6 +240,8 @@ static void diagnostics(void) {
 static void reset_player(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;if(inside)return;
     mmx4_coop_lifecycle_reset();
+    mmx4_coop_combat_reset();
+    mmx4_coop_split_reset();
     menu_texture_owner=2;
     enrolled=0;memset(&second,0,sizeof second);previous_input=0;
     if(diagnostic)diagnostics();
@@ -281,6 +291,13 @@ static void second_tick(CPUState *cpu,uint32_t address) {
     if(enrolled && !failed)mmx4_coop_lifecycle_tick(cpu);
     if(enrolled && !failed && mmx4_coop_lifecycle_can_tick()) {
         uint8_t input[6];capture(PAD,input,sizeof input);
+        uint8_t camera_view[0xFC],camera_origins[3][20];
+        int own_camera=split_views && mmx4_coop_split_camera_copy(1,camera_view);
+        if(own_camera)for(unsigned layer=0;layer<3;++layer) {
+            uint32_t camera=0x801419B0u+layer*0x54u+8u;
+            capture(camera,camera_origins[layer],20);
+            project(camera,camera_view+layer*0x54u+8u,20);
+        }
         uint16_t raw=mmx4_coop_input(1);
         enter_second();
         psx_mod_write_half(PAD,raw);psx_mod_write_half(PAD+2,previous_input);
@@ -288,18 +305,16 @@ static void second_tick(CPUState *cpu,uint32_t address) {
         guest(cpu,0x80035EF0,0,0);guest(cpu,0x80021C14,0,0);guest(cpu,0x800311EC,0,0);
         guest(cpu,0x80021340,0,0);guest(cpu,0x8002C614,PLAYER,0);
         leave_second();project(PAD,input,sizeof input);++frames;
+        if(own_camera)for(unsigned layer=0;layer<3;++layer)
+            project(0x801419B0u+layer*0x54u+8u,camera_origins[layer],20);
         psx_mod_counter_add("mmx4.coop.player-ticks",1);
     }
     diagnostics();inside=0;
 }
 
-static int hidden_first_shots(CPUState *cpu,uint32_t address) {
-    if(projected || !mmx4_coop_ready() || !mmx4_coop_lifecycle_hidden(0))return 0;
-    second_tick(cpu,address);
-    return mmx4_coop_finish(cpu,0);
-}
 static int camera_target(CPUState *cpu,uint32_t address) {
     int owner=mmx4_coop_lifecycle_script_owner();
+    if(split_views && owner<0 && mmx4_coop_alive(0))return 0;
     if(camera_call || projected || !mmx4_coop_ready() || !mmx4_coop_alive(1) ||
        (owner<0 && (psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))) ||
        owner==0)return 0;
@@ -317,9 +332,9 @@ static int camera_target(CPUState *cpu,uint32_t address) {
 }
 static void constrain_team(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
-    if(projected || !mmx4_coop_ready() || mmx4_coop_lifecycle_script_owner()>=0 ||
+    if(split_views || projected || !mmx4_coop_ready() || mmx4_coop_lifecycle_script_owner()>=0 ||
        psx_mod_read_byte(PLAY+0x10) || psx_mod_read_byte(PLAY+0x1C))return;
-    if(mmx4_coop_alive(0) && mmx4_coop_alive(1) && !second.body[0xC5] &&
+    if(!split_views && mmx4_coop_alive(0) && mmx4_coop_alive(1) && !second.body[0xC5] &&
        !psx_mod_read_byte(PLAYER+0xC5)) {
         int32_t x=(int32_t)psx_mod_read_word(PLAYER+8),p=(int32_t)le32(second.body+8);
         int64_t distance=(int64_t)x-p,limit=240*65536;
@@ -340,15 +355,25 @@ static void constrain_team(CPUState *cpu,uint32_t address) {
     }
 }
 static int camera_update(CPUState *cpu,uint32_t address) {
-    if(projected || !mmx4_coop_ready() || !mmx4_coop_alive(1) ||
-       (mmx4_coop_lifecycle_script_owner()!=1 && mmx4_coop_alive(0)))return 0;
+    if(camera_update_call || projected)return 0;
+    constrain_team(cpu,address);
+    if(!mmx4_coop_camera_scope_requested((int)split_views,mmx4_coop_ready(),
+        mmx4_coop_alive(0),mmx4_coop_alive(1)))return 0;
+    unsigned owner=mmx4_coop_lifecycle_script_owner()==1 || !mmx4_coop_alive(0);
+    if(split_views)mmx4_coop_split_camera_prepare(owner);
     /* 80027850 also checks player A4 and clamps the canonical body against
      * scrolling bounds at 80027BE4. Changing only its target XY can crush a
      * frozen P1 in a P2-led door. Run that one camera pass as its actual owner. */
-    constrain_team(cpu,address);
-    enter_second();
+    camera_update_call=1;
+    if(owner) {
+        enter_second();
+    }
     uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
-    leave_second();return mmx4_coop_finish(cpu,result);
+    if(owner)leave_second();
+    if(split_views)mmx4_coop_split_camera(cpu,owner);
+    else mmx4_coop_lifecycle_camera_bounds(cpu,owner);
+    camera_update_call=0;
+    return mmx4_coop_finish(cpu,result);
 }
 
 /* Private QA requests are committed at the native gameplay dispatch, never
@@ -396,6 +421,8 @@ static int development_fixture(CPUState *cpu,uint32_t address) {
 }
 
 static uint16_t sprite_bank(uint32_t table,unsigned frame,uint16_t clut,uint16_t tile) {
+    unsigned *count=psx_mod_local_view_scope()?&view_bank_count:&bank_count;
+    SpriteBank *cache=psx_mod_local_view_scope()?view_banks:banks;
     CharacterAssets *a=&assets[counterpart];uint8_t decoded[32768],colors[32];uint16_t pixels[256*256];
     if(table<a->sprites || table-a->sprites>=a->compressed.size || clut<0x7800)return 0;
     size_t offset=table-a->sprites;
@@ -404,8 +431,8 @@ static uint16_t sprite_bank(uint32_t table,unsigned frame,uint16_t clut,uint16_t
     unsigned tiles=packed>>20;size_t pal=(size_t)(clut-0x7800)*32,written;
     if(!tiles || tiles>256 || source<a->sprites || source-a->sprites>=a->compressed.size || pal+32>0x1000)return 0;
     capture(a->palette+(uint32_t)pal,colors,sizeof colors);
-    for(unsigned i=0;i<bank_count;++i)if(banks[i].source==source && banks[i].tile==tile && !memcmp(banks[i].colors,colors,32))return banks[i].id;
-    if(bank_count==4096 || !mmx4_coop_decode_sprite(a->compressed.data+source-a->sprites,
+    for(unsigned i=0;i<*count;++i)if(cache[i].source==source && cache[i].tile==tile && !memcmp(cache[i].colors,colors,32))return cache[i].id;
+    if(*count==4096 || !mmx4_coop_decode_sprite(a->compressed.data+source-a->sprites,
         a->compressed.size-(source-a->sprites),decoded,sizeof decoded,&written) || written!=tiles*128u)return 0;
     memset(pixels,0,sizeof pixels);
     unsigned remaining=tiles,row=0,in=0;
@@ -417,13 +444,13 @@ static uint16_t sprite_bank(uint32_t table,unsigned frame,uint16_t clut,uint16_t
         }
         in+=chunk*128;row+=16;remaining-=chunk;
     }
-    uint16_t id=(uint16_t)(0x6000+bank_count);
+    uint16_t id=(uint16_t)((psx_mod_local_view_scope()?0xA000u:0x6000u)+*count);
     if(tile!=UINT16_MAX) {
         uint16_t part[256];for(unsigned y=0;y<16;++y)for(unsigned x=0;x<16;++x)
             part[y*16+x]=pixels[(((tile>>8)+y)&255)*256+(((tile&255)+x)&255)];
         if(!psx_mod_define_texture_bank(id,16,16,part))return 0;
     }else if(!psx_mod_define_texture_bank(id,256,256,pixels))return 0;
-    banks[bank_count]=(SpriteBank){source,id,tile,{0}};memcpy(banks[bank_count++].colors,colors,32);return id;
+    cache[*count]=(SpriteBank){source,id,tile,{0}};memcpy(cache[(*count)++].colors,colors,32);return id;
 }
 static void triangle(uint32_t dst,uint32_t next,const uint32_t *q,unsigned a,unsigned b,unsigned c,uint16_t bank) {
     unsigned v[3]={a,b,c};psx_mod_write_word(dst,0x09000000u|(next&0xFFFFFF));
@@ -436,17 +463,19 @@ static void triangle(uint32_t dst,uint32_t next,const uint32_t *q,unsigned a,uns
     }
 }
 static uint16_t ui_tile(uint16_t page,uint16_t clut,uint16_t uv,int private_colors) {
+    unsigned *count=psx_mod_local_view_scope()?&view_ui_bank_count:&ui_bank_count;
+    UiBank *cache=psx_mod_local_view_scope()?view_ui_banks:ui_banks;
     if(page&0x180 || !assets[counterpart].ui_pixels)return 0;
     uint16_t colors[16],pixels[256*256];
     unsigned cx=(clut&63)*16,cy=clut>>6;
     const uint16_t *vram=gpu_get_vram();
     for(unsigned i=0;i<16;++i)colors[i]=private_colors && clut>=0x7800 && clut<0x7880?
         psx_mod_read_half(assets[counterpart].palette+(clut-0x7800)*32+i*2):vram[cy*1024+cx+i];
-    for(unsigned i=0;i<ui_bank_count;++i) {
-        UiBank *b=&ui_banks[i];
+    for(unsigned i=0;i<*count;++i) {
+        UiBank *b=&cache[i];
         if(b->character==counterpart && b->page==page && b->clut==clut && b->uv==uv && !memcmp(b->colors,colors,32))return b->id;
     }
-    if(ui_bank_count>=4096)return 0;
+    if(*count>=4096)return 0;
     unsigned bx=(page&15)*64,by=(page&16)*16;
     unsigned width=uv==UINT16_MAX?256:16;
     for(unsigned y=0;y<width;++y)for(unsigned x=0;x<width;++x) {
@@ -454,15 +483,21 @@ static uint16_t ui_tile(uint16_t page,uint16_t clut,uint16_t uv,int private_colo
         uint16_t packed=assets[counterpart].ui_pixels[(by+v)*1024+bx+u/4];
         pixels[y*width+x]=colors[(packed>>((u&3)*4))&15];
     }
-    uint16_t id=(uint16_t)(0x8000+ui_bank_count);
+    uint16_t id=(uint16_t)((psx_mod_local_view_scope()?0xB000u:0x8000u)+*count);
     if(!psx_mod_define_texture_bank(id,width,width,pixels))return 0;
-    UiBank *b=&ui_banks[ui_bank_count++];
+    UiBank *b=&cache[(*count)++];
     *b=(UiBank){page,clut,uv,id,{0},counterpart};memcpy(b->colors,colors,32);return id;
 }
 static int coop_hud(CPUState *cpu,uint32_t address) {
     if(hud_call || projected || !mmx4_coop_ready() || psx_mod_read_byte(PLAY)!=6)return 0;
-    hud_call=1;uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    int own_hud=split_views && psx_mod_local_view_scope();
+    hud_call=1;uint32_t result=own_hud && local_view_seat?0:
+        guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    if(own_hud && !local_view_seat) {hud_call=0;return mmx4_coop_finish(cpu,result);}
     if(psx_mod_read_byte(PLAY+0x1F) && second.body[0]) {
+        /* Keep both native meters in one left column. Own-player Split views
+         * use the original upper position; the shared view stacks P2 below. */
+        int offset_y=own_hud?0:104;
         uint32_t pools[3],base=hud_arena+(psx_mod_read_word(SCRATCH)&1u)*0x8000;
         for(unsigned i=0;i<3;++i) {pools[i]=psx_mod_read_word(SCRATCH+0x108+i*4);psx_mod_write_word(SCRATCH+0x108+i*4,base+i*0x1000);}
         enter_second();
@@ -476,22 +511,27 @@ static int coop_hud(CPUState *cpu,uint32_t address) {
             uint32_t link=psx_mod_read_word(at),uv=psx_mod_read_word(at+12);
             uint16_t page=(uint16_t)psx_mod_read_word(mode+4),bank=ui_tile(page,(uint16_t)(uv>>16),(uint16_t)uv,0);
             if(!bank || dst+80>base+0x8000) {failed=7;break;}
-            int x=(int16_t)psx_mod_read_half(at+8)+SECOND_HUD_OFFSET,y=(int16_t)psx_mod_read_half(at+10);
+            int x=(int16_t)psx_mod_read_half(at+8),y=(int16_t)psx_mod_read_half(at+10)+offset_y;
             uint32_t q[10]={link,0x2C808080,0,0,0,0,0,0,0,0};
             for(unsigned i=0;i<4;++i) {
                 q[2+i*2]=(uint16_t)(x+(i&1)*16)|((uint32_t)(uint16_t)(y+(i>>1)*16)<<16);
                 q[3+i*2]=(i&1)*16|((i>>1)*16<<8);
             }
             triangle(dst,dst+40,q,0,1,2,bank);triangle(dst+40,link,q,2,1,3,bank);
-            psx_mod_tag_hud_primitive(dst,-1);psx_mod_tag_hud_primitive(dst+40,-1);psx_mod_write_word(at,dst&0xFFFFFF);
+            psx_mod_anchor_hud_primitive(dst,0);psx_mod_anchor_hud_primitive(dst+40,0);psx_mod_write_word(at,dst&0xFFFFFF);
         }
         /* Original 80025588 emits flat POLY_F4, six words including tag. */
         for(uint32_t at=base+0x2000;at<bar_end && !failed;at+=24) {
-            for(unsigned xy=8;xy<=20;xy+=4)psx_mod_write_half(at+xy,(uint16_t)(psx_mod_read_half(at+xy)+SECOND_HUD_OFFSET));
-            psx_mod_tag_hud_primitive(at,-1);
+            for(unsigned xy=8;xy<=20;xy+=4)psx_mod_write_half(at+xy+2,(uint16_t)(psx_mod_read_half(at+xy+2)+offset_y));
+            psx_mod_anchor_hud_primitive(at,0);
         }
         leave_second();
         for(unsigned i=0;i<3;++i)psx_mod_write_word(SCRATCH+0x108+i*4,pools[i]);
+    }
+    if(own_hud && local_view_seat && psx_mod_read_byte(PLAY+0x1F) &&
+       psx_mod_read_byte(PLAY+0x24)) {
+        guest(cpu,0x800253F0u,psx_mod_read_word(PLAY+0x20),1);
+        guest(cpu,0x80025188u,7,(psx_mod_read_byte(PLAY+0x25)+0x57u)&255u);
     }
     hud_call=0;return mmx4_coop_finish(cpu,result);
 }
@@ -573,6 +613,7 @@ static uint32_t hash_player(uint32_t hash,const PlayerContext *p) {
 }
 static uint32_t state_digest(void) {
     uint32_t hash=2166136261u;
+    hash=hash_word(hash,split_views);
     hash=hash_word(hash,enrolled);hash=hash_word(hash,failed);hash=hash_word(hash,projected);
     hash=hash_word(hash,counterpart);hash=hash_word(hash,previous_input);hash=hash_word(hash,frames);
     hash=hash_player(hash,&second);
@@ -580,11 +621,75 @@ static uint32_t state_digest(void) {
         hash=hash_player(hash,&first);hash=hash_word(hash,saved_dirty);
         for(unsigned i=0;i<9;++i)hash=hash_word(hash,saved_resources[i]);
     }
-    return mmx4_coop_combat_digest(mmx4_coop_lifecycle_digest(hash));
+    return mmx4_coop_split_digest(mmx4_coop_combat_digest(mmx4_coop_lifecycle_digest(hash)));
+}
+typedef struct {
+    PlayerContext first,second;
+    uint32_t resources[9],world_packet_used;
+    unsigned projected,rendering,hud_call,upload_guard,failed;
+    uint8_t dirty;
+} LocalViewContext;
+static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
+    (void)alpha;
+    uint32_t buffer=*(uint32_t *)user;
+    uint8_t camera[0xFC];
+    if(!mmx4_coop_split_camera_copy(local_view_seat,camera))return 0;
+    project(0x801419B0u,camera,sizeof camera);
+    gpu_set_gp0_source(0);
+    gpu_write_gp0(0x02000000u|psx_mod_read_byte(buffer+0x2Du)|
+        (uint32_t)psx_mod_read_byte(buffer+0x2Eu)<<8|
+        (uint32_t)psx_mod_read_byte(buffer+0x2Fu)<<16);
+    gpu_write_gp0(psx_mod_read_half(buffer+0x14u)|(uint32_t)psx_mod_read_half(buffer+0x16u)<<16);
+    gpu_write_gp0(psx_mod_read_half(buffer+0x18u)|(uint32_t)psx_mod_read_half(buffer+0x1Au)<<16);
+    guest(cpu,0x800EA714u,buffer+0x70u,12);
+    guest(cpu,0x80023D68u,0,0);
+    if(failed || projected || rendering || hud_call)return 0;
+    guest(cpu,0x800EC228u,buffer+0x9Cu,0);
+    return !failed;
+}
+static int present_local_view(CPUState *cpu,uint32_t address) {
+    if(!split_views || local_view_call || projected || inside || !mmx4_coop_ready() ||
+       psx_mod_read_byte(PLAY)!=6 || psx_mod_read_byte(PLAY+1)!=0 ||
+       cpu->gpr[31]!=0x80012080u || mmx4_coop_lifecycle_script_owner()>=0 ||
+       psx_mod_read_byte(PLAY+0x0F) || psx_mod_read_byte(PLAY+0x10) ||
+       psx_mod_read_byte(PLAY+0x1C))return 0;
+    uint32_t buffer=psx_mod_read_word(0x80142F80u);
+    if(cpu->gpr[4]!=buffer+0x9Cu)return 0;
+    local_view_call=1;
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    guest(cpu,0x800EA20Cu,0,0);
+    int port=psx_netplay_local_port();
+    local_view_seat=mmx4_coop_split_view_seat(port>=0 && port<2?(unsigned)port:0);
+    PSXModRenderPass rectangle={sizeof rectangle,0,
+        psx_mod_read_half(buffer+0x14u),psx_mod_read_half(buffer+0x16u),
+        psx_mod_read_half(buffer+0x18u),psx_mod_read_half(buffer+0x1Au)};
+    LocalViewContext context={first,second,{0},world_packet_used,
+        projected,rendering,hud_call,upload_guard,failed,saved_dirty};
+    memcpy(context.resources,saved_resources,sizeof saved_resources);
+    mmx4_coop_lifecycle_view_save();mmx4_widescreen_view_save();
+    uint32_t before=state_digest();
+    int committed=psx_mod_render_local_view(cpu,&rectangle,draw_local_view,&buffer);
+    first=context.first;second=context.second;
+    memcpy(saved_resources,context.resources,sizeof saved_resources);
+    world_packet_used=context.world_packet_used;saved_dirty=context.dirty;
+    projected=context.projected;rendering=context.rendering;hud_call=context.hud_call;
+    upload_guard=context.upload_guard;failed=context.failed;
+    mmx4_coop_lifecycle_view_restore();mmx4_widescreen_view_restore();
+    if(state_digest()!=before)psx_mod_counter_add("mmx4.coop.local-view-state-leak",1);
+    psx_mod_counter_add(committed?"mmx4.coop.local-view-committed":"mmx4.coop.local-view-refused",1);
+    if(committed)psx_mod_counter_add(local_view_seat?
+        "mmx4.coop.local-view-seat-1":"mmx4.coop.local-view-seat-0",1);
+    local_view_call=0;
+    return mmx4_coop_finish(cpu,result);
 }
 static void activate(void) {
+    char cameras[16];
+    if(!psx_mod_current_option_value("cameras",cameras,sizeof cameras))strcpy(cameras,"unified");
+    split_views=mmx4_coop_views_requested(psx_mod_netplay_is_active(),cameras);
     memset(&first,0,sizeof first);memset(&second,0,sizeof second);
-    bank_count=ui_bank_count=inside=enrolled=failed=rendering=projected=camera_call=hud_call=upload_guard=0;
+    bank_count=ui_bank_count=inside=enrolled=failed=rendering=projected=camera_call=camera_update_call=hud_call=upload_guard=0;
+    view_bank_count=view_ui_bank_count=local_view_call=local_view_seat=0;
+    if(!mmx4_coop_split_activate())failed=1;
     frames=fixture_sequence=previous_input=0;counterpart=0;menu_texture_owner=2;
     for(unsigned i=0;i<2;++i) {
         free(assets[i].file);free(assets[i].ui_pixels);memset(&assets[i],0,sizeof assets[i]);
@@ -606,14 +711,13 @@ static void activate(void) {
     if(diagnostic)diagnostics();
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
-    static const PSXModNetplayProfile profile={ID,MMX4_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,NULL,state_digest,1};
+    static const PSXModNetplayProfile profile={ID,MMX4_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,
+        "mmx4.widescreen",state_digest,1,ID,"coop","cameras","split"};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_function_entry_plugin(ID,0x80035240,reset_player);
     psx_mod_register_function_entry_plugin(ID,0x80021340,second_tick);
-    psx_mod_register_function_filter_plugin(ID,0x80021340,hidden_first_shots);
     psx_mod_register_function_filter_plugin(ID,0x800241E8,render);
-    psx_mod_register_function_entry_plugin(ID,0x80027850,constrain_team);
     psx_mod_register_function_filter_plugin(ID,0x80027850,camera_update);
     psx_mod_register_function_filter_plugin(ID,0x80027A5C,camera_target);
     psx_mod_register_function_filter_plugin(ID,0x80027AAC,camera_target);
@@ -621,4 +725,5 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x80024E70,coop_hud);
     psx_mod_register_function_filter_plugin(ID,0x80024334,render_owned_effect);
     psx_mod_register_function_filter_plugin(ID,0x800EA4D0,retained_upload);
+    psx_mod_register_function_filter_plugin(ID,0x800EA80Cu,present_local_view);
 }
