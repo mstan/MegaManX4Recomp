@@ -55,7 +55,8 @@ uses Unified. Split health pickups refill only their collector without pausing
 the partner; Unified retains the native shared pause. Actual scene changes
 still teleport living partners together.
 
-This Windows playtest has limited stage coverage. Split performance can fall
+The Windows ZIP and Linux x86_64 AppImage have limited stage coverage. The
+AppImage requires glibc 2.38 or newer. Split performance can fall
 below full speed; vehicle stages, chained scenes, and retry/menu transitions
 need further testing. Report the version, camera mode, stage/area, leading
 player, and whether the other player was alive. See

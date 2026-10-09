@@ -11,6 +11,9 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS packaging/release
 set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
     "Path to psxrecomp-v4")
 
+# This title ships a co-op netplay profile on both platforms. The framework's
+# generic runtime defaults netplay off; select it before including that runtime.
+option(PSX_NETPLAY "Build X4 netplay and co-op profile support" ON)
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
 
 # The current recompiler emits the game as split translation units. Keep the

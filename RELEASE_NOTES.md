@@ -1,8 +1,13 @@
 # Mega Man X4 Recompiled — v0.1.1-coop-playtest.1
 
-An early Windows co-op playtest. Unified is the default camera mode;
+An early Windows and Linux co-op playtest. Unified is the default camera mode;
 Split (Experimental) is available for online co-op. The current main release
 remains available separately.
+
+The Linux x86_64 AppImage requires glibc 2.38 or newer. Make it executable
+with `chmod +x`, then run it; use `--appimage-extract-and-run` on systems
+without FUSE. It keeps writable data in `~/.local/share/MegaManX4Recomp`.
+Linux and Windows use the same declared co-op gameplay and execution contracts.
 
 - Simultaneous native X and Zero; vertically stacked lifebars in the shared view.
 - Independent online views of one shared world, with local player HUDs.

@@ -8,6 +8,7 @@ case "$appimage" in
     [A-Za-z]:[/\\]*) appimage=$(wslpath -u "$appimage") ;;
 esac
 [ -x "$appimage" ] || { echo "not executable: $appimage" >&2; exit 1; }
+appimage=$(realpath "$appimage")
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 # shellcheck source=/dev/null
@@ -15,6 +16,8 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 expected_version=$(tr -d ' \t\r\n' < "$root/packaging/release/VERSION")
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT HUP INT TERM
+(cd "$work" && "$appimage" --appimage-extract >/dev/null)
+payload=$work/squashfs-root/usr/share/$PAYLOAD_DIR
 
 data_dir=$(env "${ENV_PREFIX}_DATA_DIR=$work/data" "${ENV_PREFIX}_SEED_ONLY=1" \
     "$appimage" --appimage-extract-and-run)
@@ -36,17 +39,25 @@ legacy_packages=$(find "$data_dir/mods" -path "$data_dir/mods/packages" -type d 
 [ "$legacy_packages" -eq 0 ] ||
     { echo "seeded legacy mods/packages catalog" >&2; fail=1; }
 package_dirs=$(find "$data_dir/mods/bundled" -mindepth 1 -maxdepth 1 -type d | wc -l)
-mod_count=$(find "$data_dir/mods/bundled" -mindepth 2 -maxdepth 2 -name manifest.toml | wc -l)
+mod_count=$(find "$data_dir/mods/bundled" -mindepth 3 -maxdepth 3 -name manifest.toml | wc -l)
 [ "$package_dirs" -gt 0 ] && [ "$mod_count" -eq "$package_dirs" ] ||
     { echo "seeded mod catalog has $package_dirs package dir(s) and $mod_count manifest(s)" >&2; fail=1; }
 
 so_count=$(find "$data_dir/cache" -path '*/gcc/linux-x64/*' -name '*.so' | wc -l)
 range_count=$(find "$data_dir/cache" -path '*/gcc/linux-x64/*' -name '*.ranges' | wc -l)
-[ "$so_count" -gt 0 ] || { echo "seeded cache contains no Linux .so shards" >&2; fail=1; }
 [ "$range_count" -ge "$so_count" ] ||
     { echo "seeded $so_count .so but only $range_count .ranges files" >&2; fail=1; }
 dll_count=$(find "$data_dir/cache" -name '*.dll' | wc -l)
 [ "$dll_count" -eq 0 ] || { echo "seeded cache contains Windows DLL shards" >&2; fail=1; }
+
+# X4 has no separate executable overlay in the original-disc inventory. Its
+# shared native package ships the compiled resident game and fallback tools.
+for tool in psxrecomp-game psxrecomp-bios python/bin/python3; do
+    [ -x "$payload/overlay_toolchain/$tool" ] ||
+        { echo "MISSING native toolchain executable: $tool" >&2; fail=1; }
+done
+[ -L "$data_dir/overlay_toolchain" ] ||
+    { echo "MISSING seeded toolchain link" >&2; fail=1; }
 
 # Release configuration may use relative game resource paths, but it must not
 # carry the developer machine's drive letters, backslashes, py launcher, or

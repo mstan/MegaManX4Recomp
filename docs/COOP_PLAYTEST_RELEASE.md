@@ -62,6 +62,34 @@ disconnects, vehicles and broader scene coverage remain open.
 An explicit synchronized netplay debug fixture mode is tracked separately and
 deferred from this first release so it does not delay owner playtesting.
 
+## Linux AppImage addition
+
+The native x86_64 AppImage requires glibc 2.38 or newer. It retains the Windows
+gameplay sources, `mmx4-coop-delay-v3:d7655e8c166ef597a32468fc393664343b53208b`
+compatibility ID and the same ENHANCED execution identity. Linux packaging
+enforces netplay support; a fresh title CMake configuration now selects it
+before including the shared runtime. The Windows release already had it on.
+
+All 13 Linux CTests pass. The actual packaged image passes extraction/seeding,
+catalog/toolchain layout, player-file preservation, native room-offer checks
+for default Unified and selected Split, launcher startup and an OpenGL/OpenBIOS
+boot advancing 501 frames. Room fingerprints match Windows. These are startup
+checks under Ubuntu 24.04 WSL/Xvfb with software GL, not Linux online gameplay,
+cross-platform gameplay or a performance benchmark.
+
+AppImage SHA256: `b7d0856c6c87f4a75aaf06604a1a58408838f7bb62a537c71db9a2b6deba643d`.
+Native build ELF SHA256: `aea53989f622e5b61aa2158f389e93a0bdaa8af20e914de6923943f29567f54c`.
+Deployment adjusts RPATH and binds the final ELF with a separate execution
+receipt. Private build/evidence: `/home/matthew/mmx4-coop-appimage-20261009`;
+passing packaged check: `qa-packaged-net-3/report.json`.
+
+The first, unshipped package had netplay disabled; its room-query timeout is
+retained. Later smoke attempts incorrectly expected Windows heartbeat output
+on Linux. The final probe uses production frame reporting instead. Failed
+reports remain separate from the passing probe. The October 9 original-disc
+inventory and current generic AOT discovery still find no additional game
+overlay producers; see `DISC_INVENTORY.md`.
+
 ## Packaging
 
 After the production build, run with Python 3.11 or newer:
