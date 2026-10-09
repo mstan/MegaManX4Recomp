@@ -19,6 +19,23 @@ FIRST RUN
      Multiplier defaults to normal 1x damage.
   4. Press Launch. Your choices are remembered for next time.
 
+CO-OP PLAYTEST
+  In Mods, enable X + Zero Co-op for local play. OpenGL is required, and
+  enabling co-op takes effect on a fresh boot. The X + Zero Co-op netplay
+  profile enables it for both peers; use the same release on both computers.
+  Unified is the default camera mode. The host may choose Split (Experimental)
+  for independent online views; offline play uses Unified.
+
+  Shared-view lifebars are stacked vertically. Split shows each local player
+  at the original HUD position. A dead player waits for the team's retry;
+  native scene changes carry living partners along using teleport animations.
+  Split health pickups refill their collector without freezing the partner;
+  Unified keeps the original shared refill pause.
+
+  This release has limited stage coverage. Split may still run below full
+  speed, and retries, vehicle stages, and chained scenes need more playtesting.
+  Report the release version, stage/area, camera mode, and which player led.
+
 WHERE THINGS LIVE
   saves/     memory cards
   cache/     native code cache, created locally for eligible uncovered code

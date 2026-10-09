@@ -54,7 +54,14 @@ static unsigned actor_context;
 static unsigned area_calls,checkpoint_calls,shared_area_writes;
 int mmx4_coop_combat_actor_context(void) {return (int)actor_context;}
 int mmx4_coop_lifecycle_script_owner(void) {return script_owner;}
-void mmx4_coop_lifecycle_camera_bounds(CPUState *cpu,unsigned owner) {(void)cpu;(void)owner;}
+void mmx4_coop_lifecycle_camera_bounds(CPUState *cpu,unsigned owner) {
+    (void)cpu;unsigned other=owner^1u;
+    if(other)mmx4_coop_enter_second();
+    int minimum=(int16_t)psx_mod_read_half(CAMERA+0x1E);
+    if((int16_t)psx_mod_read_half(MMX4_PLAYER+10)<minimum+8)
+        psx_mod_write_half(MMX4_PLAYER+10,(uint16_t)(minimum+8));
+    if(other)mmx4_coop_leave_second();
+}
 int mmx4_coop_alive(unsigned seat) {
     const uint8_t *body=seat?second:backup;
     if(seat==projected)return psx_mod_read_byte(MMX4_PLAYER) && psx_mod_read_byte(MMX4_PLAYER+4)<2;
@@ -243,6 +250,20 @@ int main(void) {
     script_owner=0;mmx4_coop_split_camera(&cpu,0);
     CHECK(mmx4_coop_split_camera_copy(1,view) && view[0x26]==0 && view[0x27]==2);
     script_owner=-1;
+    /* The native health refill sets PLAY+10..17 while counting HP.
+     * It freezes the world without making the distant partner share a room. */
+    mmx4_coop_split_reset();
+    actor_position(MMX4_PLAYER,1200,2000);second_position(100,140);
+    psx_mod_write_half(CAMERA+0x1E,0);
+    psx_mod_write_half(CAMERA+0x26,0);
+    mmx4_coop_split_camera(&cpu,0);
+    psx_mod_write_half(CAMERA+0x26,512);
+    psx_mod_write_half(CAMERA+0x1E,512);
+    psx_mod_write_byte(MMX4_PLAY+0x10,1);
+    mmx4_coop_split_camera(&cpu,0);
+    CHECK(mmx4_coop_split_camera_copy(1,view) && !view[0x26] && !view[0x27]);
+    CHECK(second[10]==100 && !second[11]);
+    psx_mod_write_byte(MMX4_PLAY+0x10,0);
     /* One spatial script actor, two camera areas. P2 can activate the
      * original region while P1 stays outside; shared writes happen once. */
     mmx4_coop_split_reset();actor_position(MMX4_PLAYER,100,140);second_position(1200,2000);

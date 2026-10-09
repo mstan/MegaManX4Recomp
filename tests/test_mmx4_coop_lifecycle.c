@@ -11,6 +11,7 @@ static uint8_t ram[0x200000],p2[0xE4],p1_backup[0xE4];
 static uint8_t p2_vehicle[0xB0],p1_vehicle_backup[0xB0];
 static unsigned projected,ready=1,world_calls,observed_campaign,collect_calls[2];
 static unsigned pause_commit,pause_exit;
+static int split_views;
 static unsigned stage_script_calls,scene_calls,observed_controls;
 static unsigned boundary_calls[2];
 static unsigned dialogue_calls,dialogue_edge;
@@ -50,6 +51,7 @@ uint8_t mmx4_coop_solid_contact_bits(uint32_t actor,unsigned seat) {
     return seat?p2_solid_bits:psx_mod_read_byte(actor+0x72);
 }
 int mmx4_coop_ready(void) {return ready;}
+int mmx4_coop_split_views(void) {return split_views;}
 int mmx4_coop_projected(void) {return (int)projected;}
 uint8_t *mmx4_coop_second_body(void) {return p2;}
 uint8_t *mmx4_coop_second_vehicle(void) {return p2_vehicle;}
@@ -151,14 +153,20 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         if(psx_mod_read_word(MMX4_PLAYER+8)==psx_mod_read_word(a0+8)) {
             psx_mod_write_byte(a0+4,2);psx_mod_write_byte(a0+0x80,2);
             psx_mod_write_byte(MMX4_PLAY+0x5C,(uint8_t)(psx_mod_read_byte(MMX4_PLAY+0x5C)+1));
+            mmx4_coop_call(cpu,0x800C03BCu,1,0);
         }
         break;
     case 0x800BF730:
         if(psx_mod_read_byte(a0+4)==2) {
             psx_mod_write_byte(MMX4_PLAYER+0x5C,(uint8_t)(psx_mod_read_byte(MMX4_PLAYER+0x5C)+1));
             uint8_t n=(uint8_t)(psx_mod_read_byte(a0+0x80)-1);
-            psx_mod_write_byte(a0+0x80,n);if(!n)psx_mod_write_byte(a0+4,3);
+            psx_mod_write_byte(a0+0x80,n);if(!n) {
+                psx_mod_write_byte(a0+4,3);mmx4_coop_call(cpu,0x800C03BCu,0,0);
+            }
         }
+        break;
+    case 0x800C03BC:
+        for(unsigned i=0x10;i<0x18;++i)psx_mod_write_byte(MMX4_PLAY+i,(uint8_t)a0);
         break;
     case 0x80035A6C:
         for(unsigned i=0x12;i<=0x1A;++i)psx_mod_write_byte(MMX4_PLAY+i,1);
@@ -222,7 +230,7 @@ static void reset(void) {
     stage_script_calls=scene_calls=observed_controls=p2_solid_bits=0;
     memset(boundary_calls,0,sizeof boundary_calls);
     dialogue_calls=dialogue_edge=0;
-    collect_calls[0]=collect_calls[1]=0;ready=1;
+    collect_calls[0]=collect_calls[1]=0;ready=1;split_views=0;
     psx_mod_write_byte(MMX4_PLAYER,1);psx_mod_write_byte(MMX4_PLAYER+3,1);
     psx_mod_write_byte(MMX4_PLAYER+4,1);psx_mod_write_byte(MMX4_PLAYER+0x5C,16);
     p2[0]=p2[3]=p2[4]=1;p2[2]=1;p2[0x5C]=12;
@@ -315,6 +323,34 @@ int main(void) {
     CHECK(p2[0x5C]==13 && psx_mod_read_byte(PLAYER+0x5C)==16);
     mmx4_coop_call(&cpu,0x800BF730u,actor,0);CHECK(p2[0x5C]==14);
     CHECK(!pickup_record(actor,0));
+    /* Split refills remain owned after the collector moves away. Each native
+     * update heals once, with no world pause or unrelated scene lock changes.
+     * Unified keeps the original whole-world refill pause. */
+    for(unsigned split=0;split<2;++split)for(unsigned owner=0;owner<2;++owner) {
+        reset();split_views=(int)split;
+        psx_mod_write_byte(actor+4,1);psx_mod_write_word(actor+8,owner?100:0);
+        p2[8]=100;mmx4_coop_call(&cpu,0x800C00BCu,actor,0);
+        CHECK(psx_mod_read_byte(PLAY+0x10)==!split);
+        if(split)CHECK(pickup_record(actor,0) && pickup_record(actor,0)->owner==owner);
+        psx_mod_write_word(PLAYER+8,200);p2[8]=0;
+        for(unsigned i=0;i<2;++i)mmx4_coop_call(&cpu,0x800BF730u,actor,0);
+        CHECK(psx_mod_read_byte(PLAYER+0x5C)==(owner?16:18));
+        CHECK(p2[0x5C]==(owner?14:12));
+        CHECK(!psx_mod_read_byte(PLAY+0x10) && !pickup_record(actor,0));
+    }
+    for(unsigned owner=0;owner<2;++owner)for(unsigned die=0;die<2;++die) {
+        reset();split_views=1;
+        for(unsigned i=0x10;i<0x18;++i)psx_mod_write_byte(PLAY+i,(uint8_t)(i+1));
+        psx_mod_write_byte(actor+4,1);psx_mod_write_word(actor+8,owner?100:0);p2[8]=100;
+        mmx4_coop_call(&cpu,0x800C00BCu,actor,0);
+        if(die) {
+            if(owner) {p2[0x5C]=0;p2[4]=3;}
+            else {psx_mod_write_byte(PLAYER+0x5C,0);psx_mod_write_byte(PLAYER+4,3);}
+        }
+        for(unsigned i=0;i<2;++i)mmx4_coop_call(&cpu,0x800BF730u,actor,0);
+        for(unsigned i=0x10;i<0x18;++i)CHECK(psx_mod_read_byte(PLAY+i)==i+1);
+        if(die)CHECK(owner?!p2[0x5C]:!psx_mod_read_byte(PLAYER+0x5C));
+    }
     reset();psx_mod_write_byte(PLAYER+4,3);psx_mod_write_byte(PLAYER+0x5C,0);
     psx_mod_write_byte(actor+4,1);psx_mod_write_word(actor+8,100);p2[8]=100;
     mmx4_coop_call(&cpu,0x800C00BCu,actor,0);CHECK(!collect_calls[0] && collect_calls[1]==1);
@@ -377,6 +413,26 @@ int main(void) {
         CHECK(p2[4]==1 && p2[0x5C]==12);
     }
 
+    /* An outgoing passenger uses the native finished-beam state 3 while
+     * still having health. An area transfer must preserve that living seat. */
+    for(unsigned owner=0;owner<2;++owner) {
+        reset();mmx4_coop_lifecycle_reset();
+        script_active=1;script_owner=owner;request_script_departure(owner);
+        for(unsigned i=0;i<3;++i)mmx4_coop_lifecycle_tick(&cpu);
+        CHECK(warp_phase==1);
+        CHECK(owner?psx_mod_read_byte(PLAYER+4)==3:p2[4]==3);
+        psx_mod_write_byte(PLAY+0x0D,1);full_stage(&cpu,0);stage_initialization(&cpu,0);
+        mmx4_coop_lifecycle_reset();
+        CHECK(carry_resources && !carry_dead && !carry_first_dead);
+        psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+0x5C,16);
+        p2[0]=p2[3]=p2[4]=1;p2[0x5C]=32;
+        mmx4_coop_lifecycle_enrolled(&cpu);
+        CHECK(p2[0x5C]==12 && p2[4]==1);
+        CHECK(psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0x5C)==16);
+    }
+    reset();mmx4_coop_lifecycle_reset();departed=1;p2[0]=0;p2[4]=3;
+    psx_mod_write_byte(PLAY+0x0D,1);full_stage(&cpu,0);stage_initialization(&cpu,0);
+    mmx4_coop_lifecycle_reset();CHECK(carry_resources && carry_departure && !carry_dead);
     /* A native extra life does not make a section transfer revive a corpse. */
     reset();mmx4_coop_lifecycle_reset();p2[4]=3;p2[0x5C]=0;
     psx_mod_write_byte(PLAY+0x44,3);psx_mod_write_byte(PLAY+0x0D,1);

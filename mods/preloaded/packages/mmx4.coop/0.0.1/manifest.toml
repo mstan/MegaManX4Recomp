@@ -1,9 +1,9 @@
 format_version = 5
 id = "mmx4.coop"
 version = "0.0.1"
-name = "X + Zero Co-op (Development)"
+name = "X + Zero Co-op (Playtest)"
 author = "mstan"
-description = "Work-in-progress simultaneous X and Zero spike. Not yet qualified for gameplay."
+description = "Early simultaneous X and Zero playtest. Unified is the default; independent Split views are experimental."
 resolver = "declarative"
 save_compatibility = "isolated"
 
@@ -14,7 +14,7 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 [[feature]]
 id = "coop"
 name = "X + Zero Co-op"
-description = "Development only. Two native characters. Requires OpenGL and a fresh boot."
+description = "Playtest with two native characters. Requires OpenGL and a fresh boot. Enable for local co-op; the netplay profile enables it for both peers."
 group = "Experimental"
 default_enabled = false
 
@@ -22,7 +22,7 @@ default_enabled = false
 feature = "coop"
 id = "cameras"
 label = "Netplay cameras"
-description = "Unified shares a camera. Split gives each online player an independent view of the shared world. The host chooses for both peers; offline play always uses Unified."
+description = "Unified (default) shares a camera. Experimental Split gives each online player an independent view of the shared world. The host chooses for both peers; offline play always uses Unified."
 type = "choice"
 default = "unified"
 [[option.choice]]
@@ -30,7 +30,7 @@ value = "unified"
 label = "Unified"
 [[option.choice]]
 value = "split"
-label = "Split"
+label = "Split (Experimental)"
 
 [[plugin]]
 feature = "coop"

@@ -47,7 +47,14 @@ static void mmx4_bg_end(CPUState *cpu, uint32_t address) {
     unsigned layer=cpu->gpr[4]; uint32_t packet=psx_mod_read_word(0x1f800108u);
     gpu_ws_bg2d_end_view_layer(layer,packet);
     WsViewAnchor view;
-    if (layer>=3 || !gpu_ws_bg2d_get_view(layer,&view)) return;
+    if (layer>=3) return;
+    if (!gpu_ws_bg2d_get_view(layer,&view)) {
+        /* The wide anchor is unavailable at native 4:3. Split's local pass
+         * still needs authored tiles: the shared 32x32 ring follows the
+         * canonical player and cannot represent a distant partner's view. */
+        if(!mmx4_coop_split_views() || !psx_mod_local_view_scope())return;
+        view=(WsViewAnchor){0,16,0,0,0};
+    }
     uint32_t b=LAYERS+layer*0x54u;
     int sx=(int16_t)psx_mod_read_half(b+10),sy=(int16_t)psx_mod_read_half(b+14);
     if (layer) {

@@ -43,7 +43,25 @@ Important files:
 
 ## Status
 
-**Early playable preview — `v0.0.5-alpha`.** Mega Man X4 **boots and plays**: the intro
+The [co-op playtest](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.1)
+adds simultaneous X and Zero with vertically stacked lifebars. Enable
+**X + Zero Co-op (Playtest)** in Mods for local play, or use the **X + Zero
+Co-op** netplay profile. Use OpenGL and the same release on both computers.
+Co-op takes effect on a fresh boot and uses isolated saves.
+
+**Unified is the default camera mode. Split (Experimental)** gives each online
+player an independent view; the host chooses for both peers. Offline co-op
+uses Unified. Split health pickups refill only their collector without pausing
+the partner; Unified retains the native shared pause. Actual scene changes
+still teleport living partners together.
+
+This Windows playtest has limited stage coverage. Split performance can fall
+below full speed; vehicle stages, chained scenes, and retry/menu transitions
+need further testing. Report the version, camera mode, stage/area, leading
+player, and whether the other player was alive. See
+[the playtest notes](RELEASE_NOTES.md) for the validation limits.
+
+**Early playable preview.** Mega Man X4 **boots and plays**: the intro
 cinematics (X vs. Zero) decode and play, the title screen and menus respond,
 the attract demos run, and you can start a game — with working controller
 input and no known crashes on the covered path. It has **not** been verified

@@ -4,6 +4,7 @@
  * character inventory and serialized menu/pickup ownership live here. */
 #include "mmx4_coop_internal.h"
 #include <string.h>
+#include <stdio.h>
 
 #define ID "mmx4.coop"
 #define PLAYER MMX4_PLAYER
@@ -44,6 +45,8 @@ static unsigned script_active, script_owner, script_serial;
 static unsigned warp_pending,warp_phase,warp_owner,warp_guard,warp_unlocked_ticks;
 static uint8_t warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible;
 static uint32_t warp_origin_x,warp_origin_y;
+/* Logging history is host-only and never influences simulation decisions. */
+static struct { unsigned valid,stage,section,hp[2]; } trace_previous;
 static void start_arrival(CPUState *cpu,unsigned seat);
 static uint32_t body_word(const uint8_t *body,unsigned at);
 
@@ -132,10 +135,20 @@ static void fresh_game(CPUState *cpu,uint32_t address) {
     warp_origin_x=warp_origin_y=0;
     departure_vehicle_active=departure_vehicle_visible=0;
     menu_active=menu_owner=menu_projecting=0;
+    trace_previous.valid=0;
 }
 static void full_stage(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
     if(!mmx4_coop_projected())full_stage_load=1;
+}
+static unsigned seat_was_dead(unsigned seat) {
+    const uint8_t *body=mmx4_coop_second_body();
+    unsigned hp=seat?body[0x5C]:psx_mod_read_byte(PLAYER+0x5C);
+    unsigned state=seat?body[4]:psx_mod_read_byte(PLAYER+4);
+    /* Native outgoing beams finish in state 3 without consuming health.
+     * Hidden passengers and voluntarily withdrawn P2 are not corpses. */
+    unsigned outgoing=mmx4_coop_lifecycle_hidden(seat) || (seat && departed);
+    return !(hp&0x7Fu) || (state>=2 && !outgoing);
 }
 static void stage_initialization(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
@@ -143,9 +156,14 @@ static void stage_initialization(CPUState *cpu,uint32_t address) {
     /* Native 8001FC20 calls 8002A7D0/8002A728 to clear PLAYER before
      * 80035240 initializes it. Capture the prior survivor status here;
      * zeroed initialization storage is not evidence of a player death. */
-    first_before_clear_dead=!(psx_mod_read_byte(PLAYER+0x5C)&0x7Fu) ||
-        psx_mod_read_byte(PLAYER+4)>=2;
+    first_before_clear_dead=seat_was_dead(0);
     first_before_clear_valid=1;
+    const uint8_t *second=mmx4_coop_second_body();
+    fprintf(stderr,"mmx4.coop: stage-init stage=%u section=%u p1-hp=%u p1-state=%u "
+        "p2-hp=%u p2-state=%u warp=%u owner=%u withdrawn=%u\n",
+        psx_mod_read_byte(PLAY+0x0C),psx_mod_read_byte(PLAY+0x0D),
+        psx_mod_read_byte(PLAYER+0x5C)&127u,psx_mod_read_byte(PLAYER+4),
+        second[0x5C]&127u,second[4],warp_phase,warp_owner,departed);
 }
 
 void mmx4_coop_lifecycle_reset(void) {
@@ -153,17 +171,17 @@ void mmx4_coop_lifecycle_reset(void) {
     unsigned stage=psx_mod_read_byte(PLAY+0x0C);
     unsigned section=psx_mod_read_byte(PLAY+0x0D);
     unsigned lives=psx_mod_read_byte(PLAY+0x44);
-    unsigned first_was_dead=first_before_clear_valid?first_before_clear_dead:
-        (!(psx_mod_read_byte(PLAYER+0x5C)&0x7Fu) || psx_mod_read_byte(PLAYER+4)>=2);
+    unsigned first_was_dead=first_before_clear_valid?first_before_clear_dead:seat_was_dead(0);
+    unsigned second_was_dead=seat_was_dead(1);
     unsigned team_was_dead=first_was_dead &&
-        (!body[0] || !(body[0x5C]&0x7Fu) || body[4]>=2);
+        (second_was_dead || departed || (!body[0] && !mmx4_coop_lifecycle_hidden(1)));
     unsigned life_preserved=lives>=last_lives && !(last_lives==0 && lives==255);
     /* Invoked before the core clears its second body. A section transfer
      * preserves the partner's state. Changed stage or lost shared life is a
      * team respawn. Section identity comes from native PLAY, never host time. */
     carry_resources=stage_known && stage==last_stage && life_preserved &&
         !team_was_dead && (!full_stage_load || section!=last_section);
-    carry_dead=carry_resources && (!(body[0x5C]&0x7Fu) || body[4]>=2);
+    carry_dead=carry_resources && second_was_dead;
     carry_first_dead=carry_resources && first_was_dead;
     first_before_clear_valid=0;
     carry_departure=carry_resources && departed;
@@ -401,6 +419,20 @@ static void warp_tick(CPUState *cpu) {
 }
 void mmx4_coop_lifecycle_tick(CPUState *cpu) {
     if(!mmx4_coop_ready() || mmx4_coop_projected())return;
+    const uint8_t *second=mmx4_coop_second_body();
+    unsigned stage=psx_mod_read_byte(PLAY+0x0C),section=psx_mod_read_byte(PLAY+0x0D);
+    unsigned hp[2]={psx_mod_read_byte(PLAYER+0x5C)&127u,second[0x5C]&127u};
+    if(trace_previous.valid)for(unsigned seat=0;seat<2;++seat) {
+        if(hp[seat]!=trace_previous.hp[seat])
+            fprintf(stderr,"mmx4.coop: health seat=%u stage=%u section=%u hp=%u->%u "
+                "state=%u x=%d y=%d warp=%u owner=%u\n",seat+1,stage,section,
+                trace_previous.hp[seat],hp[seat],seat?second[4]:psx_mod_read_byte(PLAYER+4),
+                (int16_t)(seat?(body_word(second,8)>>16):psx_mod_read_half(PLAYER+10)),
+                (int16_t)(seat?(body_word(second,12)>>16):psx_mod_read_half(PLAYER+14)),
+                warp_phase,warp_owner);
+    }
+    trace_previous.valid=1;trace_previous.stage=stage;trace_previous.section=section;
+    memcpy(trace_previous.hp,hp,sizeof hp);
     warp_tick(cpu);
     if(warp_pending || warp_phase) {
         if(departed) {
@@ -413,7 +445,7 @@ void mmx4_coop_lifecycle_tick(CPUState *cpu) {
     }
     uint8_t *body=mmx4_coop_second_body();
     body[0xB9]|=psx_mod_read_byte(PLAY+0x59);
-    unsigned stage=psx_mod_read_byte(PLAY+0x0C);
+    stage=psx_mod_read_byte(PLAY+0x0C);
     if(stage_known && stage!=last_stage) {
         last_stage=stage;last_section=psx_mod_read_byte(PLAY+0x0D);
     }
@@ -553,27 +585,48 @@ static int pickup_init_canonical(CPUState *cpu,uint32_t address) {
 static int pickup_init(CPUState *cpu,uint32_t address) {
     return mmx4_coop_combat_canonical_call(cpu,address,pickup_init_canonical);
 }
+static int personal_health_refill(uint32_t actor) {
+    unsigned kind=psx_mod_read_byte(actor+0x7C);
+    return mmx4_coop_split_views() && (kind==0 || kind==1 || kind==3);
+}
+static uint32_t pickup_native_call(CPUState *cpu,uint32_t address,uint32_t actor) {
+    uint8_t freeze[8];
+    int personal=personal_health_refill(actor);
+    if(personal)read_bytes(PLAY+0x10,freeze,sizeof freeze);
+    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+    /* Only health refills in Split release their own native world pause.
+     * Keep any preexisting scene locks and native per-frame HP counting. */
+    if(personal)write_bytes(PLAY+0x10,freeze,sizeof freeze);
+    return result;
+}
 static int pickup_collect_canonical(CPUState *cpu,uint32_t address) {
     if(collect_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];
     uint8_t state=psx_mod_read_byte(actor+4);
+    PickupOwner *record=personal_health_refill(actor)?pickup_record(actor,1):NULL;
+    if(personal_health_refill(actor) && !record) {
+        psx_mod_counter_add("mmx4.coop.pickup-owner-full",1);
+        return mmx4_coop_finish(cpu,0);
+    }
     collect_guard=1;
     uint32_t result=0;
     if(mmx4_coop_alive(0))
-        result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+        result=pickup_native_call(cpu,address,actor);
+    if(record && psx_mod_read_byte(actor+4)!=state)record->owner=0;
     if(psx_mod_read_byte(actor+4)==state && mmx4_coop_alive(1)) {
         /* Reserve ownership before making the second native call: a delayed
          * health pickup remains active and must heal this same body later. */
-        PickupOwner *record=pickup_record(actor,1);
+        record=pickup_record(actor,1);
         if(record) {
             mmx4_coop_enter_second();
-            result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+            result=pickup_native_call(cpu,address,actor);
             mmx4_coop_leave_second();
             if(psx_mod_read_byte(actor+4)!=state) {
                 record->owner=1;psx_mod_counter_add("mmx4.coop.p2-pickups",1);
             }else pickup_forget(actor);
         }else psx_mod_counter_add("mmx4.coop.pickup-owner-full",1);
     }
+    if(record && psx_mod_read_byte(actor+4)!=2)pickup_forget(actor);
     collect_guard=0;return mmx4_coop_finish(cpu,result);
 }
 static int pickup_collect(CPUState *cpu,uint32_t address) {
@@ -582,18 +635,24 @@ static int pickup_collect(CPUState *cpu,uint32_t address) {
 static int pickup_update_canonical(CPUState *cpu,uint32_t address) {
     if(pickup_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];PickupOwner *record=pickup_record(actor,0);
-    if(!record || !record->owner)return 0;
+    if(!record)return 0;
     unsigned state=psx_mod_read_byte(actor+4);
     if(state!=2) {pickup_forget(actor);return 0;}
-    if(!mmx4_coop_alive(1)) {
+    unsigned owner=record->owner;
+    if(!mmx4_coop_alive(owner)) {
         /* A scripted death must never be undone by a pending healing actor. */
         psx_mod_write_byte(actor+4,3);pickup_forget(actor);
+        uint8_t freeze[8];int personal=personal_health_refill(actor);
+        if(personal)read_bytes(PLAY+0x10,freeze,sizeof freeze);
         mmx4_coop_call(cpu,0x800C03BCu,0,0);
+        if(personal)write_bytes(PLAY+0x10,freeze,sizeof freeze);
         return mmx4_coop_finish(cpu,0);
     }
-    mmx4_coop_enter_second();pickup_guard=1;
-    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
-    pickup_guard=0;mmx4_coop_leave_second();
+    if(owner)mmx4_coop_enter_second();
+    pickup_guard=1;
+    uint32_t result=pickup_native_call(cpu,address,actor);
+    pickup_guard=0;
+    if(owner)mmx4_coop_leave_second();
     if(psx_mod_read_byte(actor+4)!=2)pickup_forget(actor);
     return mmx4_coop_finish(cpu,result);
 }

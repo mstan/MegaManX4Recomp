@@ -106,7 +106,9 @@ void mmx4_coop_split_camera(CPUState *cpu,unsigned owner) {
     psx_mod_write_word(state+8u,owner+1u);
     write_bytes(CAMERA,canonical,CAMERA_BYTES);
     unsigned other=owner^1u;
-    if(mmx4_coop_lifecycle_script_owner()>=0 || psx_mod_read_byte(MMX4_PLAY+0x10) ||
+    /* PLAY+10 also freezes the world while a native pickup counts health.
+     * That pause must not copy room bounds or clamp the distant partner. */
+    if(mmx4_coop_lifecycle_script_owner()>=0 ||
        psx_mod_read_byte(MMX4_PLAY+0x1C) || !mmx4_coop_alive(other)) {
         copy_bytes(state+16u+other*CAMERA_BYTES,state+16u+owner*CAMERA_BYTES,CAMERA_BYTES);
         mmx4_coop_lifecycle_camera_bounds(cpu,owner);
