@@ -1,7 +1,7 @@
-/* SLUS-00561 native lifecycle and inventory ownership. See
+/* SLUS-00561 native lifecycle and seat ownership. See
  * docs/COOP_LIFECYCLE_MENU_EVIDENCE.md for original executable evidence.
- * Shared stage/story/tanks remain in guest RAM; only the second player's
- * character inventory and serialized menu/pickup ownership live here. */
+ * P1 owns the one native campaign/save record, including all upgrades.
+ * Only P2's transient health/ammo/weapon and menu/pickup ownership live here. */
 #include "mmx4_coop_internal.h"
 #include <string.h>
 #include <stdio.h>
@@ -16,7 +16,7 @@
 #define PICKUP_CAPACITY 128u
 
 typedef struct {
-    uint8_t campaign, hp, max_hp, armor, upgrade, ammo[16], hearts, weapon;
+    uint8_t character, hp, ammo[16], weapon;
 } Inventory;
 typedef struct { uint32_t actor; uint8_t owner; } PickupOwner;
 typedef struct { uint32_t actor,serial; uint8_t owner; } SceneOwner;
@@ -34,12 +34,13 @@ static unsigned stage_known, last_stage, last_section, last_lives;
 static unsigned carry_resources, carry_dead, carry_first_dead, carry_departure;
 static unsigned departed, select_ticks, select_release, rejoin_pending;
 static unsigned full_stage_load;
+static unsigned reward_committed;
 static unsigned first_before_clear_valid, first_before_clear_dead;
 static uint8_t departure_active, departure_visible;
 static uint8_t departure_vehicle_active, departure_vehicle_visible;
 static unsigned menu_active, menu_owner, menu_projecting;
 static unsigned normal_guard, menu_guard, world_guard, pickup_guard;
-static unsigned collect_guard, init_guard, reward_guard, death_guard, capsule_guard;
+static unsigned collect_guard, save_guard, reward_guard, death_guard, capsule_guard;
 static unsigned scene_guard, script_pool_guard, command_guard, control_guard,text_guard;
 static unsigned script_active, script_owner, script_serial;
 static unsigned warp_pending,warp_phase,warp_owner,warp_guard,warp_unlocked_ticks;
@@ -57,33 +58,24 @@ static void write_bytes(uint32_t address,const uint8_t *in,unsigned count) {
     for(unsigned i=0;i<count;++i)psx_mod_write_byte(address+i,in[i]);
 }
 static void inventory_read(Inventory *out) {
-    out->campaign=psx_mod_read_byte(PLAY+0x43);
+    out->character=psx_mod_read_byte(PLAY+0x43);
     out->hp=psx_mod_read_byte(PLAY+0x45);
-    out->max_hp=psx_mod_read_byte(PLAY+0x46);
-    out->armor=psx_mod_read_byte(PLAY+0x47);
-    out->upgrade=psx_mod_read_byte(PLAY+0x48);
     read_bytes(PLAY+0x49,out->ammo,16);
-    out->hearts=psx_mod_read_byte(PLAY+0x5A);
     out->weapon=psx_mod_read_byte(PLAY+0x60);
 }
 static void inventory_write(const Inventory *in) {
-    psx_mod_write_byte(PLAY+0x43,in->campaign);
+    psx_mod_write_byte(PLAY+0x43,in->character);
     psx_mod_write_byte(PLAY+0x45,in->hp);
-    psx_mod_write_byte(PLAY+0x46,in->max_hp);
-    psx_mod_write_byte(PLAY+0x47,in->armor);
-    psx_mod_write_byte(PLAY+0x48,in->upgrade);
     write_bytes(PLAY+0x49,in->ammo,16);
-    /* High acquisition byte contains the common E/W/EX tank ownership. */
-    psx_mod_write_byte(PLAY+0x5A,in->hearts);
     psx_mod_write_byte(PLAY+0x60,in->weapon);
 }
 void mmx4_coop_lifecycle_project(void) {
     if(inventory_projected)return;
     inventory_read(&saved_inventory);
-    if(!inventory_initialized || second_inventory.campaign!=(saved_inventory.campaign^1u)) {
+    if(!inventory_initialized || second_inventory.character!=(saved_inventory.character^1u)) {
         memset(&second_inventory,0,sizeof second_inventory);
-        second_inventory.campaign=(uint8_t)(saved_inventory.campaign^1u);
-        second_inventory.hp=second_inventory.max_hp=32;
+        second_inventory.character=(uint8_t)(saved_inventory.character^1u);
+        second_inventory.hp=psx_mod_read_byte(PLAY+0x46);
         memset(second_inventory.ammo,48,sizeof second_inventory.ammo);
         inventory_initialized=1;
     }
@@ -128,6 +120,7 @@ static void fresh_game(CPUState *cpu,uint32_t address) {
     carry_resources=carry_dead=carry_first_dead=carry_departure=0;
     departed=select_ticks=select_release=select_previous=rejoin_pending=0;
     full_stage_load=0;
+    reward_committed=0;
     first_before_clear_valid=first_before_clear_dead=0;
     script_active=script_owner=script_serial=0;
     warp_pending=warp_phase=warp_owner=warp_guard=warp_unlocked_ticks=0;
@@ -141,6 +134,15 @@ static void full_stage(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
     if(!mmx4_coop_projected())full_stage_load=1;
 }
+static void stage_selection(CPUState *cpu,uint32_t address) {
+    (void)cpu;(void)address;
+    if(mmx4_coop_projected() || psx_mod_local_view_scope())return;
+    /* Native8002E420 clears PLAYER for the frontend at8002E478, outside
+     * stage_initialization. Selecting the same stage afterward is a fresh
+     * entry, not a section transfer with a frontend-zeroed P1 corpse. */
+    stage_known=0;first_before_clear_valid=0;
+    carry_resources=carry_dead=carry_first_dead=carry_departure=0;
+}
 static unsigned seat_was_dead(unsigned seat) {
     const uint8_t *body=mmx4_coop_second_body();
     unsigned hp=seat?body[0x5C]:psx_mod_read_byte(PLAYER+0x5C);
@@ -148,7 +150,20 @@ static unsigned seat_was_dead(unsigned seat) {
     /* Native outgoing beams finish in state 3 without consuming health.
      * Hidden passengers and voluntarily withdrawn P2 are not corpses. */
     unsigned outgoing=mmx4_coop_lifecycle_hidden(seat) || (seat && departed);
-    return !(hp&0x7Fu) || (state>=2 && !outgoing);
+    /* Native death is state2, followed by HP0/state3. A healthy script
+     * owner also finishes an outgoing beam in state3 before section loading;
+     * state4 is another active native dispatcher, not a corpse. */
+    return !(hp&0x7Fu) || (state==2 && !outgoing);
+}
+
+void mmx4_coop_lifecycle_follow_progress(uint8_t *body,unsigned character) {
+    body[0xB9]=psx_mod_read_byte(PLAY+0x59);
+    if(character==0) {
+        body[0xA7]=psx_mod_read_byte(PLAY+0x47);
+        /* Native capsule800C712C/player800314FC use B8 for this upgrade.
+         * A6 is a transient weapon override and must remain seat-local. */
+        body[0xB8]=psx_mod_read_byte(PLAY+0x48);
+    }
 }
 static void stage_initialization(CPUState *cpu,uint32_t address) {
     (void)cpu;(void)address;
@@ -193,6 +208,7 @@ void mmx4_coop_lifecycle_reset(void) {
     if(!carry_resources)departed=select_ticks=select_release=rejoin_pending=0;
     full_stage_load=0;
     last_stage=stage;last_section=section;last_lives=lives;stage_known=1;
+    reward_committed=0;
     memset(pickups,0,sizeof pickups);
     memset(scenes,0,sizeof scenes);script_active=0;
     warp_pending=warp_phase=warp_unlocked_ticks=0;
@@ -205,7 +221,11 @@ void mmx4_coop_lifecycle_enrolled(CPUState *cpu) {
         body[0x5C]=body[0x5D]=body[0x5E]=second_inventory.hp;
         memcpy(body+0xA8,second_inventory.ammo,16);
         body[0x93]=second_inventory.weapon;
-        if(carry_dead) {body[4]=3;body[5]=body[6]=body[3]=0;}
+        if(carry_dead) {
+            uint8_t *vehicle=mmx4_coop_second_vehicle();
+            body[4]=3;body[5]=body[6]=body[3]=0;
+            vehicle[0]=vehicle[3]=0;
+        }
         if(carry_departure) {
             uint8_t *vehicle=mmx4_coop_second_vehicle();
             departure_vehicle_active=vehicle[0];departure_vehicle_visible=vehicle[3];
@@ -224,6 +244,7 @@ void mmx4_coop_lifecycle_enrolled(CPUState *cpu) {
         psx_mod_write_byte(PLAYER+0x5E,0);psx_mod_write_byte(PLAYER+4,3);
         psx_mod_write_byte(PLAYER+3,0);psx_mod_write_byte(PLAYER+5,0);
         psx_mod_write_byte(PLAYER+6,0);
+        psx_mod_write_byte(MMX4_VEHICLE,0);psx_mod_write_byte(MMX4_VEHICLE+3,0);
     }
     carry_resources=carry_dead=carry_first_dead=carry_departure=0;
     if(!departed && body[4]==1 && !body[0xC5]) {
@@ -273,15 +294,24 @@ static void start_outgoing(CPUState *cpu,unsigned seat) {
     if(seat)mmx4_coop_leave_second();
     warp_phase=3;
 }
+void mmx4_coop_spawn_facing_right(void) {
+    /* Native facing is +15: 0 is left, 40 is right. +14 selects the camera
+     * layer and must remain intact. Ride Chasers use the same facing byte. */
+    psx_mod_write_byte(PLAYER+0x15,0x40);
+    psx_mod_write_byte(MMX4_VEHICLE+0x15,0x40);
+}
 static void start_arrival(CPUState *cpu,unsigned seat) {
     if(seat)mmx4_coop_enter_second();
     psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+6,0);
     psx_mod_write_byte(PLAYER+0xBE,0);psx_mod_write_byte(PLAYER+0x89,0);
     psx_mod_write_byte(PLAYER+0x70,0);psx_mod_write_byte(PLAYER+0x71,0);
     psx_mod_write_byte(PLAYER+0xBC,0);psx_mod_write_byte(PLAYER+0xBD,0);
-    uint32_t y=psx_mod_read_word(PLAYER+12)-(96u<<16);
-    psx_mod_write_word(PLAYER+12,y);psx_mod_write_word(PLAYER+0x1C,y);
+    /* The owner/native checkpoint has already supplied a valid world
+     * position. Moving the body 96 pixels upward can put it through the
+     * ceiling or above the room. Run the native incoming beam at this safe
+     * landing position; its pose/beam animation still owns the arrival. */
     mmx4_coop_call(cpu,0x80035848u,PLAYER,0);
+    if(seat)mmx4_coop_spawn_facing_right();
     if(seat)mmx4_coop_leave_second();
     warp_phase=2;
 }
@@ -325,23 +355,31 @@ static void position_return(CPUState *cpu,unsigned seat,uint32_t x,uint32_t y,
     }
     warp_guard=1;mmx4_coop_call(cpu,0x80035EA4u,PLAYER,0);
     mmx4_coop_call(cpu,0x8002C614u,PLAYER,0);warp_guard=0;
+    if(seat)mmx4_coop_spawn_facing_right();
     if(seat)mmx4_coop_leave_second();
 }
 static void warp_tick(CPUState *cpu) {
     warp_begin(cpu);
     if(!warp_phase || mmx4_coop_projected())return;
+    /* A room fade/section transfer or victory departure is not gameplay
+     * resuming. Keep passengers outside until the native transition ends. */
+    if(psx_mod_read_byte(PLAY)!=6 || psx_mod_read_byte(PLAY+1)!=0)return;
     unsigned seat=warp_owner^1u;
     const uint8_t *second=mmx4_coop_second_body();
     uint32_t x=warp_owner?body_word(second,8):psx_mod_read_word(PLAYER+8);
     uint32_t y=warp_owner?body_word(second,12):psx_mod_read_word(PLAYER+12);
     unsigned state=warp_owner?second[4]:psx_mod_read_byte(PLAYER+4);
+    unsigned action=warp_owner?second[5]:psx_mod_read_byte(PLAYER+5);
     unsigned grounded=warp_owner?second[0x89]:psx_mod_read_byte(PLAYER+0x89);
     unsigned locked=script_active || psx_mod_read_byte(PLAY+0x10) ||
         psx_mod_read_byte(PLAY+0x1C) || (warp_owner?(second[0xC0]|second[0xC3]|second[0xC4]|second[0x67]):
             (psx_mod_read_byte(PLAYER+0xC0)|psx_mod_read_byte(PLAYER+0xC3)|
              psx_mod_read_byte(PLAYER+0xC4)|psx_mod_read_byte(PLAYER+0x67)));
     if(warp_phase==3) {
-        if(!departed && !mmx4_coop_alive(warp_owner)) {
+        /* Victory marks the owner state3 too. Finish the passenger's
+         * outgoing beam so the canonical body can release stage termination,
+         * without treating the winner's departure as a death to rescue. */
+        if(!departed && !mmx4_coop_alive(warp_owner) && !psx_mod_read_byte(PLAY+0x0F)) {
             position_return(cpu,seat,warp_origin_x,warp_origin_y,
                 warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible);
             if(seat)mmx4_coop_enter_second();
@@ -358,6 +396,7 @@ static void warp_tick(CPUState *cpu) {
         if(seat)mmx4_coop_leave_second();
         return;
     }
+    if(psx_mod_read_byte(PLAY+0x0F))return;
     if(warp_phase==2 && !mmx4_coop_alive(warp_owner)) {
         /* The incoming player is alive even if their partner dies before
          * the return pose finishes; release control before team-wipe checks. */
@@ -374,7 +413,7 @@ static void warp_tick(CPUState *cpu) {
                 warp_active,warp_visible,warp_vehicle_active,warp_vehicle_visible);
             warp_phase=0;return;
         }
-        if(locked || state!=1 || !(grounded&8u)) {warp_unlocked_ticks=0;return;}
+        if(locked || state!=1 || action!=2 || !(grounded&8u)) {warp_unlocked_ticks=0;return;}
         if(++warp_unlocked_ticks<3)return;
         position_return(cpu,seat,x,y,warp_active,warp_visible,
             warp_vehicle_active,warp_vehicle_visible);
@@ -462,6 +501,11 @@ void mmx4_coop_lifecycle_tick(CPUState *cpu) {
          * the same floor coordinate avoids guessing about pits to either
          * side; independent movement separates the bodies afterward. */
         if(rejoin_pending && mmx4_coop_alive(0) &&
+           psx_mod_read_byte(PLAY)==6 && !psx_mod_read_byte(PLAY+1) &&
+           !psx_mod_read_byte(PLAY+0x0F) && !psx_mod_read_byte(PLAY+0x10) &&
+           !psx_mod_read_byte(PLAY+0x1C) && psx_mod_read_byte(PLAYER+5)==2 &&
+           !psx_mod_read_byte(PLAYER+0xC0) && !psx_mod_read_byte(PLAYER+0xC3) &&
+           !psx_mod_read_byte(PLAYER+0xC4) && !psx_mod_read_byte(PLAYER+0x67) &&
            (psx_mod_read_byte(PLAYER+0x89)&8u) &&
            !psx_mod_read_byte(PLAYER+0x79) && !psx_mod_read_byte(PLAYER+0xC5)) {
             uint32_t x=psx_mod_read_word(PLAYER+8),y=psx_mod_read_word(PLAYER+12);
@@ -482,7 +526,10 @@ void mmx4_coop_lifecycle_tick(CPUState *cpu) {
         }
     }else if((input&SELECT) && !select_release && mmx4_coop_alive(0) &&
              mmx4_coop_alive(1) && !bike_sequence && !body[0xC5] &&
-             !script_active && !psx_mod_read_byte(PLAY+0x1C)) {
+             !body[0xC0] && !body[0xC3] && !body[0xC4] && !body[0x67] &&
+             !body[0xBC] && !script_active && !psx_mod_read_byte(PLAY+1) &&
+             !psx_mod_read_byte(PLAY+0x0F) && !psx_mod_read_byte(PLAY+0x10) &&
+             !psx_mod_read_byte(PLAY+0x1C)) {
         if(++select_ticks>=90) {
             departure_active=body[0];departure_visible=body[3];
             uint8_t *vehicle=mmx4_coop_second_vehicle();
@@ -548,6 +595,9 @@ static int pause_menu(CPUState *cpu,uint32_t address) {
     uint16_t edge=(uint16_t)(input&~menu_previous[menu_owner]);
     uint16_t old=menu_previous[menu_owner];
     menu_previous[0]=mmx4_coop_input(0);menu_previous[1]=mmx4_coop_input(1);
+    /* Native 80030128 opens Quit Game with Select. Only P1 may leave the
+     * campaign; P2 keeps its normal personal menu and Start-to-resume. */
+    if(menu_owner) {input&=(uint16_t)~SELECT;old&=(uint16_t)~SELECT;edge&=(uint16_t)~SELECT;}
     psx_mod_write_half(PAD,input);psx_mod_write_half(PAD+2,old);
     psx_mod_write_half(PAD+4,edge);
     mmx4_coop_menu_assets(cpu,menu_owner);
@@ -555,32 +605,39 @@ static int pause_menu(CPUState *cpu,uint32_t address) {
     menu_guard=1;
     uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     menu_guard=0;
-    if(menu_owner) {menu_projecting=0;mmx4_coop_leave_second();}
+    if(menu_owner) {
+        /* 800170E0 requests the shared gameplay palette after a menu fade.
+         * Normal P2 projections discard private palette dirtiness; this
+         * menu transition must publish its request to the canonical pass. */
+        uint8_t refresh=psx_mod_read_byte(0x80166BB0u)&1u;
+        menu_projecting=0;mmx4_coop_leave_second();
+        psx_mod_write_byte(0x80166BB0u,
+            (uint8_t)(psx_mod_read_byte(0x80166BB0u)|refresh));
+    }
     write_bytes(PAD,pad,6);
     if(psx_mod_read_byte(PLAY+1)!=2 || psx_mod_read_byte(PLAY)!=6)menu_active=0;
     return mmx4_coop_finish(cpu,result);
 }
 static int menu_world(CPUState *cpu,uint32_t address) {
     if(world_guard || !menu_projecting || !mmx4_coop_projected())return 0;
-    /* Native exit-pause runs the world once. Restore P1/campaign before that
-     * shared pass and resume P2's weapon/menu context after it returns. */
+    /* Both fade boundaries draw the world (80023D68), and exit-pause also
+     * updates it once (80021158). Shared graphics/caches and actor pools must
+     * use P1's context; resume P2 only for the personal menu/weapon work. */
+    uint8_t refresh=psx_mod_read_byte(0x80166BB0u)&1u;
     mmx4_coop_leave_second();world_guard=1;
+    psx_mod_write_byte(0x80166BB0u,
+        (uint8_t)(psx_mod_read_byte(0x80166BB0u)|refresh));
     uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     world_guard=0;mmx4_coop_enter_second();
     return mmx4_coop_finish(cpu,result);
 }
 
 static int pickup_init_canonical(CPUState *cpu,uint32_t address) {
-    if(init_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
+    (void)address;
+    if(!mmx4_coop_ready() || mmx4_coop_projected())return 0;
     uint32_t actor=cpu->gpr[4];pickup_forget(actor);
-    uint8_t hearts=psx_mod_read_byte(PLAY+0x5A);
-    /* A physical Heart Tank is consumed once across the shared world, while
-     * maximum HP belongs only to its collector. */
-    psx_mod_write_byte(PLAY+0x5A,(uint8_t)(hearts|second_inventory.hearts));
-    init_guard=1;
-    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
-    init_guard=0;psx_mod_write_byte(PLAY+0x5A,hearts);
-    return mmx4_coop_finish(cpu,result);
+    /* Native placement suppression reads the single campaign's flags. */
+    return 0;
 }
 static int pickup_init(CPUState *cpu,uint32_t address) {
     return mmx4_coop_combat_canonical_call(cpu,address,pickup_init_canonical);
@@ -660,15 +717,37 @@ static int pickup_update(CPUState *cpu,uint32_t address) {
     return mmx4_coop_combat_canonical_call(cpu,address,pickup_update_canonical);
 }
 static int reward_canonical(CPUState *cpu,uint32_t address) {
-    if(reward_guard || !mmx4_coop_ready() || mmx4_coop_projected())return 0;
+    if(reward_guard || !mmx4_coop_ready())return 0;
+    unsigned projected=mmx4_coop_projected();
+    if(projected)mmx4_coop_leave_second();
+    /* A later passenger departure must not commit this scene again. Keep
+     * original reward inputs even for Intro/final-story transitions. */
+    if(reward_committed) {
+        if(projected)mmx4_coop_enter_second();
+        return mmx4_coop_finish(cpu,0);
+    }
     reward_guard=1;
     uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    reward_committed=1;
+    /* Continue-current-data uses this native RAM record, independently of
+     * the memory card. Publish the newly committed boss/story bits now. */
+    mmx4_coop_call(cpu,0x8001C3E8u,0,0);
     reward_guard=0;
-    mmx4_coop_second_body()[0xB9]|=psx_mod_read_byte(PLAY+0x59);
+    mmx4_coop_second_body()[0xB9]=psx_mod_read_byte(PLAY+0x59);
+    if(projected)mmx4_coop_enter_second();
     return mmx4_coop_finish(cpu,result);
 }
 static int reward(CPUState *cpu,uint32_t address) {
     return mmx4_coop_combat_canonical_call(cpu,address,reward_canonical);
+}
+static int campaign_save(CPUState *cpu,uint32_t address) {
+    if(save_guard || !mmx4_coop_ready() || !mmx4_coop_projected())return 0;
+    /* Both native record writers must observe the campaign owner, never
+     * the temporary character selection used for P2 attacks or menus. */
+    mmx4_coop_leave_second();save_guard=1;
+    uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    save_guard=0;mmx4_coop_enter_second();
+    return mmx4_coop_finish(cpu,result);
 }
 static int death_animation(CPUState *cpu,uint32_t address) {
     if(death_guard || !mmx4_coop_ready())return 0;
@@ -733,6 +812,18 @@ static int stage_scripts(CPUState *cpu,uint32_t address) {
     script_pool_guard=1;
     uint32_t result=call_story_as_second(cpu,address,cpu->gpr[4],cpu->gpr[5]);
     script_pool_guard=0;return mmx4_coop_finish(cpu,result);
+}
+static int shared_ride_ready(CPUState *cpu,uint32_t address) {
+    (void)address;
+    if(!mmx4_coop_projected() || cpu->gpr[31]!=0x8003B64Cu)return 0;
+    /* Original Ride Chaser initialization allocates stage actor 0x1B (READY)
+     * at 8003B644. Both bikes later wait on vehicle+A0 at 8003BD44. Reuse
+     * P1's presentation without reinitializing its actor or emitting READY
+     * twice; all other stage actor allocations retain native behavior. */
+    const uint8_t *vehicle=mmx4_coop_first_vehicle();
+    psx_mod_write_word(MMX4_VEHICLE+0xA0,body_word(vehicle,0xA0));
+    psx_mod_counter_add("mmx4.coop.shared-ride-ready",1);
+    return mmx4_coop_finish(cpu,0);
 }
 static int script_text(CPUState *cpu,uint32_t address) {
     if(text_guard || !mmx4_coop_ready() || mmx4_coop_projected() ||
@@ -869,25 +960,22 @@ uint32_t mmx4_coop_lifecycle_digest(uint32_t seed) {
     /* Hash fields explicitly, excluding ABI padding and host pointers.
      * A projected P1 inventory backup is authoritative until restoration. */
     const Inventory *in=&second_inventory;
-    seed=hash_byte(seed,in->campaign);seed=hash_byte(seed,in->hp);
-    seed=hash_byte(seed,in->max_hp);seed=hash_byte(seed,in->armor);
-    seed=hash_byte(seed,in->upgrade);
+    seed=hash_byte(seed,in->character);seed=hash_byte(seed,in->hp);
     for(unsigned i=0;i<16;++i)seed=hash_byte(seed,in->ammo[i]);
-    seed=hash_byte(seed,in->hearts);seed=hash_byte(seed,in->weapon);
+    seed=hash_byte(seed,in->weapon);
     seed=hash_word(seed,inventory_projected);
     if(inventory_projected) {
         in=&saved_inventory;
-        seed=hash_byte(seed,in->campaign);seed=hash_byte(seed,in->hp);
-        seed=hash_byte(seed,in->max_hp);seed=hash_byte(seed,in->armor);
-        seed=hash_byte(seed,in->upgrade);
+        seed=hash_byte(seed,in->character);seed=hash_byte(seed,in->hp);
         for(unsigned i=0;i<16;++i)seed=hash_byte(seed,in->ammo[i]);
-        seed=hash_byte(seed,in->hearts);seed=hash_byte(seed,in->weapon);
+        seed=hash_byte(seed,in->weapon);
     }
     seed=hash_word(seed,inventory_initialized);seed=hash_word(seed,stage_known);
     seed=hash_word(seed,last_stage);seed=hash_word(seed,last_section);
     seed=hash_word(seed,last_lives);seed=hash_word(seed,departed);
     seed=hash_word(seed,select_ticks);seed=hash_word(seed,select_release);
     seed=hash_word(seed,rejoin_pending);seed=hash_word(seed,full_stage_load);
+    seed=hash_word(seed,reward_committed);
     seed=hash_word(seed,first_before_clear_valid);
     if(first_before_clear_valid)seed=hash_word(seed,first_before_clear_dead);
     seed=hash_word(seed,select_previous);seed=hash_byte(seed,departure_active);
@@ -919,16 +1007,21 @@ uint32_t mmx4_coop_lifecycle_digest(uint32_t seed) {
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop_lifecycle) {
     psx_mod_register_function_entry_plugin(ID,0x8001FBB8u,fresh_game);
     psx_mod_register_function_entry_plugin(ID,0x8001FBE0u,full_stage);
+    psx_mod_register_function_entry_plugin(ID,0x8002E420u,stage_selection);
     psx_mod_register_function_entry_plugin(ID,0x8001FC20u,stage_initialization);
     psx_mod_register_function_filter_plugin(ID,0x8001FF8Cu,stage_normal);
     psx_mod_register_function_filter_plugin(ID,0x8002FCACu,pause_menu);
     psx_mod_register_function_filter_plugin(ID,0x80021158u,menu_world);
+    psx_mod_register_function_filter_plugin(ID,0x80023D68u,menu_world);
     psx_mod_register_function_filter_plugin(ID,0x800BF76Cu,pickup_init);
     psx_mod_register_function_filter_plugin(ID,0x800C00BCu,pickup_collect);
     psx_mod_register_function_filter_plugin(ID,0x800BF730u,pickup_update);
     psx_mod_register_function_filter_plugin(ID,0x8001FA24u,reward);
+    psx_mod_register_function_filter_plugin(ID,0x8001C07Cu,campaign_save);
+    psx_mod_register_function_filter_plugin(ID,0x8001C3E8u,campaign_save);
     psx_mod_register_function_filter_plugin(ID,0x80035A6Cu,death_animation);
     psx_mod_register_function_filter_plugin(ID,0x8002166Cu,stage_scripts);
+    psx_mod_register_function_filter_plugin(ID,0x8002AD7Cu,shared_ride_ready);
     psx_mod_register_function_filter_plugin(ID,0x80021D20u,script_text);
     psx_mod_register_function_filter_plugin(ID,0x800C2BE0u,scene_actor);
     psx_mod_register_function_filter_plugin(ID,0x800C1994u,scene_actor);

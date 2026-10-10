@@ -14,6 +14,7 @@ set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
 # This title ships a co-op netplay profile on both platforms. The framework's
 # generic runtime defaults netplay off; select it before including that runtime.
 option(PSX_NETPLAY "Build X4 netplay and co-op profile support" ON)
+option(MMX4_COOP_NETPLAY_DEBUG "Development-only synchronized co-op cheats" OFF)
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
 
 # The current recompiler emits the game as split translation units. Keep the
@@ -86,9 +87,20 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
     src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
     src/mods/mmx4_coop_split.c
+    src/mods/mmx4_coop_debug_protocol.c src/mods/mmx4_coop_debug_protocol.h
+    src/mods/mmx4_diagnostics.cpp src/mods/mmx4_diagnostics.h
     src/mods/mmx4_widescreen_plugin.c
     mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml)
 set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
+set(MMX4_COOP_PROFILE_PREFIX "mmx4-coop-delay-v3")
+if(MMX4_COOP_NETPLAY_DEBUG)
+    if(NOT PSX_DEBUG_TOOLS)
+        message(FATAL_ERROR "MMX4_COOP_NETPLAY_DEBUG requires PSX_DEBUG_TOOLS")
+    endif()
+    set(MMX4_COOP_PROFILE_PREFIX "mmx4-coop-debug-v1")
+    string(APPEND MMX4_COOP_CONTRACT "synchronized-development-fixtures-v1\n")
+    target_compile_definitions(psx-runtime PRIVATE MMX4_COOP_NETPLAY_DEBUG=1)
+endif()
 foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_CONTRACT_FILES)
     file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}" MMX4_COOP_SOURCE_HASH)
     string(APPEND MMX4_COOP_CONTRACT "${MMX4_COOP_SOURCE_HASH}\n")
@@ -98,7 +110,8 @@ set(MMX4_COOP_FRAMEWORK_CONTRACT_FILES
     runtime/src/psx_cycles.c runtime/include/psx_cycle_freeze.h
     runtime/src/render_pass.c runtime/include/mod_plugins.h
     runtime/src/mod_netplay.c runtime/include/mod_netplay.h
-    runtime/src/mod_runtime.cpp runtime/src/mod_texture_banks.c
+    runtime/src/mod_runtime.cpp runtime/include/mod_runtime.h runtime/src/mod_texture_banks.c
+    runtime/src/host_osd.c runtime/include/host_osd.h
     runtime/src/gpu.c runtime/include/mod_capcom_bg2d.h
     runtime/src/spu.c runtime/include/spu.h runtime/src/mod_guest_services.c)
 foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_FRAMEWORK_CONTRACT_FILES)
@@ -111,7 +124,9 @@ string(SHA256 MMX4_COOP_CONTRACT_HASH "${MMX4_COOP_CONTRACT}")
 # The framework limits compatibility IDs to 63 bytes; 160 hash bits fit.
 string(SUBSTRING "${MMX4_COOP_CONTRACT_HASH}" 0 40 MMX4_COOP_CONTRACT_SHORT_HASH)
 set_property(SOURCE src/mods/mmx4_coop_plugin.c APPEND PROPERTY COMPILE_DEFINITIONS
-    "MMX4_COOP_NETPLAY_COMPATIBILITY=\"mmx4-coop-delay-v3:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
+    "MMX4_COOP_NETPLAY_COMPATIBILITY=\"${MMX4_COOP_PROFILE_PREFIX}:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
+set_property(SOURCE src/mods/mmx4_diagnostics.cpp APPEND PROPERTY COMPILE_DEFINITIONS
+    "MMX4_DIAGNOSTIC_BUILD_ID=\"${MMX4_COOP_PROFILE_PREFIX}:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
 add_custom_command(TARGET psx-runtime POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
@@ -119,6 +134,10 @@ add_custom_command(TARGET psx-runtime POST_BUILD
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_executable(mmx4_coop_debug_protocol_test tests/test_mmx4_coop_debug_protocol.c
+        src/mods/mmx4_coop_debug_protocol.c)
+    target_include_directories(mmx4_coop_debug_protocol_test PRIVATE src/mods)
+    add_test(NAME mmx4_coop_debug_protocol_test COMMAND mmx4_coop_debug_protocol_test)
     add_executable(mmx4_coop_assets_test tests/test_mmx4_coop_assets.c src/mods/mmx4_coop_assets.c)
     target_include_directories(mmx4_coop_assets_test PRIVATE src/mods)
     add_test(NAME mmx4_coop_assets_test COMMAND mmx4_coop_assets_test)
@@ -133,6 +152,9 @@ if(BUILD_TESTING)
     add_executable(mmx4_coop_lifecycle_test tests/test_mmx4_coop_lifecycle.c)
     target_include_directories(mmx4_coop_lifecycle_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_lifecycle_test COMMAND mmx4_coop_lifecycle_test)
+    add_executable(mmx4_diagnostics_test tests/test_mmx4_diagnostics.cpp)
+    target_include_directories(mmx4_diagnostics_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_diagnostics_test COMMAND mmx4_diagnostics_test "${CMAKE_CURRENT_BINARY_DIR}/diagnostics-qa")
     add_executable(mmx4_coop_views_test tests/test_mmx4_coop_views.c src/mods/mmx4_coop_views.c)
     target_include_directories(mmx4_coop_views_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_views_test COMMAND mmx4_coop_views_test)

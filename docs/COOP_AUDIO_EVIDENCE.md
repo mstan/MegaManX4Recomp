@@ -46,3 +46,31 @@ bindings, reopened metadata and transfer-gate release. Library calls are models.
 The actual SPU decoder test covers concurrent banks/RAM at identical addresses,
 DMA replacement, looping, KEYOFF, ordinary reuse and snapshot replay. Existing
 end-block, pitch and Gaussian tests pass. Native eye/ear checks remain pending.
+# Simultaneous sounds: subsequent co-op regression
+
+The earlier private sample banks preserve character identity, but both seats
+still selected the same original hardware voice. Direct sound records in
+both PL archives use channel 20 for character voices, with two-tone records
+using 20/21; movement/weapon effects also share fixed channels. A later jump
+or hurt can therefore replace the other seat's ongoing sound.
+
+The new adapter lets the original `800DFCFC` driver compute volume, pitch,
+start offset and ADSR from the original VAB. For retained P2 handles it starts
+a private voice instead of publishing the queued hardware KEYON. It restores
+the hardware register mirror at `80166D90 + voice*10`, the voice record at
+`8013DCA8 + voice*34`, dirty byte at `8013E1D0 + voice`, history/KEYOFF block
+`80175EF0..80175F38` and KEYON/reverb/noise masks at `8013BC08..8013BC14`.
+The finite native calculation runs uncharged to prevent an intervening driver
+flush. P2 priorities reside in serialized private guest memory. Sound-status
+and character sound-stop callbacks address the private slots; global silence
+still silences both sets of voices.
+
+An isolated MIPS run of the original `800E4398` VAB parser and `800DFCFC`
+key-on routine succeeded for X bank 13 and Zero bank 15 on channel 20. Both
+produced pitch `800`, ADSR words `80FF/1FC0`, and no hardware MMIO writes;
+stereo gains differed as expected from their original program data. This
+checks original driver calculations, not full gameplay audio qualification.
+The actual SPU unit test now mixes hardware channel 20 with private slot 20,
+checks independent KEYOFF/volume, unchanged hardware registers, and byte-exact
+PCM replay after restoring the extended snapshot. Ordinary snapshots keep
+their original size when private voices have never been used.

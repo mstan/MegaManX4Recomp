@@ -213,7 +213,8 @@ class Peer:
 
 def body_state(body: bytes) -> dict:
     return dict(active=body[0], character=body[2], visible=body[3], state=body[4],
-                action=body[5], grounded=bool(body[0x89] & 8),
+                action=body[5], door=body[0xC4], script=body[0xC0], vehicle=body[0xC5],
+                grounded=bool(body[0x89] & 8),
                 hp=body[0x5C] & 0x7F, x=struct.unpack_from("<i", body, 8)[0] / 65536,
                 y=struct.unpack_from("<i", body, 12)[0] / 65536)
 

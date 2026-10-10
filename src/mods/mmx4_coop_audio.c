@@ -13,9 +13,22 @@
 #define VAB_STATUS 0x80166D58u
 #define SOUND_END 0x80141EE8u
 #define SOUND_RECORDS 0x80141F50u
+#define PRIORITY 0x80139234u
+#define VOICE_REGS 0x80166D90u
+#define VOICE_META 0x8013DCA8u
+#define VOICE_DIRTY 0x8013E1D0u
+#define QUEUE 0x80175EF0u
+#define KEY_MASKS 0x8013BC08u
 typedef struct { Mmx4Asset header; uint32_t guest,offset,id; unsigned loaded; } AudioBank;
 static AudioBank banks[2][2];
-static unsigned sound_call,voice_call;
+static unsigned sound_call,voice_call,stop_call;
+static uint32_t audio_state;
+static void read_bytes(uint32_t address,uint8_t *out,unsigned n) {
+    for(unsigned i=0;i<n;++i)out[i]=psx_mod_read_byte(address+i);
+}
+static void write_bytes(uint32_t address,const uint8_t *in,unsigned n) {
+    for(unsigned i=0;i<n;++i)psx_mod_write_byte(address+i,in[i]);
+}
 static uint32_t le32(const uint8_t *p) {
     return (uint32_t)p[0]|(uint32_t)p[1]<<8|(uint32_t)p[2]<<16|(uint32_t)p[3]<<24;
 }
@@ -33,7 +46,7 @@ static void copy_header(AudioBank *bank) {
             (uint8_t)((bank->header.data[at]&0xC0u)|bank->id));
 }
 void mmx4_coop_audio_reset(void) {
-    memset(banks,0,sizeof banks);sound_call=voice_call=0;
+    memset(banks,0,sizeof banks);sound_call=voice_call=stop_call=0;audio_state=0;
 }
 int mmx4_coop_audio_load(unsigned character,const uint8_t *file,uint32_t size) {
     if(character>1)return 0;
@@ -52,6 +65,10 @@ int mmx4_coop_audio_load(unsigned character,const uint8_t *file,uint32_t size) {
         if(!psx_mod_spu_sample_bank(bank->id,body.data,(uint32_t)body.size))return 0;
         bank->guest=psx_mod_alloc_guest_memory(0x2000,16);if(!bank->guest)return 0;
         bank->header=head;bank->offset=offset;copy_header(bank);bank->loaded=1;
+    }
+    if(!audio_state) {
+        audio_state=psx_mod_alloc_guest_memory(32,16);if(!audio_state)return 0;
+        for(unsigned i=0;i<32;++i)psx_mod_write_byte(audio_state+i,0);
     }
     return 1;
 }
@@ -91,7 +108,13 @@ static int character_sound(CPUState *cpu,uint32_t address) {
     uint32_t saved_end=psx_mod_read_word(end),saved_records=psx_mod_read_word(records);
     psx_mod_write_word(end,bank->guest+bank->offset);
     psx_mod_write_word(records,bank->guest+8);
+    uint8_t priority[24];read_bytes(PRIORITY,priority,sizeof priority);
+    for(unsigned voice=0;voice<24;++voice)
+        psx_mod_write_byte(PRIORITY+voice,psx_mod_read_byte(audio_state+voice));
     uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    for(unsigned voice=0;voice<24;++voice)
+        psx_mod_write_byte(audio_state+voice,psx_mod_read_byte(PRIORITY+voice));
+    write_bytes(PRIORITY,priority,sizeof priority);
     psx_mod_write_word(end,saved_end);psx_mod_write_word(records,saved_records);
     sound_call=0;return mmx4_coop_finish(cpu,result);
 }
@@ -99,6 +122,37 @@ static int voice_key_on(CPUState *cpu,uint32_t address) {
     if(voice_call || !mmx4_coop_ready() || psx_mod_local_view_scope())return 0;
     uint32_t id=cpu->gpr[5];uint32_t bank=0;
     if(id>=12 && id<16 && banks[(id-12)/2][(id-12)%2].loaded)bank=id;
+    unsigned voice=cpu->gpr[4];
+    if(bank && voice<24u) {
+        /* Let the original VAB/tone driver compute pitch, stereo gain and
+         * ADSR, then start P2's private voice. Restore its queued hardware
+         * record before the next native flush, including P1's pending KEYON.
+         * The finite calculation is uncharged so no interrupt can flush this
+         * temporary record between calculation and restoration. */
+        uint8_t regs[16],meta[0x34],queue[0x48],masks[12];
+        uint8_t dirty=psx_mod_read_byte(VOICE_DIRTY+voice);
+        read_bytes(VOICE_REGS+voice*16u,regs,sizeof regs);
+        read_bytes(VOICE_META+voice*0x34u,meta,sizeof meta);
+        read_bytes(QUEUE,queue,sizeof queue);read_bytes(KEY_MASKS,masks,sizeof masks);
+        voice_call=1;
+        uint32_t result=psx_mod_call_guest_uncharged(cpu,address,cpu->gpr[31],
+            voice,id,cpu->gpr[6],cpu->gpr[7],0,NULL);
+        if(result!=(uint32_t)-1) {
+            uint16_t calculated[8];
+            for(unsigned r=0;r<8;++r)calculated[r]=psx_mod_read_half(VOICE_REGS+voice*16u+r*2u);
+            calculated[7]=calculated[3];
+            unsigned mode=(psx_mod_read_half(0x80166C00u)==0xFFu?1u:0u)|
+                (psx_mod_read_byte(0x80166BFCu)&4u?2u:0u);
+            if(!psx_mod_spu_private_voice_play(voice,bank,calculated,mode)) {
+                result=(uint32_t)-1;psx_mod_counter_add("mmx4.coop.private-voice-failed",1);
+            }
+        }
+        write_bytes(VOICE_REGS+voice*16u,regs,sizeof regs);
+        write_bytes(VOICE_META+voice*0x34u,meta,sizeof meta);
+        write_bytes(QUEUE,queue,sizeof queue);write_bytes(KEY_MASKS,masks,sizeof masks);
+        psx_mod_write_byte(VOICE_DIRTY+voice,dirty);
+        voice_call=0;return mmx4_coop_finish(cpu,result);
+    }
     /* The original driver queues KEYON for a later SPU update. Bind its
      * explicit voice slot now; the binding survives that delay and rollback. */
     psx_mod_spu_bind_voice_bank(cpu->gpr[4],bank);
@@ -107,7 +161,43 @@ static int voice_key_on(CPUState *cpu,uint32_t address) {
     if(result==(uint32_t)-1)psx_mod_spu_bind_voice_bank(cpu->gpr[4],0);
     voice_call=0;return mmx4_coop_finish(cpu,result);
 }
+static int voice_status(CPUState *cpu,uint32_t address) {
+    (void)address;
+    if(!sound_call || !mmx4_coop_projected())return 0;
+    return mmx4_coop_finish(cpu,(psx_mod_spu_private_voice_active()&cpu->gpr[4])?1u:0u);
+}
+static int private_stop(CPUState *cpu,uint32_t address) {
+    if(stop_call!=1 || cpu->gpr[4]>=24u)return 0;
+    unsigned voice=cpu->gpr[4];
+    if(address==0x800E0090u)psx_mod_spu_private_voice_stop(1u<<voice);
+    else psx_mod_spu_private_voice_volume(voice,
+        (uint16_t)((int16_t)cpu->gpr[5]*129),(uint16_t)((int16_t)cpu->gpr[6]*129));
+    return mmx4_coop_finish(cpu,0);
+}
+static int character_stop(CPUState *cpu,uint32_t address) {
+    unsigned group=cpu->gpr[4]&255u;
+    if(stop_call || !mmx4_coop_ready() || psx_mod_local_view_scope())return 0;
+    if(group==255u) {
+        stop_call=2;
+        uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+        for(unsigned voice=0;voice<24;++voice)psx_mod_spu_private_voice_volume(voice,0,0);
+        psx_mod_spu_private_voice_stop(0xFFFFFFu);stop_call=0;
+        return mmx4_coop_finish(cpu,result);
+    }
+    if(!mmx4_coop_projected() || (group!=1 && group!=3))return 0;
+    unsigned character=psx_mod_read_byte(MMX4_PLAYER+2);
+    if(character>1 || !banks[character][group==3].loaded)return 0;
+    uint32_t pointer=SOUND_RECORDS+group*4u,saved=psx_mod_read_word(pointer);
+    psx_mod_write_word(pointer,banks[character][group==3].guest+8u);stop_call=1;
+    uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    stop_call=0;psx_mod_write_word(pointer,saved);
+    return mmx4_coop_finish(cpu,result);
+}
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop_audio) {
     psx_mod_register_function_filter_plugin(ID,SOUND,character_sound);
     psx_mod_register_function_filter_plugin(ID,VOICE_KEY_ON,voice_key_on);
+    psx_mod_register_function_filter_plugin(ID,0x80015930u,character_stop);
+    psx_mod_register_function_filter_plugin(ID,0x800DBF34u,voice_status);
+    psx_mod_register_function_filter_plugin(ID,0x800E0090u,private_stop);
+    psx_mod_register_function_filter_plugin(ID,0x800E0E7Cu,private_stop);
 }

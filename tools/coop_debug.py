@@ -36,6 +36,30 @@ class Runtime:
         self.request('clear_input')
         self.request('clear_input', port=2)
 
+    def teleport(self, seat, x, y):
+        """Offline developer build only: move at the native world boundary.
+
+        Use coordinates from an authored checkpoint/observed safe platform.
+        Teleporting into solid tiles or past room triggers can still be lethal.
+        """
+        if seat not in (0, 1) or not all(-32768 <= v < 32768 for v in (x, y)):
+            raise ValueError('Seat must be 0/1 and coordinates signed world pixels')
+        address = self.diagnostic()
+        for offset, value in ((0x40, int(x * 65536)), (0x44, int(y * 65536))):
+            for byte in range(4):
+                self.write(address + offset + byte, (value >> (byte * 8)) & 255)
+        self.fixture(4, seat)
+
+    def teleport_both(self, x, y):
+        """Move both living seats together at one native dispatcher boundary."""
+        if not all(-32768 <= v < 32768 for v in (x, y)):
+            raise ValueError('Coordinates must be signed world pixels')
+        address = self.diagnostic()
+        for offset, value in ((0x40, int(x * 65536)), (0x44, int(y * 65536))):
+            for byte in range(4):
+                self.write(address + offset + byte, (value >> (byte * 8)) & 255)
+        self.fixture(4, 2)
+
     def screenshot(self, path):
         # A canonical VRAM crop omits anchored HUD at native-wide aspects.
         state = self.request('gpu_state')
@@ -62,6 +86,9 @@ class Runtime:
         deadline = time.monotonic()+10
         while time.monotonic() < deadline:
             if struct.unpack('<I', self.read(address+0x38, 4))[0] == sequence:
+                result=struct.unpack('<I',self.read(address+0x54,4))[0]
+                if result==2:
+                    raise RuntimeError(f'Native fixture rejected command {command}: {first}, {second}, {third}')
                 return
             time.sleep(.05)
         raise TimeoutError('Fixture was not acknowledged in native gameplay')
@@ -124,6 +151,41 @@ class Runtime:
             raise TimeoutError('Input-only navigation did not reach gameplay')
         finally:
             self.release()
+
+    def boot_continue(self,campaign,clears=16,timeout=100):
+        """Load data1 from a cloned native card, stopping at stage selection."""
+        deadline=time.monotonic()+timeout
+        def pulse(buttons):
+            self.input(buttons);time.sleep(.15);self.release();time.sleep(.15)
+        def wait(label,predicate,intro=False):
+            previous=None
+            while time.monotonic()<deadline:
+                front=self.read(0x80173c70,0x20);play=self.read(0x801721c0,0x64)
+                key=list(front[:3])+list(play[:2])
+                if key!=previous:print(label,key,flush=True);previous=key
+                if predicate(front,play) and not self.read(0x80141bdc,1)[0]:return play
+                if intro and front[0]!=6:pulse(0xfff7)
+                elif label=='loaded stage selection' and play[:2]==bytes([3,9]):pulse(0xbfff)
+                else:time.sleep(.06)
+            raise TimeoutError(label)
+        try:
+            wait('main menu',lambda f,p:f[:2]==bytes([6,1]),True)
+            pulse(0xffbf)
+            assert self.read(0x80173c72,1)[0]==1,'Continue not selected'
+            pulse(0xbfff)
+            wait('Continue card choice',lambda f,p:f[:2]==bytes([7,3]))
+            pulse(0xbfff)
+            wait('card slot choice',lambda f,p:p[:2]==bytes([0,1]))
+            pulse(0xbfff)
+            wait('saved data list',lambda f,p:p[:2]==bytes([0,3]))
+            time.sleep(1.5)
+            pulse(0xbfff)
+            wait('saved data confirmation',lambda f,p:p[:2]==bytes([0,4]))
+            pulse(0xbfff)
+            play=wait('loaded stage selection',lambda f,p:p[:2]==bytes([3,4]))
+            assert play[0x43]==campaign and play[0x59]==clears,(campaign,clears,list(play[0x43:0x60]))
+            return play
+        finally:self.release()
 
 
 def main():

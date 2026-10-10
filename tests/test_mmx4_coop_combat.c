@@ -17,6 +17,7 @@
 #define PARTICLE_ALLOC 0x8002AE50u
 #define PARTICLE_INIT 0x800CAE38u
 #define PARTICLE 0x80173CA0u
+#define WATER 0x800AF22Cu
 #define MIRROR 0x80110000u
 #define ARMOR_UPDATE 0x8003D3F8u
 #define ARMOR_MOUNT 0x8003E0D0u
@@ -36,6 +37,8 @@ static uint8_t second[0xE4], first_saved[0xE4];
 static uint8_t second_vehicle[0xB0], first_vehicle[0xB0];
 static uint8_t second_double[0xE4], first_double[0xE4];
 static unsigned projected, ready, alive[2],split;
+static int script_owner=-1;
+static unsigned target_camera_mode=1;
 static PSXModFunctionEntryCallback redirects[2],actor_dispatch;
 static unsigned pool_updates,actor_updates[2],bounds_updates,ai_contact,ai_solid;
 static unsigned ai_direct_write,ai_canonical;
@@ -52,6 +55,8 @@ static uint8_t observed_freeze;
 static unsigned token_model, attack_present[2];
 static uint8_t attack_token[2];
 static unsigned particle_initializations,particle_character;
+static unsigned water_updates;
+static unsigned charge_updates;
 
 static uint8_t *address_ptr(uint32_t address) {
     uint32_t physical=address&0x1FFFFFFFu;
@@ -99,7 +104,7 @@ static PSXModFunctionFilterCallback filter(uint32_t address) {
 int mmx4_coop_ready(void) { return (int)ready; }
 int mmx4_coop_projected(void) { return (int)projected; }
 int mmx4_coop_split_views(void) {return (int)split;}
-int mmx4_coop_lifecycle_script_owner(void) {return -1;}
+int mmx4_coop_lifecycle_script_owner(void) {return script_owner;}
 int mmx4_coop_alive(unsigned seat) { CHECK(seat<2);return (int)alive[seat]; }
 uint8_t *mmx4_coop_second_body(void) { return second; }
 uint8_t *mmx4_coop_first_body(void) {return first_saved;}
@@ -219,6 +224,24 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         psx_mod_write_byte(a0+4,1);
         return 0xABCDEF01u;
     }
+    if(address==0x800AEED8u) {
+        ++charge_updates;
+        CHECK(projected && !psx_mod_read_byte(MMX4_PLAYER+2));
+        psx_mod_write_word(a0+8,psx_mod_read_word(MMX4_PLAYER+8));
+        psx_mod_write_byte(MMX4_PLAYER+0x98,
+            (uint8_t)(psx_mod_read_byte(MMX4_PLAYER+0x98)-1));
+        return 0x12345678u;
+    }
+    if(address==WATER) {
+        ++water_updates;
+        /* Native type 7 selects the owner body (or its Double) on every
+         * update, rather than retaining an explicit following pointer. */
+        uint32_t source=psx_mod_read_byte(a0+2)&2u?DOUBLE_BODY:MMX4_PLAYER;
+        psx_mod_write_word(a0+8,psx_mod_read_word(source+8));
+        psx_mod_write_word(a0+12,psx_mod_read_word(source+12));
+        psx_mod_write_byte(a0+0x15,psx_mod_read_byte(source+0x15));
+        return 0x76543210u;
+    }
     if (address==AIM || address==0x80040CCCu || address==0x800419B8u) {
         ++ai_updates;
         observed_target_x=psx_mod_read_word(MMX4_PLAYER+8);
@@ -226,7 +249,7 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         return 0x87654321u;
     }
     if (address==0x80021234u || address==0x8002144Cu) {
-        if(split) {
+        {
             ++pool_updates;
             CHECK(!projected && !psx_mod_read_byte(MMX4_PLAYER+0xBC));
             unsigned shots=address==0x8002144Cu;
@@ -279,7 +302,7 @@ static void setup(void) {
     memset(second,0,sizeof second);
     memset(second_vehicle,0,sizeof second_vehicle);
     memset(second_double,0,sizeof second_double);
-    projected=split=0;ready=1;alive[0]=alive[1]=1;
+    projected=split=0;ready=1;alive[0]=alive[1]=1;script_owner=-1;
     pool_updates=bounds_updates=ai_contact=ai_solid=ai_direct_write=ai_canonical=0;
     memset(actor_updates,0,sizeof actor_updates);
     hit_result[0]=hit_result[1]=0;
@@ -493,21 +516,6 @@ static void armor_handoff(void) {
     setup_armor();second_vehicle[0]=1;mount_accept[1]=1;
     invoke_armor();CHECK(armor_updates==1 && !mount_checks);
 }
-static void survivor_pools(void) {
-    const uint32_t pools[]={0x80021234u,0x8002144Cu};
-    for (unsigned i=0;i<2;++i) {
-        setup();alive[0]=0;
-        psx_mod_write_byte(MMX4_PLAYER+0xBC,5);
-        CHECK(invoke(pools[i])==0x1234u && ai_updates==1);
-        CHECK(observed_target_x==30u<<16 && observed_target_y==20u<<16);
-        CHECK(!observed_freeze);
-        CHECK(psx_mod_read_word(MMX4_PLAYER+8)==10u<<16);
-        CHECK(psx_mod_read_word(MMX4_PLAYER+12)==20u<<16);
-        CHECK(psx_mod_read_byte(MMX4_PLAYER+0xBC)==5);
-        alive[0]=1;CPUState cpu={0};
-        CHECK(!filter(pools[i])(&cpu,pools[i]) && ai_updates==1);
-    }
-}
 static void independent_hit_tokens(void) {
     setup();token_model=1;attack_present[0]=attack_present[1]=1;
     attack_token[0]=attack_token[1]=1;
@@ -536,7 +544,7 @@ static void independent_hit_tokens(void) {
     CHECK(invoke(HIT)==1 && invoke(HIT)==1 && consumed==2); /* Native zero-token semantics. */
 }
 static void setup_split_actors(unsigned shots) {
-    setup();split=1;
+    setup();split=target_camera_mode;
     uint32_t first=shots?0x8013F328u:0x8013BED0u;
     for(unsigned index=0;index<2;++index) {
         uint32_t actor=first+index*0x9Cu;
@@ -548,6 +556,7 @@ static void setup_split_actors(unsigned shots) {
 }
 static void split_native_targets(void) {
     const uint32_t pools[]={0x80021234u,0x8002144Cu};
+    for(target_camera_mode=0;target_camera_mode<2;++target_camera_mode)
     for(unsigned shots=0;shots<2;++shots) {
         setup_split_actors(shots);ai_direct_write=1;
         CHECK(invoke(pools[shots])==0x1234u);
@@ -585,15 +594,53 @@ static void split_native_targets(void) {
         uint32_t first=shots?0x8013F328u:0x8013BED0u;
         psx_mod_write_word(first+8,20u<<16);psx_mod_write_byte(first+0x9Cu,0);
         invoke(pools[shots]);CHECK(actor_updates[0]==1 && !actor_updates[1]);
+        setup_split_actors(shots);script_owner=1;invoke(pools[shots]);
+        CHECK(!actor_updates[0] && actor_updates[1]==2 && !projected);
     }
     setup();CPUState cpu={0};cpu.gpr[2]=NATIVE_AI;cpu.gpr[4]=0x8013BED0u;
     redirects[0](&cpu,0x80021300u);CHECK(cpu.gpr[2]==NATIVE_AI);
 }
 int main(void) {
-    CHECK(filter_count==15);
-    accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();survivor_pools();independent_hit_tokens();
+    CHECK(filter_count==17);
+    accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();independent_hit_tokens();
     split_native_targets();
     death_particle_ownership();
+    for(unsigned campaign=0;campaign<2;++campaign)for(unsigned target=0;target<2;++target) {
+        setup();water_updates=0;
+        psx_mod_write_byte(MMX4_PLAYER+2,(uint8_t)campaign);second[2]=(uint8_t)(campaign^1u);
+        psx_mod_write_word(MMX4_PLAYER+8,20u<<16);second[10]=80;
+        psx_mod_write_word(DOUBLE_BODY+8,30u<<16);second_double[10]=90;
+        second[0x15]=second_double[0x15]=0x40;
+        allocated_actor=EFFECT;mmx4_coop_enter_second();invoke(EFFECT_ALLOC);mmx4_coop_leave_second();
+        psx_mod_write_byte(EFFECT,0x41);psx_mod_write_byte(EFFECT+1,7);
+        psx_mod_write_byte(EFFECT+2,(uint8_t)(target*2));
+        CPUState water={0};water.gpr[4]=EFFECT;
+        CHECK(filter(WATER)(&water,WATER) && water.gpr[2]==0x76543210u && water_updates==1 && !projected);
+        CHECK(psx_mod_read_word(EFFECT+8)==(target?90u:80u)<<16);
+        CHECK(psx_mod_read_byte(EFFECT+0x15)==0x40);
+        CHECK(psx_mod_read_word(MMX4_PLAYER+8)==20u<<16);
+        /* Reusing this shared effect slot for P1 clears P2 ownership. */
+        invoke(EFFECT_ALLOC);CHECK(!filter(WATER)(&(CPUState){.gpr={[4]=EFFECT}},WATER));
+    }
+    /* X/P2's shared delayed release must use X's body and private pool,
+     * without consuming Zero/P1's shot accounting. Reuse clears ownership. */
+    setup();second[2]=0;psx_mod_write_byte(MMX4_PLAYER+2,1);
+    second[0x98]=1;psx_mod_write_byte(MMX4_PLAYER+0x98,2);charge_updates=0;
+    allocated_actor=EFFECT;mmx4_coop_enter_second();invoke(EFFECT_ALLOC);mmx4_coop_leave_second();
+    psx_mod_write_byte(EFFECT,0x21);psx_mod_write_byte(EFFECT+1,2);
+    CPUState charge={0};charge.gpr[4]=EFFECT;
+    CHECK(filter(0x800AEED8u)(&charge,0x800AEED8u) && charge.gpr[2]==0x12345678u);
+    CHECK(charge_updates==1 && !second[0x98] && psx_mod_read_byte(MMX4_PLAYER+0x98)==2);
+    CHECK(psx_mod_read_word(EFFECT+8)==30u<<16 && !projected);
+    /* Cancelling P2's emitter preserves P1's emitter and both water actors. */
+    psx_mod_write_byte(EFFECT+0x70,0x21);psx_mod_write_byte(EFFECT+0x71,2);
+    psx_mod_write_byte(EFFECT+0xE0,0x41);psx_mod_write_byte(EFFECT+0xE1,7);
+    mmx4_coop_enter_second();mmx4_coop_combat_clear_current_effects();mmx4_coop_leave_second();
+    CHECK(!psx_mod_read_byte(EFFECT) && psx_mod_read_byte(EFFECT+0x70) && psx_mod_read_byte(EFFECT+0xE0));
+    mmx4_coop_combat_clear_current_effects();CHECK(!psx_mod_read_byte(EFFECT+0x70));
+    CHECK(psx_mod_read_byte(EFFECT+0xE0));
+    invoke(EFFECT_ALLOC);CHECK(!filter(0x800AEED8u)(&charge,0x800AEED8u));
+
     /* A nonlethal saber hit pauses its owner. The other seat continues;
      * accepted-hit callbacks must not repeatedly arm that owner's +BD while
      * the original player routine is counting down +BC. */

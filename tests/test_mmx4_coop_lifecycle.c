@@ -3,6 +3,7 @@
  * the original executable stage/menu/vehicle matrix remains required. */
 #include "mmx4_coop_internal.h"
 #include <stdio.h>
+int psx_mod_local_view_scope(void) {return 0;}
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -10,7 +11,9 @@
 static uint8_t ram[0x200000],p2[0xE4],p1_backup[0xE4];
 static uint8_t p2_vehicle[0xB0],p1_vehicle_backup[0xB0];
 static unsigned projected,ready=1,world_calls,observed_campaign,collect_calls[2];
-static unsigned pause_commit,pause_exit;
+static unsigned pause_commit,pause_exit,world_draws;
+static unsigned reward_calls,save_calls,observed_menu_select;
+static uint8_t saved_palette_dirty;
 static int split_views;
 static unsigned stage_script_calls,scene_calls,observed_controls;
 static unsigned boundary_calls[2];
@@ -55,6 +58,7 @@ int mmx4_coop_split_views(void) {return split_views;}
 int mmx4_coop_projected(void) {return (int)projected;}
 uint8_t *mmx4_coop_second_body(void) {return p2;}
 uint8_t *mmx4_coop_second_vehicle(void) {return p2_vehicle;}
+uint8_t *mmx4_coop_first_vehicle(void) {return p1_vehicle_backup;}
 void mmx4_coop_clear_current_attacks(void) {}
 uint16_t mmx4_coop_input(unsigned seat) {return inputs[seat];}
 int mmx4_coop_finish(CPUState *cpu,uint32_t v) {cpu->gpr[2]=v;return 1;}
@@ -71,6 +75,7 @@ int mmx4_coop_alive(unsigned seat) {
 }
 void mmx4_coop_enter_second(void) {
     assert(!projected);
+    saved_palette_dirty=psx_mod_read_byte(0x80166BB0u);
     for(unsigned i=0;i<sizeof p2;++i) {
         p1_backup[i]=psx_mod_read_byte(MMX4_PLAYER+i);
         psx_mod_write_byte(MMX4_PLAYER+i,p2[i]);
@@ -88,6 +93,7 @@ void mmx4_coop_leave_second(void) {
         psx_mod_write_byte(MMX4_PLAYER+i,p1_backup[i]);
     }
     projected=0;
+    psx_mod_write_byte(0x80166BB0u,saved_palette_dirty);
     for(unsigned i=0;i<sizeof p2_vehicle;++i) {
         p2_vehicle[i]=psx_mod_read_byte(MMX4_VEHICLE+i);
         psx_mod_write_byte(MMX4_VEHICLE+i,p1_vehicle_backup[i]);
@@ -123,7 +129,6 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         else {psx_mod_write_byte(MMX4_PLAYER+4,3);psx_mod_write_byte(MMX4_PLAYER+3,0);}
         break;
     case 0x80031410:
-        psx_mod_write_word(MMX4_PLAYER+12,psx_mod_read_word(MMX4_PLAYER+12)+(96u<<16));
         psx_mod_write_byte(MMX4_PLAYER+4,1);psx_mod_write_byte(MMX4_PLAYER+5,2);
         psx_mod_write_byte(MMX4_PLAYER+6,0);psx_mod_write_byte(MMX4_PLAYER+0x46,0);
         break;
@@ -134,18 +139,30 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         break;
     case 0x80021158:
         ++world_calls;observed_campaign=psx_mod_read_byte(MMX4_PLAY+0x43);break;
+    case 0x80023D68:
+        ++world_draws;assert(!projected);
+        assert(psx_mod_read_byte(MMX4_PLAY+0x43)==psx_mod_read_byte(MMX4_PLAYER+2));
+        break;
     case 0x80021D20:
         ++dialogue_calls;dialogue_edge=psx_mod_read_half(0x80166C0Cu);
         observed_campaign=psx_mod_read_byte(MMX4_PLAY+0x43);assert(!projected);break;
     case 0x8002FCAC:
         observed_campaign=psx_mod_read_byte(MMX4_PLAY+0x43);
+        observed_menu_select=psx_mod_read_half(0x80166C0Cu)&0x100u;
         if(pause_commit) {
             psx_mod_write_byte(MMX4_PLAYER+0x5C,(uint8_t)(psx_mod_read_byte(MMX4_PLAYER+0x5C)+1));
             psx_mod_write_byte(MMX4_PLAY+0x5C,(uint8_t)(psx_mod_read_byte(MMX4_PLAY+0x5C)-1));
         }
         if(pause_exit) {
+            /* Native 80031014 requests a palette upload, 80031064 updates
+             * the world, and 80031130 draws it after changing PLAY+1. */
+            psx_mod_write_byte(0x80166BB0u,
+                (uint8_t)(psx_mod_read_byte(0x80166BB0u)|1u));
             mmx4_coop_call(cpu,0x80021158u,0,0);
             psx_mod_write_byte(MMX4_PLAY+1,0);
+            mmx4_coop_call(cpu,0x80023D68u,0,0);
+        }else {
+            mmx4_coop_call(cpu,0x80023D68u,0,0);
         }
         break;
     case 0x800C00BC:
@@ -173,7 +190,24 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         psx_mod_write_byte(MMX4_PLAY+0x1C,1);psx_mod_write_byte(MMX4_PLAYER+4,3);
         break;
     case 0x8001FA24:
-        psx_mod_write_byte(MMX4_PLAY+0x59,5);psx_mod_write_byte(MMX4_PLAYER+0xB9,5);break;
+        ++reward_calls;
+        psx_mod_write_byte(MMX4_PLAY+0x59,(uint8_t)(psx_mod_read_byte(MMX4_PLAY+0x59)|
+            (1u<<(psx_mod_read_byte(MMX4_PLAY+0x26)-1u))));
+        psx_mod_write_byte(MMX4_PLAYER+0xB9,(uint8_t)(psx_mod_read_byte(MMX4_PLAYER+0xB9)|
+            (1u<<(psx_mod_read_byte(MMX4_PLAY+0x26)-1u))));
+        psx_mod_write_word(MMX4_PLAY,9);
+        for(unsigned at=0x26;at<0x36;++at)psx_mod_write_byte(MMX4_PLAY+at,0);
+        break;
+    case 0x8001C07C:
+    case 0x8001C3E8: {
+        ++save_calls;assert(!projected);
+        /* Original native record offsets: character, maxHP, additional
+         * upgrade, armor, completed stages, story and heart/tank flags. */
+        static const unsigned fields[]={0x43,0x46,0x48,0x47,0x59,0x5F,0x5A,0x5B};
+        uint32_t record=address==0x8001C3E8?0x800F1D90u:0x80168000u;
+        for(unsigned i=0;i<8;++i)psx_mod_write_byte(record+i,psx_mod_read_byte(MMX4_PLAY+fields[i]));
+        break;
+    }
     case 0x800C6EDC:
         psx_mod_write_byte(MMX4_PLAY+0x47,2);psx_mod_write_byte(MMX4_PLAYER+0xA7,2);break;
     case 0x8002166C:
@@ -226,14 +260,15 @@ static void reset(void) {
     CPUState cpu={0};memset(ram,0,sizeof ram);memset(p2,0,sizeof p2);
     memset(p2_vehicle,0,sizeof p2_vehicle);
     fresh_game(&cpu,0);projected=0;inputs[0]=inputs[1]=0;
-    world_calls=observed_campaign=pause_commit=pause_exit=0;
+    world_calls=observed_campaign=pause_commit=pause_exit=world_draws=0;
     stage_script_calls=scene_calls=observed_controls=p2_solid_bits=0;
     memset(boundary_calls,0,sizeof boundary_calls);
     dialogue_calls=dialogue_edge=0;
     collect_calls[0]=collect_calls[1]=0;ready=1;split_views=0;
     psx_mod_write_byte(MMX4_PLAYER,1);psx_mod_write_byte(MMX4_PLAYER+3,1);
     psx_mod_write_byte(MMX4_PLAYER+4,1);psx_mod_write_byte(MMX4_PLAYER+0x5C,16);
-    p2[0]=p2[3]=p2[4]=1;p2[2]=1;p2[0x5C]=12;
+    psx_mod_write_byte(MMX4_PLAYER+5,2);
+    p2[0]=p2[3]=p2[4]=1;p2[5]=2;p2[2]=1;p2[0x5C]=12;
     psx_mod_write_byte(MMX4_PLAY,6);psx_mod_write_byte(MMX4_PLAY+0x46,32);
     psx_mod_write_byte(MMX4_PLAY+0x44,2);
     mmx4_coop_enter_second();mmx4_coop_leave_second();
@@ -280,14 +315,15 @@ int main(void) {
     warp_phase=0;psx_mod_write_byte(0x801419F4u,0);
     mmx4_coop_lifecycle_camera_bounds(&cpu,0);CHECK(!boundary_calls[1]);
     reset();
-    /* A private upgrade must not overwrite P1 or the acquired shared pool. */
+    /* Permanent upgrades belong to one campaign regardless of collector.
+     * Projection must preserve a new heart, maxHP and shared tank energy. */
     psx_mod_write_byte(MMX4_PLAY+0x5C,0x89);psx_mod_write_half(MMX4_PLAY+0x5A,0x3000);
     mmx4_coop_enter_second();
     psx_mod_write_byte(MMX4_PLAY+0x46,34);psx_mod_write_byte(MMX4_PLAY+0x5A,4);
     psx_mod_write_byte(MMX4_PLAY+0x5C,0x88);mmx4_coop_lifecycle_project();
     mmx4_coop_leave_second();
-    CHECK(psx_mod_read_byte(MMX4_PLAY+0x46)==32);
-    CHECK(psx_mod_read_half(MMX4_PLAY+0x5A)==0x3000);
+    CHECK(psx_mod_read_byte(MMX4_PLAY+0x46)==34);
+    CHECK(psx_mod_read_half(MMX4_PLAY+0x5A)==0x3004);
     CHECK(psx_mod_read_byte(MMX4_PLAY+0x5C)==0x88);
     mmx4_coop_enter_second();CHECK(psx_mod_read_byte(MMX4_PLAY+0x46)==34);
     CHECK(psx_mod_read_byte(MMX4_PLAY+0x5A)==4);mmx4_coop_leave_second();
@@ -295,13 +331,14 @@ int main(void) {
     mmx4_coop_enter_second();mmx4_coop_leave_second();
     CHECK(digest==mmx4_coop_lifecycle_digest(2166136261u));
     mmx4_coop_enter_second();digest=mmx4_coop_lifecycle_digest(2166136261u);
-    saved_inventory.max_hp=34;
+    saved_inventory.hp=7;
     CHECK(digest!=mmx4_coop_lifecycle_digest(2166136261u));
-    saved_inventory.max_hp=32;mmx4_coop_leave_second();
-    /* Changing campaign rebuilds the counterpart's private campaign state. */
+    saved_inventory.hp=0;mmx4_coop_leave_second();
+    /* Changing the selected campaign changes P2's character, with the same
+     * permanent maxHP/heart progress and fresh transient inventory. */
     psx_mod_write_byte(MMX4_PLAY+0x43,1);mmx4_coop_enter_second();
     CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==0);
-    CHECK(psx_mod_read_byte(MMX4_PLAY+0x46)==32);mmx4_coop_leave_second();
+    CHECK(psx_mod_read_byte(MMX4_PLAY+0x46)==34);mmx4_coop_leave_second();
 
     reset();inputs[0]=inputs[1]=START;mmx4_coop_call(&cpu,0x8001FF8Cu,PLAY,0);
     CHECK(menu_active && menu_owner==0 && psx_mod_read_byte(PLAY+1)==2);
@@ -311,8 +348,11 @@ int main(void) {
     mmx4_coop_call(&cpu,0x8002FCACu,MENU,0);
     CHECK(p2[0x5C]==13 && psx_mod_read_byte(PLAYER+0x5C)==16);
     CHECK(psx_mod_read_byte(PLAY+0x5C)==0x87 && observed_campaign==1);
+    CHECK(world_draws==1);
+    psx_mod_write_byte(0x80166BB0u,2);
     pause_commit=0;pause_exit=1;mmx4_coop_call(&cpu,0x8002FCACu,MENU,0);
     CHECK(!menu_active && !projected && world_calls==1 && observed_campaign==0);
+    CHECK(world_draws==2 && psx_mod_read_byte(0x80166BB0u)==3);
 
     /* A P2 collection heals P2 on later native actor ticks. */
     reset();uint32_t actor=0x8013D000u;
@@ -367,17 +407,56 @@ int main(void) {
     mmx4_coop_call(&cpu,0x80035A6Cu,PLAYER,0);mmx4_coop_leave_second();
     CHECK(!psx_mod_read_byte(PLAY+0x12) && !psx_mod_read_byte(PLAY+0x1C));
 
-    reset();mmx4_coop_call(&cpu,0x8001FA24u,PLAY,0);
+    reset();psx_mod_write_byte(PLAY+0x59,4);psx_mod_write_byte(PLAYER+0xB9,4);
+    psx_mod_write_byte(PLAY+0x26,1);mmx4_coop_call(&cpu,0x8001FA24u,PLAY,0);
     CHECK(psx_mod_read_byte(PLAYER+0xB9)==5 && p2[0xB9]==5);
+    CHECK(psx_mod_read_byte(0x800F1D94u)==5);
     psx_mod_write_byte(PLAYER+2,1);psx_mod_write_byte(PLAY+0x43,1);p2[2]=0;
     mmx4_coop_call(&cpu,0x800C6EDCu,actor,0);
     CHECK(p2[0xA7]==2 && !psx_mod_read_byte(PLAYER+0xA7));
-    CHECK(!psx_mod_read_byte(PLAY+0x47));
+    CHECK(psx_mod_read_byte(PLAY+0x47)==2);
+
+    /* A P2-triggered completion updates canonical body, campaign, Continue
+     * record and both ability copies once, in either character order. */
+    for(unsigned campaign=0;campaign<2;++campaign) {
+        reset();reward_calls=save_calls=0;
+        psx_mod_write_byte(PLAY+0x43,(uint8_t)campaign);
+        psx_mod_write_byte(PLAYER+2,(uint8_t)campaign);p2[2]=(uint8_t)(campaign^1u);
+        psx_mod_write_byte(PLAY+0x59,1);psx_mod_write_byte(PLAYER+0xB9,1);p2[0xB9]=1;
+        psx_mod_write_byte(PLAY+0x26,5);
+        mmx4_coop_enter_second();mmx4_coop_call(&cpu,0x8001FA24u,PLAY,0);
+        CHECK(projected && psx_mod_read_byte(PLAY+0x43)==(campaign^1u));
+        mmx4_coop_leave_second();
+        CHECK(psx_mod_read_byte(PLAY+0x43)==campaign);
+        CHECK(psx_mod_read_byte(PLAY+0x59)==17 && psx_mod_read_byte(PLAYER+0xB9)==17 && p2[0xB9]==17);
+        CHECK(psx_mod_read_byte(0x800F1D90u)==campaign && psx_mod_read_byte(0x800F1D94u)==17);
+        mmx4_coop_enter_second();mmx4_coop_call(&cpu,0x8001FA24u,PLAY,0);mmx4_coop_leave_second();
+        CHECK(reward_calls==1 && save_calls==1);
+        for(unsigned writer=0;writer<2;++writer) {
+            psx_mod_write_byte(PLAY+0x46,36);psx_mod_write_byte(PLAY+0x47,3);
+            psx_mod_write_byte(PLAY+0x5A,3);psx_mod_write_byte(PLAY+0x45,9);
+            mmx4_coop_enter_second();psx_mod_write_byte(PLAY+0x45,4);
+            mmx4_coop_call(&cpu,writer?0x8001C07Cu:0x8001C3E8u,0,0);
+            CHECK(projected && psx_mod_read_byte(PLAY+0x45)==4);
+            mmx4_coop_leave_second();
+            uint32_t record=writer?0x80168000u:0x800F1D90u;
+            CHECK(psx_mod_read_byte(record)==campaign && psx_mod_read_byte(record+1)==36);
+            CHECK(psx_mod_read_byte(record+3)==3 && psx_mod_read_byte(record+4)==17);
+            CHECK(psx_mod_read_byte(record+6)==3 && psx_mod_read_byte(PLAY+0x45)==9);
+        }
+        psx_mod_write_word(PLAY,6);psx_mod_write_byte(PLAY+1,2);
+        menu_active=1;menu_owner=1;inputs[1]=SELECT;menu_previous[1]=0;
+        mmx4_coop_call(&cpu,0x8002FCACu,MENU,0);CHECK(!observed_menu_select);
+        menu_owner=0;inputs[0]=SELECT;menu_previous[0]=0;
+        mmx4_coop_call(&cpu,0x8002FCACu,MENU,0);CHECK(observed_menu_select==SELECT);
+    }
 
     reset();mmx4_coop_lifecycle_reset();p2[4]=3;p2[0x5C]=0;
     psx_mod_write_byte(PLAY+0x0D,1);mmx4_coop_lifecycle_reset();
     memset(p2,0,sizeof p2);p2[0]=p2[3]=p2[4]=1;p2[0x5C]=32;
+    p2_vehicle[0]=p2_vehicle[3]=1;
     mmx4_coop_lifecycle_enrolled(&cpu);CHECK(p2[4]==3 && !p2[0x5C] && !p2[3]);
+    CHECK(!p2_vehicle[0] && !p2_vehicle[3]);
     full_stage(&cpu,0);mmx4_coop_lifecycle_reset();
     p2[4]=1;p2[3]=1;p2[0x5C]=32;mmx4_coop_lifecycle_enrolled(&cpu);
     CHECK(p2[4]==1 && p2[0x5C]==32);
@@ -392,8 +471,10 @@ int main(void) {
     psx_mod_write_byte(PLAYER+4,0);psx_mod_write_byte(PLAYER+0x5C,0);
     mmx4_coop_lifecycle_reset();
     psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+0x5C,32);
+    psx_mod_write_byte(MMX4_VEHICLE,1);psx_mod_write_byte(MMX4_VEHICLE+3,1);
     mmx4_coop_lifecycle_enrolled(&cpu);
     CHECK(psx_mod_read_byte(PLAYER+4)==3 && !psx_mod_read_byte(PLAYER+0x5C));
+    CHECK(!psx_mod_read_byte(MMX4_VEHICLE) && !psx_mod_read_byte(MMX4_VEHICLE+3));
     CHECK(p2[0x5C]==12 && p2[4]==1);
 
     /* A living P1 must not turn into a corpse when the same native clear
@@ -412,6 +493,71 @@ int main(void) {
         CHECK(psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0x5C)==32);
         CHECK(p2[4]==1 && p2[0x5C]==12);
     }
+
+    /* A healthy scripted OWNER also ends in native state3, without being
+     * the hidden passenger. Native Jungle type5 arg0 requests PLAY0F=40
+     * before section0->1. Neither owner may be carried as a death. */
+    for(unsigned owner=0;owner<2;++owner)for(unsigned full=0;full<2;++full) {
+        reset();mmx4_coop_lifecycle_reset();
+        psx_mod_write_byte(PLAY+0x0F,0x40);
+        if(owner)p2[4]=3;else psx_mod_write_byte(PLAYER+4,3);
+        if(full) {psx_mod_write_byte(PLAY+0x0D,1);full_stage(&cpu,0);}
+        stage_initialization(&cpu,0);
+        mmx4_coop_lifecycle_reset();
+        CHECK(carry_resources && !carry_dead && !carry_first_dead);
+        psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+0x5C,16);
+        p2[0]=p2[3]=p2[4]=1;p2[0x5C]=32;
+        mmx4_coop_lifecycle_enrolled(&cpu);
+        CHECK(p2[4]==1 && p2[0x5C]==12);
+        CHECK(psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0x5C)==16);
+    }
+    for(unsigned seat=0;seat<2;++seat) {
+        reset();
+        if(seat)p2[4]=2;else psx_mod_write_byte(PLAYER+4,2);
+        CHECK(seat_was_dead(seat));
+        if(seat) {p2[4]=3;p2[0x5C]=0;}
+        else {psx_mod_write_byte(PLAYER+4,3);psx_mod_write_byte(PLAYER+0x5C,0);}
+        CHECK(seat_was_dead(seat));
+        if(seat) {p2[4]=4;p2[0x5C]=12;}
+        else {psx_mod_write_byte(PLAYER+4,4);psx_mod_write_byte(PLAYER+0x5C,16);}
+        CHECK(!seat_was_dead(seat));
+    }
+
+    /* Frontend PLAYER clearing must not carry deaths/withdrawal into a
+     * fresh entry of the same stage. Forward transfers above bypass it. */
+    for(unsigned previous=0;previous<3;++previous) {
+        reset();psx_mod_write_byte(PLAY+0x0D,1);mmx4_coop_lifecycle_reset();
+        psx_mod_write_byte(PLAY+0x43,1);psx_mod_write_byte(PLAY+0x47,3);
+        psx_mod_write_byte(PLAY+0x48,2);psx_mod_write_byte(PLAY+0x59,17);
+        if(previous==1) {p2[4]=3;p2[0x5C]=0;}
+        if(previous==2) {departed=1;p2[0]=p2[3]=0;}
+        stage_selection(&cpu,0x8002E420u);
+        CHECK(!stage_known && !first_before_clear_valid);
+        psx_mod_write_byte(PLAYER+4,0);psx_mod_write_byte(PLAYER+0x5C,0);
+        psx_mod_write_byte(PLAY+0x0D,0);full_stage(&cpu,0);stage_initialization(&cpu,0);
+        mmx4_coop_lifecycle_reset();
+        CHECK(!carry_resources && !carry_first_dead && !carry_dead && !carry_departure);
+        CHECK(psx_mod_read_byte(PLAY+0x43)==1 && psx_mod_read_byte(PLAY+0x47)==3);
+        CHECK(psx_mod_read_byte(PLAY+0x48)==2 && psx_mod_read_byte(PLAY+0x59)==17);
+        psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+0x5C,32);
+        p2[0]=p2[3]=p2[4]=1;p2[0x5C]=32;
+        mmx4_coop_lifecycle_enrolled(&cpu);
+        CHECK(psx_mod_read_byte(PLAYER+4)==1 && psx_mod_read_byte(PLAYER+0x5C)==32);
+        CHECK(p2[0x5C]==32 && !departed);
+    }
+
+    /* Permanent upgrades follow P1; X's native weapon override stays local.
+     * Native8003718C treats any nonzero A6 as a forced weapon13 selection. */
+    reset();p2[0xA6]=0x55;p2[0xB8]=0x66;
+    psx_mod_write_byte(PLAY+0x47,3);psx_mod_write_byte(PLAY+0x59,17);
+    for(unsigned upgrade=1;upgrade<=2;++upgrade) {
+        psx_mod_write_byte(PLAY+0x48,(uint8_t)upgrade);
+        mmx4_coop_lifecycle_follow_progress(p2,0);
+        CHECK(p2[0xA7]==3 && p2[0xB8]==upgrade && p2[0xB9]==17 && p2[0xA6]==0x55);
+    }
+    p2[0xA7]=0x88;p2[0xB8]=0x66;
+    mmx4_coop_lifecycle_follow_progress(p2,1);
+    CHECK(p2[0xA7]==0x88 && p2[0xB8]==0x66 && p2[0xA6]==0x55 && p2[0xB9]==17);
 
     /* An outgoing passenger uses the native finished-beam state 3 while
      * still having health. An area transfer must preserve that living seat. */
@@ -470,7 +616,50 @@ int main(void) {
     mmx4_coop_lifecycle_tick(&cpu); /* Native returning-pose completion. */
     CHECK(!departed && mmx4_coop_alive(1) && p2[0x5C]==12);
     CHECK(p2[10]==0x34 && p2[11]==0x12 && p2[14]==0x56 && p2[15]==0x34);
+    CHECK(p2[0x15]==0x40 && p2_vehicle[0x15]==0x40);
     CHECK(!projected);
+
+    /* A passenger starts the native incoming pose at the owner's landing
+     * height, facing right. Preserve its camera index and P1's facing. */
+    reset();p2[0x14]=2;p2[0x15]=p2_vehicle[0x15]=0;
+    psx_mod_write_byte(PLAYER+0x15,0);
+    position_return(&cpu,1,320u<<16,144u<<16,1,1,1,1);
+    start_arrival(&cpu,1);
+    CHECK(body_word(p2,12)==144u<<16 && body_word(p2,0x1C)==144u<<16);
+    CHECK(p2[0x14]==2 && p2[0x15]==0x40 && p2_vehicle[0x15]==0x40);
+    CHECK(!psx_mod_read_byte(PLAYER+0x15) && !projected);
+
+    /* A winner's state3 is a completed departure, not a dead owner to rescue.
+     * Finish either passenger's outgoing beam during completion, so native
+     * stage termination sees canonical state3; keep the passenger outside. */
+    for(unsigned owner=0;owner<2;++owner) {
+        reset();script_active=1;script_owner=owner;request_script_departure(owner);
+        mmx4_coop_lifecycle_tick(&cpu);CHECK(warp_phase==3);
+        psx_mod_write_byte(PLAY+0x0F,1);
+        if(owner)p2[4]=3;else psx_mod_write_byte(PLAYER+4,3);
+        mmx4_coop_lifecycle_tick(&cpu);CHECK(warp_phase==1);
+        CHECK(psx_mod_read_byte(PLAYER+4)==3);
+        CHECK(owner==0 || !psx_mod_read_byte(PLAYER));
+        CHECK(owner==1 || !p2[0]);
+        CHECK(p2[4]==3);
+        mmx4_coop_lifecycle_tick(&cpu);CHECK(warp_phase==1);
+    }
+
+    /* Native room fades and victory actions cannot reopen the passenger. */
+    for(unsigned gate=0;gate<3;++gate) {
+        reset();warp_owner=0;warp_phase=1;warp_active=warp_visible=1;
+        p2[0]=p2[3]=0;psx_mod_write_byte(PLAYER+0x89,8);
+        if(gate==0)psx_mod_write_byte(PLAY+1,1);
+        if(gate==1)psx_mod_write_byte(PLAY+0x0F,1);
+        if(gate==2)psx_mod_write_byte(PLAYER+5,0x14);
+        for(unsigned i=0;i<6;++i)mmx4_coop_lifecycle_tick(&cpu);
+        CHECK(warp_phase==1 && !p2[0] && !p2[3]);
+        psx_mod_write_byte(PLAY+1,0);psx_mod_write_byte(PLAY+0x0F,0);
+        psx_mod_write_byte(PLAYER+5,2);psx_mod_write_word(PLAYER+12,144u<<16);
+        for(unsigned i=0;i<3;++i)mmx4_coop_lifecycle_tick(&cpu);
+        CHECK(warp_phase==2 && body_word(p2,12)==144u<<16);
+        mmx4_coop_lifecycle_tick(&cpu);CHECK(!warp_phase && mmx4_coop_alive(1));
+    }
 
     /* Marine Base prohibits withdrawal for the whole bike sequence, even
      * during frames where native mounting fields temporarily clear. */
@@ -488,6 +677,23 @@ int main(void) {
     psx_mod_write_byte(PLAY+0x1D,1);
     for(unsigned i=0;i<90;++i)mmx4_coop_lifecycle_tick(&cpu);
     CHECK(departed); /* Foot control after the bike sequence remains eligible. */
+
+    /* Personal native control locks cannot be escaped by Select. A queued
+     * voluntary return also waits until fades/victory actually finish. */
+    static const unsigned lock_offsets[]={0xC0,0xC3,0xC4,0x67,0xBC};
+    for(unsigned k=0;k<sizeof lock_offsets/sizeof lock_offsets[0];++k) {
+        reset();inputs[1]=SELECT;p2[lock_offsets[k]]=1;
+        for(unsigned i=0;i<100;++i)mmx4_coop_lifecycle_tick(&cpu);
+        CHECK(!departed && !select_ticks && mmx4_coop_alive(1));
+    }
+    reset();departed=rejoin_pending=1;psx_mod_write_byte(PLAYER+0x89,8);
+    psx_mod_write_byte(PLAYER+5,0x13);
+    for(unsigned i=0;i<4;++i)mmx4_coop_lifecycle_tick(&cpu);
+    CHECK(departed && rejoin_pending && !warp_phase);
+    psx_mod_write_byte(PLAYER+5,2);psx_mod_write_byte(PLAY+0x0F,1);
+    mmx4_coop_lifecycle_tick(&cpu);CHECK(departed && !warp_phase);
+    psx_mod_write_byte(PLAY+0x0F,0);mmx4_coop_lifecycle_tick(&cpu);
+    CHECK(!departed && warp_phase==2);
 
     reset();psx_mod_write_byte(PLAYER+4,3);psx_mod_write_byte(PLAYER+0x5C,0);
     inputs[1]=SELECT;for(unsigned i=0;i<100;++i)mmx4_coop_lifecycle_tick(&cpu);
@@ -600,5 +806,18 @@ int main(void) {
     psx_mod_write_byte(actor+5,3);mmx4_coop_call(&cpu,0x800C1994u,actor,0);
     CHECK(script_active && script_owner==1 && script_serial==chained_serial && !p2[0xC4]);
     CHECK(p2[0xC0]==1);
+    /* P2's bike waits for the same READY actor without allocating/restarting
+     * it. Ordinary allocations and the campaign owner's bike remain native. */
+    reset();uint32_t ready=0x80142F98u;
+    psx_mod_write_word(MMX4_VEHICLE+0xA0,ready);
+    psx_mod_write_byte(ready,1);psx_mod_write_byte(ready+1,0x1B);
+    psx_mod_write_byte(ready+5,2);cpu.gpr[31]=0x8003B64Cu;
+    CHECK(!shared_ride_ready(&cpu,0x8002AD7Cu));
+    mmx4_coop_enter_second();
+    CHECK(shared_ride_ready(&cpu,0x8002AD7Cu) && cpu.gpr[2]==0);
+    CHECK(psx_mod_read_word(MMX4_VEHICLE+0xA0)==ready);
+    CHECK(psx_mod_read_byte(ready+5)==2);
+    cpu.gpr[31]=0x8001FE8Cu;CHECK(!shared_ride_ready(&cpu,0x8002AD7Cu));
+    mmx4_coop_leave_second();CHECK(body_word(p2_vehicle,0xA0)==ready);
     puts("co-op lifecycle ownership checks passed");return 0;
 }

@@ -43,7 +43,7 @@ Important files:
 
 ## Status
 
-The [co-op playtest](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.2)
+The [co-op playtest](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.3)
 adds simultaneous X and Zero with vertically stacked lifebars. Enable
 **X + Zero Co-op (Playtest)** in Mods for local play, or use the **X + Zero
 Co-op** netplay profile. Use OpenGL and the same release on both computers.
@@ -54,6 +54,10 @@ player an independent view; the host chooses for both peers. Offline co-op
 uses Unified. Split health pickups refill only their collector without pausing
 the partner; Unified retains the native shared pause. Actual scene changes
 still teleport living partners together.
+
+Player 1 owns the campaign and permanent progress. Playtest Diagnostics
+defaults on, showing both accepted input streams and recording each run
+with its starting cards/mod choices under `saves/diagnostics`.
 
 The Windows ZIP and Linux x86_64 AppImage have limited stage coverage. The
 AppImage requires glibc 2.38 or newer. Split performance can fall
