@@ -1,4 +1,88 @@
-# Mega Man X4 Recompiled — v0.1.0-alpha
+# Mega Man X4 Recompiled — v0.1.1-coop-playtest.2
+
+Windows and Linux two-player co-op playtest. Unified cameras and vertically
+stacked lifebars are the defaults; Split cameras remain experimental.
+
+- The launcher exposes Netplay and its two-player lobby on both platforms.
+- Local play offers separate Player 1/Player 2 controller assignments,
+  including two controllers of the same model.
+- Player 2 uses their own character's attack, hurt and death audio. Private
+  audio banks prevent the campaign character's samples from replacing them.
+- Player 2's death particles start at their own position, with red particles
+  for Zero and blue particles for X, while Player 1 stays alive.
+- Both lifebars share the left anchor in widescreen. Mods offers **Stacked**
+  (default) and **Side by side** HUD layouts.
+- Player 2 no longer appears on the Quit Game screen.
+
+The owner approved the exact Windows build after checking P2 damage following
+pause/resume, death-particle ownership/color, both character voice orders,
+HUD alignment/layout and Quit Game drawing. The candidate passed all 14 title
+checks; Linux also passed them and the native private-audio-bank regression.
+The Windows download packages that tested executable without rebuilding it.
+
+Enable **X + Zero Co-op** in Mods for local play and assign both players under
+Controls. For online play, select **Netplay** and the **X + Zero Co-op** profile.
+The host chooses cameras/HUD layout for both peers. Use the same release on
+both computers. Offline play uses Unified. Co-op requires OpenGL and a fresh
+game launch after changing mods. Controllers use Start/Options to pause;
+keyboard pause follows each player's Controls binding.
+
+The Linux x86_64 AppImage requires glibc 2.38 or newer. Make it executable
+with `chmod +x`, then run it; `--appimage-extract-and-run` works without FUSE.
+Writable data lives in `~/.local/share/MegaManX4Recomp`.
+
+Split can still run below full speed, including on LAN. Split refill/section
+handoffs, vehicles, chained scenes and retry/menu disconnects need additional
+playtesting. This is a playtest release with limited stage coverage.
+
+## Previous v0.1.1-coop-playtest.1
+
+An early Windows and Linux co-op playtest. Unified is the default camera mode;
+Split (Experimental) is available for online co-op. The current main release
+remains available separately.
+
+The Linux x86_64 AppImage requires glibc 2.38 or newer. Make it executable
+with `chmod +x`, then run it; use `--appimage-extract-and-run` on systems
+without FUSE. It keeps writable data in `~/.local/share/MegaManX4Recomp`.
+Linux and Windows use the same declared co-op gameplay and execution contracts.
+
+- Simultaneous native X and Zero; vertically stacked lifebars in the shared view.
+- Independent online views of one shared world, with local player HUDs.
+- Distant Split backgrounds render from the authored map, avoiding shared
+  tile-ring corruption when players separate.
+- Split health refills stay with their collector, without the shared world
+  pause or partner-camera snap. Unified retains the native refill pause.
+- Living outgoing teleport passengers survive native section transfers.
+  Actual deaths stay dead until a team retry, and scene handoffs retain their
+  native teleports.
+
+Enable X + Zero Co-op in Mods for local play. Online rooms use the X + Zero
+Co-op profile; the host chooses the camera mode for both peers. Use the same
+build and OpenGL on both computers. Offline play always uses Unified. Co-op
+is opt-in outside its netplay profile and takes effect on a fresh boot.
+
+Validation includes focused ownership, lifecycle, camera-boundary and authored
+background regression checks; original-disc loopback netplay separation; and
+owner playtesting in Web Spider. The owner confirmed the boss door worked and
+distant background corruption was substantially improved. This does not
+establish full stage/campaign/door coverage. The prior run's logs lacked health
+history, so the reported area-2 death cannot be conclusively attributed to the
+transition regression found in the source.
+
+The exact production binary passes all 13 configured CTests, native room-offer
+checks for both camera choices, shared catalog/execution staging, and system
+DLL dependency checks. Two input-neutral production peer pairs agree on their
+logged core/mod state during boot. The timed attract-gameplay probe did not
+reach gameplay; it remains failed and provides no stage coverage. The latest
+asynchronous refill and section-transfer changes still need native playtesting.
+
+Known limits: Split may run below full speed even on LAN. Vehicle stages,
+chained scenes, surviving-player handoffs, and retry/menu paths need more
+coverage. An intermittent post-retry menu disconnect is still under
+investigation. This release is intended for playtesting, with isolated co-op
+saves; it is not a finished co-op port.
+
+## Previous v0.1.0-alpha
 
 - Adaptive authored-map renderer replaces the retired fixed 16:9 tile-ring path.
 - OpenGL and 1080p internal resolution are enabled by default, with pixel-art sampling.

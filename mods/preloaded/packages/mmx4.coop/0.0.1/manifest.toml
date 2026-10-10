@@ -1,0 +1,51 @@
+format_version = 5
+id = "mmx4.coop"
+version = "0.0.1"
+name = "X + Zero Co-op (Playtest)"
+author = "mstan"
+description = "Early simultaneous X and Zero playtest. Unified is the default; independent Split views are experimental."
+resolver = "declarative"
+save_compatibility = "isolated"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "coop"
+name = "X + Zero Co-op"
+description = "Playtest with two native characters. Requires OpenGL and a fresh boot. Enable for local co-op; the netplay profile enables it for both peers."
+group = "Experimental"
+default_enabled = false
+
+[[option]]
+feature = "coop"
+id = "cameras"
+label = "Netplay cameras"
+description = "Unified (default) shares a camera. Experimental Split gives each online player an independent view of the shared world. The host chooses for both peers; offline play always uses Unified."
+type = "choice"
+default = "unified"
+[[option.choice]]
+value = "unified"
+label = "Unified"
+[[option.choice]]
+value = "split"
+label = "Split (Experimental)"
+
+[[option]]
+feature = "coop"
+id = "hud_layout"
+label = "HUD layout"
+description = "Unified views stack the meters by default. Side by side restores the previous two-column layout. Split views keep only the local player's meter at its native position."
+type = "choice"
+default = "stacked"
+[[option.choice]]
+value = "stacked"
+label = "Stacked"
+[[option.choice]]
+value = "side_by_side"
+label = "Side by side"
+
+[[plugin]]
+feature = "coop"
+id = "mmx4.coop"

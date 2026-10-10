@@ -2,6 +2,8 @@
 #include "cpu_state.h"
 #include "mod_memory.h"
 #include "mod_visible_placements.h"
+#include "mod_netplay.h"
+#include "mmx4_coop_internal.h"
 #include <string.h>
 
 #define LAYERS 0x801419b0u
@@ -10,6 +12,16 @@ static uint32_t arena, object_begin, placement_state;
 #define PLACEMENT_COUNT 4096u
 #define PLACEMENT_STATE_BYTES (32u+PLACEMENT_COUNT/8u)
 static int object_pending, object_screen, supplemental_scan;
+static uint32_t view_object_begin;
+static int view_object_pending,view_object_screen,view_supplemental_scan;
+void mmx4_widescreen_view_save(void) {
+    view_object_begin=object_begin;view_object_pending=object_pending;
+    view_object_screen=object_screen;view_supplemental_scan=supplemental_scan;
+}
+void mmx4_widescreen_view_restore(void) {
+    object_begin=view_object_begin;object_pending=view_object_pending;
+    object_screen=view_object_screen;supplemental_scan=view_supplemental_scan;
+}
 static const PSXCapcomBackground background = {0x8013e2f0u,0x8013bd50u,3u,8u,0x7900u};
 
 /* Original layer function tables are800F3140/800F3164. Their horizontal
@@ -35,7 +47,14 @@ static void mmx4_bg_end(CPUState *cpu, uint32_t address) {
     unsigned layer=cpu->gpr[4]; uint32_t packet=psx_mod_read_word(0x1f800108u);
     gpu_ws_bg2d_end_view_layer(layer,packet);
     WsViewAnchor view;
-    if (layer>=3 || !gpu_ws_bg2d_get_view(layer,&view)) return;
+    if (layer>=3) return;
+    if (!gpu_ws_bg2d_get_view(layer,&view)) {
+        /* The wide anchor is unavailable at native 4:3. Split's local pass
+         * still needs authored tiles: the shared 32x32 ring follows the
+         * canonical player and cannot represent a distant partner's view. */
+        if(!mmx4_coop_split_views() || !psx_mod_local_view_scope())return;
+        view=(WsViewAnchor){0,16,0,0,0};
+    }
     uint32_t b=LAYERS+layer*0x54u;
     int sx=(int16_t)psx_mod_read_half(b+10),sy=(int16_t)psx_mod_read_half(b+14);
     if (layer) {
@@ -46,6 +65,8 @@ static void mmx4_bg_end(CPUState *cpu, uint32_t address) {
             scroll_mapping(mode,camera-fg.left,&left))
             view=psx_capcom_scroll_view(fg,now,left);
     }
+    if(mmx4_coop_split_views() && psx_mod_local_view_scope() &&
+       view.left<=0 && view.right<=0)view.right=16;
     unsigned width=psx_mod_read_byte(0x80172224u),stride=psx_mod_read_half(0x8013bd48u);
     PSXCapcomTileMap map={psx_mod_read_word(0x1f800004u),psx_mod_read_word(0x1f800008u),
         psx_mod_read_word(0x1f80000cu),width,width?stride/width:0,stride,layer,
@@ -110,6 +131,7 @@ static int placement_is_trackable(uint32_t record) {
 }
 static void mmx4_placement_spawned(CPUState *cpu,uint32_t address) {
     (void)address;unsigned index;
+    if(mmx4_coop_split_views())return;
     /* Guarded original successful-allocation latch, not an allocation attempt.
      * Failed allocations must remain eligible on a later native scan. */
     if(!placement_state || !cpu->gpr[17] || !placement_is_trackable(cpu->gpr[19]) ||
@@ -120,6 +142,7 @@ static void mmx4_placement_spawned(CPUState *cpu,uint32_t address) {
 }
 static int mmx4_extra_placement(CPUState *cpu, uint32_t address) {
     (void)address;
+    if(mmx4_coop_split_views())return 0;
     if (cpu->gpr[31]!=0x8002916cu)return 0;
     /* The original scanner's s2 points at record+3; s3 retains its latch.
      * Categories0..2 are ordinary enemy/item allocators. Scripted categories
@@ -138,6 +161,15 @@ static int mmx4_extra_placement(CPUState *cpu, uint32_t address) {
     cpu->gpr[2]=0;return 1;
 }
 static int signed_bound(int x) { return x<-32768?-32768:x>32767?32767:x; }
+static unsigned split_cameras(uint8_t cameras[2][0xFC]) {
+    if(!mmx4_coop_split_views() || !mmx4_coop_ready() || mmx4_coop_projected() ||
+       psx_mod_local_view_scope())return 0;
+    int owner=mmx4_coop_lifecycle_script_owner();unsigned count=0;
+    for(unsigned seat=0;seat<2;++seat)
+        if(mmx4_coop_alive(seat) && (owner<0 || owner==(int)seat) &&
+           mmx4_coop_split_camera_copy(seat,cameras[count]))++count;
+    return count;
+}
 /* Intro controller category3/type7 scans a separate twelve-record table,
  * 8010B464, through800B6EB4. Reuse that scanner and its successful-allocation
  * latches/pool, including the original vertical window. The bounded full-view
@@ -145,11 +177,17 @@ static int signed_bound(int x) { return x<-32768?-32768:x>32767?32767:x; }
  * only when a layer scrolls. Beam geometry and animation stay native. */
 static void mmx4_searchlight_scan(CPUState *cpu, uint32_t address) {
     (void)address;int margin=psx_mod_widescreen_x_margin();
-    if(margin<=0)return;
+    uint8_t cameras[2][0xFC];unsigned count=split_cameras(cameras);
+    if(psx_mod_local_view_scope() || (margin<=0 && !count))return;
     CPUState saved=*cpu;
-    for(unsigned layer=0;layer<3;++layer) {
+    for(unsigned view=0;view<(count?count:1u);++view)for(unsigned layer=0;layer<3;++layer) {
         uint32_t b=LAYERS+layer*0x54u;
         int x=(int16_t)psx_mod_read_half(b+10),y=(int16_t)psx_mod_read_half(b+14);
+        if(count) {
+            const uint8_t *shadow=cameras[view]+layer*0x54u;
+            x=(int16_t)((uint16_t)shadow[10]|(uint16_t)shadow[11]<<8);
+            y=(int16_t)((uint16_t)shadow[14]|(uint16_t)shadow[15]<<8);
+        }
         *cpu=saved;cpu->gpr[29]-=32u;
         uint32_t arg=cpu->gpr[29]+16u,old=psx_mod_read_word(arg);
         cpu->gpr[4]=(uint32_t)signed_bound(x-48-margin);
@@ -166,8 +204,9 @@ static void mmx4_searchlight_scan(CPUState *cpu, uint32_t address) {
 }
 static int mmx4_searchlight_visible(CPUState *cpu, uint32_t address) {
     (void)address;int margin=psx_mod_widescreen_x_margin();
+    uint8_t cameras[2][0xFC];unsigned count=split_cameras(cameras);
     uint32_t actor=cpu->gpr[4];int layer=(int8_t)psx_mod_read_byte(actor+0x37u);
-    if(margin<=0 || layer<0 || layer>=3)return 0;
+    if((margin<=0 && !count) || layer<0 || layer>=3)return 0;
     /* Original800D4024 tests the origin and beam centre against its extents,
      * with uint16 wrap. Expand only those X tests; preserve both Y tests and
      * the original return value convention. State2 retires an invisible beam,
@@ -176,20 +215,24 @@ static int mmx4_searchlight_visible(CPUState *cpu, uint32_t address) {
     int x1=(int16_t)psx_mod_read_half(actor+0x1eu);
     int y0=(int16_t)psx_mod_read_half(actor+0x1au);
     int y1=(int16_t)psx_mod_read_half(actor+0x32u);
-    int dx=x1-x0,dy=y1-y0;if(dx<0)dx=-dx;if(dy<0)dy=-dy;
     uint32_t b=LAYERS+(unsigned)layer*0x54u;
-    int x=(int)psx_mod_read_half(actor+10)-(int)psx_mod_read_half(b+10);
-    int y=(int)psx_mod_read_half(actor+14)-(int)psx_mod_read_half(b+14);
-    int origin=(uint16_t)(x+dx+margin)<(uint16_t)(320+2*dx+2*margin) &&
-        (uint16_t)(y+dy)<(uint16_t)(240+2*dy);
-    int centre=(uint16_t)(x+x0+dx/2+dx+margin)<(uint16_t)(320+2*dx+2*margin) &&
-        (uint16_t)(y+y0+dy/2+dy)<(uint16_t)(240+2*dy);
-    cpu->gpr[2]=(uint32_t)(origin || centre);
+    cpu->gpr[2]=0;
+    for(unsigned view=0;view<(count?count:1u);++view) {
+        Mmx4CoopView camera={(int16_t)psx_mod_read_half(b+10),(int16_t)psx_mod_read_half(b+14)};
+        if(count) {
+            const uint8_t *shadow=cameras[view]+(unsigned)layer*0x54u;
+            camera.camera_x=(int16_t)((uint16_t)shadow[10]|(uint16_t)shadow[11]<<8);
+            camera.camera_y=(int16_t)((uint16_t)shadow[14]|(uint16_t)shadow[15]<<8);
+        }
+        if(mmx4_coop_view_beam_contains(camera,(int16_t)psx_mod_read_half(actor+10),
+            (int16_t)psx_mod_read_half(actor+14),x0,x1,y0,y1,margin))cpu->gpr[2]=1;
+    }
     if(cpu->gpr[2])psx_mod_counter_add("mmx4.renderer.searchlight-visible",1);
     return 1;
 }
 static void mmx4_scan_view(CPUState *cpu, uint32_t address) {
     (void)address;int margin=psx_mod_widescreen_x_margin();
+    if(mmx4_coop_split_views())return;
     if(!placement_state)return;
     if (margin<=0 || !psx_mod_read_byte(LAYERS)) { psx_mod_write_word(placement_state+4u,0);return; }
     int x=(int16_t)psx_mod_read_half(LAYERS+10),y=(int16_t)psx_mod_read_half(LAYERS+14);
@@ -256,6 +299,11 @@ static void mmx4_widescreen_activate(void) {
     (void)psx_mod_register_function_filter_plugin("mmx4.widescreen",0x800293e8u,mmx4_extra_placement);
     (void)psx_mod_register_function_entry_plugin("mmx4.widescreen",0x800b6c9cu,mmx4_searchlight_scan);
     (void)psx_mod_register_function_filter_plugin("mmx4.widescreen",0x800d4024u,mmx4_searchlight_visible);
+    if(psx_mod_netplay_is_active()) {
+        int aspect=psx_mod_netplay_aspect();
+        (void)psx_mod_set_fixed_display_aspect(aspect==2?21u:aspect==1?16u:4u,aspect?9u:3u);
+        return;
+    }
     char aspect[16];
     if(!psx_mod_option_value(PKG,"widescreen","aspect",aspect,sizeof aspect))strcpy(aspect,"adaptive");
     if(!strcmp(aspect,"16:9"))(void)psx_mod_set_fixed_display_aspect(16u,9u);

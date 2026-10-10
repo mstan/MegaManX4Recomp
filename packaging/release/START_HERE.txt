@@ -17,7 +17,31 @@ FIRST RUN
      Internal resolution defaults to 1080p. Interpolation is unavailable;
      generic CD speed and host timing controls are retired. Optional Damage
      Multiplier defaults to normal 1x damage.
-  4. Press Launch. Your choices are remembered for next time.
+  4. Press Play. Your choices are remembered for next time.
+
+CO-OP PLAYTEST
+  In Mods, enable X + Zero Co-op for local play. OpenGL is required, and
+  enabling co-op takes effect on a fresh boot. The X + Zero Co-op netplay
+  profile enables it for both peers; use the same release on both computers.
+  Unified is the default camera mode. The host may choose Split (Experimental)
+  for independent online views; offline play uses Unified.
+
+  Select Netplay in the launcher to host or join a two-player room using the
+  X + Zero Co-op profile. For local play, Controls offers Player 1 and Player 2
+  assignments; choose a different physical controller for each player, even
+  when both controllers are the same model. Keyboard controls can also be
+  assigned separately. Pause uses Start/Options or the assigned keyboard key.
+
+  Shared-view lifebars default to Stacked; Mods -> X + Zero Co-op -> HUD layout
+  also offers Side by side. Split shows each local player
+  at the original HUD position. A dead player waits for the team's retry;
+  native scene changes carry living partners along using teleport animations.
+  Split health pickups refill their collector without freezing the partner;
+  Unified keeps the original shared refill pause.
+
+  This release has limited stage coverage. Split may still run below full
+  speed, and retries, vehicle stages, and chained scenes need more playtesting.
+  Report the release version, stage/area, camera mode, and which player led.
 
 WHERE THINGS LIVE
   saves/     memory cards

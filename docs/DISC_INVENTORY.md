@@ -107,3 +107,25 @@ remain available. No new boot/gameplay claim accompanies these documentation
 changes. Future positive evidence of relocated, generated, or compressed code
 can extend this inventory; a historical dirty-RAM capture by itself is
 insufficient.
+
+## October 9, 2026 discovery recheck
+
+The owner asked whether the absent overlay cache reflected outdated discovery.
+The original-disc inspector was rerun and again verified 163 ISO files and
+612 typed members. The current generic extractor was rerun against the same
+disc and reported zero additional game producers/regions, including no
+unresolved counted-relocation containers. BIOS-installed helpers were excluded
+from this game-code recheck; bundled OpenBIOS is compiled separately.
+
+The inspector, generic extractor, AOT pipeline and relevant emitter discovery
+files have no changes between this title's pinned `8fff59f8` framework and the
+freshly fetched master `15a8096e`. There is no known overlay set omitted by an
+older version of those methods. The resident `SLUS_005.61` is already compiled
+as 148 generated units in this playtest.
+
+Private reports: `build-coop-appimage/disc-inventory-current.json` and
+`build-coop-appimage/discovery-current/`. No original code bytes are published.
+This repeats the supported discovery methods; it does not prove that unknown
+compressed, relocated or generated-code formats cannot exist. Positive evidence
+of another producer should extend the original-disc inventory and its static
+build inputs, rather than requiring players to discover it through gameplay.

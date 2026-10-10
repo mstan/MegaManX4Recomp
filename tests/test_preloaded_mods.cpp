@@ -47,13 +47,13 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 3) return fail("expected three package manifests");
+    if (manifest_count != 4) return fail("expected four package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
-             "mmx4.widescreen"}) {
+             "mmx4.widescreen", "mmx4.coop"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -63,8 +63,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 3)
-        return fail("expected three package families");
+    if (manager.packages().size() != 4)
+        return fail("expected four package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||

@@ -11,6 +11,9 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS packaging/release
 set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
     "Path to psxrecomp-v4")
 
+# This title ships a co-op netplay profile on both platforms. The framework's
+# generic runtime defaults netplay off; select it before including that runtime.
+option(PSX_NETPLAY "Build X4 netplay and co-op profile support" ON)
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
 
 # The current recompiler emits the game as split translation units. Keep the
@@ -74,6 +77,41 @@ psxrecomp_add_implementation(psx-runtime
     LLE_SOURCES src/mods/mmx4_resident_reference.c
     CONTRACT_FILES src/mods/mmx4_resident_catalog.h
         "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
+# Trusted co-op callbacks contain simulation state outside guest RAM. Include
+# their source contract in the profile handshake so different spike builds
+# cannot join under the same fixed development version.
+set(MMX4_COOP_CONTRACT_FILES
+    game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_lifecycle.c
+    src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c src/mods/mmx4_coop_audio.c
+    src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
+    src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
+    src/mods/mmx4_coop_split.c
+    src/mods/mmx4_widescreen_plugin.c
+    mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml)
+set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
+foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_CONTRACT_FILES)
+    file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}" MMX4_COOP_SOURCE_HASH)
+    string(APPEND MMX4_COOP_CONTRACT "${MMX4_COOP_SOURCE_HASH}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${MMX4_COOP_SOURCE}")
+endforeach()
+set(MMX4_COOP_FRAMEWORK_CONTRACT_FILES
+    runtime/src/psx_cycles.c runtime/include/psx_cycle_freeze.h
+    runtime/src/render_pass.c runtime/include/mod_plugins.h
+    runtime/src/mod_netplay.c runtime/include/mod_netplay.h
+    runtime/src/mod_runtime.cpp runtime/src/mod_texture_banks.c
+    runtime/src/gpu.c runtime/include/mod_capcom_bg2d.h
+    runtime/src/spu.c runtime/include/spu.h runtime/src/mod_guest_services.c)
+foreach(MMX4_COOP_SOURCE IN LISTS MMX4_COOP_FRAMEWORK_CONTRACT_FILES)
+    set(MMX4_COOP_SOURCE_PATH "${PSXRECOMP_V4_ROOT}/${MMX4_COOP_SOURCE}")
+    file(SHA256 "${MMX4_COOP_SOURCE_PATH}" MMX4_COOP_SOURCE_HASH)
+    string(APPEND MMX4_COOP_CONTRACT "${MMX4_COOP_SOURCE_HASH}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MMX4_COOP_SOURCE_PATH}")
+endforeach()
+string(SHA256 MMX4_COOP_CONTRACT_HASH "${MMX4_COOP_CONTRACT}")
+# The framework limits compatibility IDs to 63 bytes; 160 hash bits fit.
+string(SUBSTRING "${MMX4_COOP_CONTRACT_HASH}" 0 40 MMX4_COOP_CONTRACT_SHORT_HASH)
+set_property(SOURCE src/mods/mmx4_coop_plugin.c APPEND PROPERTY COMPILE_DEFINITIONS
+    "MMX4_COOP_NETPLAY_COMPATIBILITY=\"mmx4-coop-delay-v3:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
 add_custom_command(TARGET psx-runtime POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/game.toml"
@@ -81,23 +119,62 @@ add_custom_command(TARGET psx-runtime POST_BUILD
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_executable(mmx4_coop_assets_test tests/test_mmx4_coop_assets.c src/mods/mmx4_coop_assets.c)
+    target_include_directories(mmx4_coop_assets_test PRIVATE src/mods)
+    add_test(NAME mmx4_coop_assets_test COMMAND mmx4_coop_assets_test)
+    add_executable(mmx4_coop_audio_test tests/test_mmx4_coop_audio.c
+        src/mods/mmx4_coop_audio.c src/mods/mmx4_coop_assets.c)
+    target_include_directories(mmx4_coop_audio_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_audio_test COMMAND mmx4_coop_audio_test)
+    add_executable(mmx4_coop_combat_test tests/test_mmx4_coop_combat.c
+        src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_views.c)
+    target_include_directories(mmx4_coop_combat_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_combat_test COMMAND mmx4_coop_combat_test)
+    add_executable(mmx4_coop_lifecycle_test tests/test_mmx4_coop_lifecycle.c)
+    target_include_directories(mmx4_coop_lifecycle_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_lifecycle_test COMMAND mmx4_coop_lifecycle_test)
+    add_executable(mmx4_coop_views_test tests/test_mmx4_coop_views.c src/mods/mmx4_coop_views.c)
+    target_include_directories(mmx4_coop_views_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_views_test COMMAND mmx4_coop_views_test)
+    add_executable(mmx4_coop_split_test tests/test_mmx4_coop_split.c
+        src/mods/mmx4_coop_split.c src/mods/mmx4_coop_views.c)
+    target_include_directories(mmx4_coop_split_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_split_test COMMAND mmx4_coop_split_test)
+    add_executable(mmx4_coop_background_test tests/test_mmx4_coop_background.c src/mods/mmx4_coop_views.c)
+    target_include_directories(mmx4_coop_background_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_coop_background_test COMMAND mmx4_coop_background_test)
     find_package(Python3 3.11 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         add_test(NAME mmx4_release_config_test
             COMMAND "${Python3_EXECUTABLE}"
                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_release_config.py")
+        add_test(NAME mmx4_playtest_save_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prepare_mmx4_playtest_save.py")
+        add_test(NAME mmx4_coop_hook_registration_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmx4_coop_hook_registration.py")
+        add_test(NAME mmx4_coop_netplay_harness_test
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmx4_coop_netplay_harness.py")
     endif()
     add_executable(mmx4_preloaded_mods_test
         tests/test_preloaded_mods.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/disc_path.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/cue_sheet.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/crc32.c"
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c"
     )
     target_include_directories(mmx4_preloaded_mods_test PRIVATE
         "${PSXRECOMP_V4_ROOT}/runtime/include"
+        "${PSXRECOMP_V4_ROOT}/recompiler/include"
         "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11"
     )
     psxrecomp_sha256_file(mmx4_preloaded_mods_test)
+    target_link_libraries(mmx4_preloaded_mods_test PRIVATE chdr-static)
     add_test(
         NAME mmx4_preloaded_mods_test
         COMMAND "$<TARGET_FILE:mmx4_preloaded_mods_test>"
