@@ -13,6 +13,7 @@ int mmx4_coop_audio_load(unsigned character,const uint8_t *file,uint32_t size);
 /* Private runtime interface. Projection is strictly scoped and non-nesting;
  * callers check projected() before intercepting a native routine. */
 int mmx4_coop_ready(void);
+void mmx4_coop_development_mask_pad(void);
 int mmx4_coop_projected(void);
 int mmx4_coop_split_views(void);
 int mmx4_coop_split_activate(void);
@@ -48,6 +49,7 @@ int mmx4_coop_combat_canonical_call(CPUState *cpu,uint32_t address,
 uint8_t mmx4_coop_solid_contact_bits(uint32_t actor,unsigned seat);
 /* Implemented by lifecycle module, called around every private projection. */
 void mmx4_coop_lifecycle_project(void);
+void mmx4_coop_lifecycle_follow_progress(uint8_t *body,unsigned character);
 void mmx4_coop_lifecycle_restore(void);
 void mmx4_coop_lifecycle_reset(void);
 void mmx4_coop_lifecycle_enrolled(CPUState *cpu);
@@ -58,6 +60,9 @@ int mmx4_coop_lifecycle_script_owner(void);
 int mmx4_coop_lifecycle_hidden(unsigned seat);
 void mmx4_coop_lifecycle_camera_bounds(CPUState *cpu,unsigned owner);
 void mmx4_coop_clear_current_attacks(void);
+void mmx4_coop_combat_clear_current_effects(void);
+/* Current projected player and vehicle, at enrollment or incoming handoff. */
+void mmx4_coop_spawn_facing_right(void);
 uint32_t mmx4_coop_lifecycle_digest(uint32_t seed);
 uint32_t mmx4_coop_combat_digest(uint32_t seed);
 #endif

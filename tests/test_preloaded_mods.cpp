@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -27,9 +28,10 @@ int main(int argc, char** argv) {
 
     const fs::path source(argv[1]);
     const fs::path root =
-        fs::temp_directory_path() / "mmx4-preloaded-mods-test";
+        fs::weakly_canonical(fs::temp_directory_path()) /
+        ("mmx4-preloaded-mods-test-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::error_code ec;
-    fs::remove_all(root, ec);
+    if(fs::exists(root))return fail("unique test directory already exists");
     fs::copy(source, root, fs::copy_options::recursive);
 
     size_t manifest_count = 0;
@@ -47,13 +49,13 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 4) return fail("expected four package manifests");
+    if (manifest_count != 5) return fail("expected five package manifests");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
-             "mmx4.widescreen", "mmx4.coop"}) {
+             "mmx4.widescreen", "mmx4.coop", "mmx4.diagnostics"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -63,14 +65,17 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 4)
-        return fail("expected four package families");
+    if (manager.packages().size() != 5)
+        return fail("expected five package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 3) {
+        default_plan.plugins.size() != 4) {
         return fail("normal-damage override was not enabled by default");
     }
+    bool diagnostics_default=false;
+    for(const auto& plugin:default_plan.plugins)diagnostics_default|=plugin.id=="mmx4.diagnostics";
+    if(!diagnostics_default)return fail("input diagnostics was not enabled by default");
 
     if (!manager.set_feature_option(
             "mmx4.cheat.damage-multiplier", "damage-multiplier",
@@ -84,7 +89,7 @@ int main(int argc, char** argv) {
     }
     const auto damage_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!damage_plan.ok || !damage_plan.writes.empty() ||
-        damage_plan.plugins.size() != 3 ||
+        damage_plan.plugins.size() != 4 ||
         manager.feature_option_value(
             "mmx4.cheat.damage-multiplier", "damage-multiplier",
             "multiplier") != "37") {
@@ -106,7 +111,7 @@ int main(int argc, char** argv) {
     }
     const auto widescreen_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!widescreen_plan.ok || !widescreen_plan.writes.empty() ||
-        widescreen_plan.plugins.size() != 2) {
+        widescreen_plan.plugins.size() != 3) {
         return fail("widescreen plugin resolution was incorrect");
     }
 
@@ -115,6 +120,8 @@ int main(int argc, char** argv) {
         return fail("archived interpolation unexpectedly selectable");
     }
 
+    if(fs::weakly_canonical(root).parent_path()!=fs::weakly_canonical(fs::temp_directory_path()))
+        return fail("test cleanup path escaped the temporary directory");
     fs::remove_all(root, ec);
     std::cout << "Mega Man X4 preloaded mods: normal damage 1, resident loading and widescreen, "
                  "generic loading wrapper and interpolation absent\n";

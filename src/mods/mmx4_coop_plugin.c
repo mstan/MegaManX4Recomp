@@ -7,12 +7,15 @@
 #include "sio.h"
 #include "mmx4_coop_assets.h"
 #include "mmx4_coop_internal.h"
+#include "mmx4_diagnostics.h"
+#include "mmx4_coop_debug_protocol.h"
 #include "mmx4_coop_views.h"
 #include "mod_netplay.h"
 #include "psx_netplay.h"
 #include "gpu.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #define ID "mmx4.coop"
 #define PLAYER 0x801418C8u
@@ -20,10 +23,12 @@
 #define SCRATCH 0x1F800000u
 #define SHOTS 0x801406F8u
 #define TRAILS 0x80141AB0u
+#define CHARGE_GLOWS 0x8013E470u
 #define PAD 0x80166C08u
 #define FRAME_ARENA 0x40000u
 typedef struct {
-    uint8_t body[0xE4], shots[0x9C0], trails[0x120], double_body[0xE4],vehicle[0xB0];
+    uint8_t body[0xE4], shots[0x9C0], trails[0x120], charge_glows[0xA0];
+    uint8_t double_body[0xE4],vehicle[0xB0];
 } PlayerContext;
 typedef struct {
     uint32_t sprites, assembly, colors, palette;
@@ -56,6 +61,10 @@ static unsigned camera_call;
 static unsigned camera_update_call;
 static unsigned split_views;
 static uint32_t fixture_sequence;
+static unsigned fixture_invulnerable;
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+static Mmx4DebugDecoder development_decoder;
+#endif
 static unsigned menu_texture_owner=2;
 static unsigned upload_guard;
 static void diagnostics(void);
@@ -75,11 +84,13 @@ static void project(uint32_t a,const void *data,size_t n) {
 static void capture_player(PlayerContext *p) {
     capture(PLAYER,p->body,sizeof p->body);capture(SHOTS,p->shots,sizeof p->shots);
     capture(TRAILS,p->trails,sizeof p->trails);capture(0x80175D58,p->double_body,sizeof p->double_body);
+    capture(CHARGE_GLOWS,p->charge_glows,sizeof p->charge_glows);
     capture(MMX4_VEHICLE,p->vehicle,sizeof p->vehicle);
 }
 static void project_player(const PlayerContext *p) {
     project(PLAYER,p->body,sizeof p->body);project(SHOTS,p->shots,sizeof p->shots);
     project(TRAILS,p->trails,sizeof p->trails);project(0x80175D58,p->double_body,sizeof p->double_body);
+    project(CHARGE_GLOWS,p->charge_glows,sizeof p->charge_glows);
     project(MMX4_VEHICLE,p->vehicle,sizeof p->vehicle);
 }
 static uint32_t guest(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) {
@@ -136,6 +147,9 @@ static int load_character(unsigned character) {
 }
 static void enter_second(void) {
     projected=1;
+    /* P2 follows the one campaign's permanent progress. Its native X body
+     * consumes armor bytes; Zero keeps its own character-specific fields. */
+    mmx4_coop_lifecycle_follow_progress(second.body,counterpart);
     capture_player(&first);project_player(&second);
     mmx4_coop_lifecycle_project();
     CharacterAssets *a=&assets[counterpart];
@@ -170,10 +184,19 @@ uint8_t *mmx4_coop_first_body(void) {return first.body;}
 uint8_t *mmx4_coop_second_vehicle(void) {return second.vehicle;}
 uint8_t *mmx4_coop_first_vehicle(void) {return first.vehicle;}
 void mmx4_coop_clear_current_attacks(void) {
+    mmx4_coop_combat_clear_current_effects();
     for(unsigned i=0;i<sizeof second.shots;++i)psx_mod_write_byte(SHOTS+i,0);
     for(unsigned i=0;i<sizeof second.trails;++i)psx_mod_write_byte(TRAILS+i,0);
+    /* Keep native effect resource pointers initialized; cancel their visible
+     * state together with the charge counters below. */
+    for(unsigned i=0;i<2;++i) {
+        psx_mod_write_byte(CHARGE_GLOWS+i*0x50+3,0);
+        psx_mod_write_byte(CHARGE_GLOWS+i*0x50+4,0);
+    }
     for(unsigned i=0;i<sizeof second.double_body;++i)psx_mod_write_byte(0x80175D58u+i,0);
     for(unsigned i=0x8C;i<=0x92;++i)psx_mod_write_byte(PLAYER+i,0);
+    psx_mod_write_byte(PLAYER+0x98,0);psx_mod_write_byte(PLAYER+0x99,0);
+    for(unsigned i=0x9B;i<=0x9F;++i)psx_mod_write_byte(PLAYER+i,0);
 }
 void mmx4_coop_enter_second(void) {enter_second();}
 void mmx4_coop_leave_second(void) {leave_second();}
@@ -186,6 +209,12 @@ int mmx4_coop_finish(CPUState *cpu,uint32_t result) {
 uint16_t mmx4_coop_input(unsigned seat) {
     uint16_t raw=(uint16_t)~sio_get_pad_buttons_slot(seat);
     if(seat && psx_mod_read_byte(diagnostic+0x20))raw=(uint16_t)~psx_mod_read_half(diagnostic+0x24);
+    uint16_t buttons=(uint16_t)~raw;
+    mmx4_diagnostics_resolve_input(seat,&buttons);
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+    if(psx_mod_netplay_is_active() && mmx4_debug_is_packet(buttons))buttons=0xFFFFu;
+#endif
+    raw=(uint16_t)~buttons;
     return (uint16_t)((raw<<8)|(raw>>8));
 }
 void mmx4_coop_menu_assets(CPUState *cpu,unsigned seat) {
@@ -230,6 +259,15 @@ static void diagnostics(void) {
     psx_mod_write_word(diagnostic,0x5834434Fu);psx_mod_write_word(diagnostic+4,frames);
     project(diagnostic+0x100,second.body,sizeof second.body);
     project(diagnostic+0x200,second.vehicle,sizeof second.vehicle);
+#ifndef PSX_NO_DEBUG_TOOLS
+    for(unsigned i=0;i<16;++i)project(diagnostic+0x480+i*8,second.shots+i*0x9C,8);
+    project(diagnostic+0x500,second.trails,sizeof second.trails);
+    if(projected)project(diagnostic+0x620,first.vehicle,sizeof first.vehicle);
+    else {
+        uint8_t vehicle[0xB0];capture(MMX4_VEHICLE,vehicle,sizeof vehicle);
+        project(diagnostic+0x620,vehicle,sizeof vehicle);
+    }
+#endif
     psx_mod_write_word(diagnostic+8,enrolled);psx_mod_write_word(diagnostic+12,failed);
     psx_mod_write_word(diagnostic+16,bank_count);
     psx_mod_write_word(diagnostic+0x1C,1); /* completed-context mirror version */
@@ -271,10 +309,12 @@ static int enroll(CPUState *cpu) {
     psx_mod_write_byte(PLAYER+3,1);psx_mod_write_byte(PLAYER+4,1);psx_mod_write_byte(PLAYER+5,2);
     guest(cpu,0x800350A4,PLAYER,0);guest(cpu,0x80035EA4,PLAYER,0);
     psx_mod_write_word(PLAYER+0x18,spawn_x);psx_mod_write_word(PLAYER+0x1C,y);
+    mmx4_coop_spawn_facing_right();
     if(on_chaser) {
         guest(cpu,0x80035A24,PLAYER,0);guest(cpu,0x80021C14,0,0);
     }
     guest(cpu,0x8002C614,PLAYER,0);
+    mmx4_coop_spawn_facing_right();
     leave_second();project(PLAY,play,sizeof play);
     psx_mod_write_byte(0x801419F4u,camera_enabled[0]);
     psx_mod_write_byte(0x80141A48u,camera_enabled[1]);
@@ -306,6 +346,7 @@ static void second_tick(CPUState *cpu,uint32_t address) {
         psx_mod_write_half(PAD+4,(uint16_t)(raw&~previous_input));previous_input=raw;
         guest(cpu,0x80035EF0,0,0);guest(cpu,0x80021C14,0,0);guest(cpu,0x800311EC,0,0);
         guest(cpu,0x80021340,0,0);guest(cpu,0x8002C614,PLAYER,0);
+        guest(cpu,0x80021D84,0,0);guest(cpu,0x80021CC8,0,0);
         leave_second();project(PAD,input,sizeof input);++frames;
         if(own_camera)for(unsigned layer=0;layer<3;++layer)
             project(0x801419B0u+layer*0x54u+8u,camera_origins[layer],20);
@@ -378,42 +419,133 @@ static int camera_update(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
+void mmx4_coop_development_mask_pad(void) {
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+    PsxNetPad pad;
+    if(psx_mod_netplay_is_active() && psx_netplay_sim_pad(0,&pad) &&
+       mmx4_debug_is_packet(pad.buttons))
+        for(unsigned i=0;i<3;++i)psx_mod_write_half(PAD+i*2u,0);
+#endif
+}
+#ifndef PSX_NO_DEBUG_TOOLS
+static void development_teleport(unsigned seat,uint32_t x,uint32_t y) {
+    if(!mmx4_coop_alive(seat))return;
+    if(seat)enter_second();
+    uint32_t dx=x-psx_mod_read_word(PLAYER+8),dy=y-psx_mod_read_word(PLAYER+12);
+    if(psx_mod_read_byte(PLAYER+0xC5) && psx_mod_read_byte(MMX4_VEHICLE)) {
+        for(unsigned at=8;at<=0x1C;at+=0x10) {
+            psx_mod_write_word(MMX4_VEHICLE+at,psx_mod_read_word(MMX4_VEHICLE+at)+dx);
+            psx_mod_write_word(MMX4_VEHICLE+at+4,psx_mod_read_word(MMX4_VEHICLE+at+4)+dy);
+        }
+    }
+    psx_mod_write_word(PLAYER+8,x);psx_mod_write_word(PLAYER+12,y);
+    psx_mod_write_word(PLAYER+0x18,x);psx_mod_write_word(PLAYER+0x1C,y);
+    for(unsigned at=0x20;at<0x30;at+=4)psx_mod_write_word(PLAYER+at,0);
+    psx_mod_write_byte(PLAYER+0x89,0);psx_mod_write_byte(PLAYER+0x70,0);
+    psx_mod_write_byte(PLAYER+0x71,0);
+    if(seat)leave_second();
+}
+#endif
 /* Private QA requests are committed at the native gameplay dispatch, never
  * by interleaving multiple TCP RAM writes with a running world update. */
 static int development_fixture(CPUState *cpu,uint32_t address) {
     (void)address;
 #ifndef PSX_NO_DEBUG_TOOLS
-    if(psx_mod_netplay_is_active() || projected || !diagnostic)return 0;
-    uint32_t sequence=psx_mod_read_word(diagnostic+0x30);
-    if(sequence==fixture_sequence)return 0;
-    fixture_sequence=sequence;
-    unsigned command=psx_mod_read_byte(diagnostic+0x34);
+    if(projected || !diagnostic)return 0;
+    Mmx4DebugRequest request={0};
+    unsigned command,first_arg,second_arg,third_arg;
+    uint32_t x,y,sequence;
+    if(psx_mod_netplay_is_active()) {
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+        PsxNetPad pad;
+        if(!psx_netplay_sim_pad(0,&pad))return 0;
+        int received=mmx4_debug_decode(&development_decoder,pad.buttons,&request);
+        if(development_decoder.have_previous)
+            psx_mod_write_word(diagnostic+0x48,development_decoder.previous);
+        command=received?request.command:0;
+        first_arg=request.first;second_arg=request.second;third_arg=request.third;
+        x=(uint32_t)(int32_t)request.x<<16;y=(uint32_t)(int32_t)request.y<<16;
+        sequence=request.sequence;
+        if(received)psx_mod_write_word(diagnostic+0x4C,sequence);
+#else
+        return 0;
+#endif
+    }else {
+        sequence=psx_mod_read_word(diagnostic+0x30);
+        command=sequence!=fixture_sequence?psx_mod_read_byte(diagnostic+0x34):0;
+        first_arg=psx_mod_read_byte(diagnostic+0x35);
+        second_arg=psx_mod_read_byte(diagnostic+0x36);third_arg=psx_mod_read_byte(diagnostic+0x37);
+        x=psx_mod_read_word(diagnostic+0x40);y=psx_mod_read_word(diagnostic+0x44);
+        fixture_sequence=sequence;
+    }
+    if(enrolled && psx_mod_read_byte(PLAY)==6) {
+        if((fixture_invulnerable&1u) && mmx4_coop_alive(0))psx_mod_write_byte(PLAYER+0x61,127);
+        if((fixture_invulnerable&2u) && mmx4_coop_alive(1))second.body[0x61]=127;
+    }
+    if(!command)return 0;
+    psx_mod_write_word(diagnostic+0x54,2); /* Rejected until applied below. */
+    fprintf(stderr,"mmx4.coop: development command=%u args=%u,%u,%u mode=%u "
+        "stage=%u section=%u ready=%u\n",command,first_arg,second_arg,third_arg,
+        psx_mod_read_byte(PLAY),psx_mod_read_byte(PLAY+0xC),psx_mod_read_byte(PLAY+0xD),
+        mmx4_coop_ready());
     if(command==1) {
-        unsigned stage=psx_mod_read_byte(diagnostic+0x35),section=psx_mod_read_byte(diagnostic+0x36);
-        unsigned campaign=psx_mod_read_byte(diagnostic+0x37);
-        if(stage<=12 && section<=1 && campaign<=1) {
+        unsigned stage=first_arg,section=second_arg;
+        unsigned campaign=third_arg;
+        if(stage<=12 && section<=1 && campaign<=1 &&
+           (!mmx4_coop_ready() || campaign==psx_mod_read_byte(PLAY+0x43))) {
             psx_mod_write_byte(PLAY+0x43,(uint8_t)campaign);
             psx_mod_write_byte(PLAY+0xC,(uint8_t)stage);psx_mod_write_byte(PLAY+0xD,(uint8_t)section);
+            /* Native stage selection also supplies the reward-stage field.
+             * Without it a skipped Maverick fight follows Intro completion. */
+            psx_mod_write_byte(PLAY+0x26,(uint8_t)(stage>=1 && stage<=8?stage:0));
             psx_mod_write_word(PLAY,4);psx_mod_write_byte(PLAY+0x1D,0);psx_mod_write_byte(PLAY+0x1E,0);
             psx_mod_write_word(diagnostic+0x38,sequence);
+            psx_mod_write_word(diagnostic+0x54,1);
             return mmx4_coop_finish(cpu,0);
         }
     }else if(command==3 && mmx4_coop_ready()) {
-        unsigned checkpoint=psx_mod_read_byte(diagnostic+0x35);
+        unsigned checkpoint=first_arg;
         unsigned stage=psx_mod_read_byte(PLAY+0xC),section=psx_mod_read_byte(PLAY+0xD);
         /* Only original spawn lists whose bounds have been verified. */
         if((stage==0 && section==1 && checkpoint<3) ||
+           (stage==1 && section==0 && checkpoint<5) ||
            (stage==1 && section==1 && checkpoint<6) ||
+           (stage==6 && section==0 && checkpoint<6) ||
+           ((stage==5 || stage==6) && section==1 && checkpoint<2) ||
            (stage==12 && section==1 && checkpoint<7)) {
             psx_mod_write_byte(PLAY+0x1D,(uint8_t)checkpoint);
             psx_mod_write_byte(PLAY+0x1E,0);psx_mod_write_word(PLAY,5);
             psx_mod_write_word(diagnostic+0x38,sequence);
+            psx_mod_write_word(diagnostic+0x54,1);
             return mmx4_coop_finish(cpu,0);
         }
     }else if(command==2 && mmx4_coop_ready()) {
-        unsigned seat=psx_mod_read_byte(diagnostic+0x35),hp=psx_mod_read_byte(diagnostic+0x36);
-        if(seat==0)psx_mod_write_byte(PLAYER+0x5C,(uint8_t)hp);
-        else if(seat==1)second.body[0x5C]=(uint8_t)hp;
+        unsigned seat=first_arg,hp=second_arg;
+        if(seat==0) {
+            psx_mod_write_byte(PLAYER+0x5C,(uint8_t)hp);
+            if(psx_mod_read_byte(PLAYER+0xC5) && psx_mod_read_byte(MMX4_VEHICLE))
+                psx_mod_write_byte(MMX4_VEHICLE+0x5C,(uint8_t)(hp&127u));
+        }else if(seat==1) {
+            second.body[0x5C]=(uint8_t)hp;
+            if(second.body[0xC5] && second.vehicle[0])second.vehicle[0x5C]=(uint8_t)(hp&127u);
+        }
+        if(seat<=1)psx_mod_write_word(diagnostic+0x54,1);
+    }else if(command==4 && mmx4_coop_ready() && !psx_mod_read_byte(PLAY+0x1C)) {
+        unsigned seat=first_arg;
+        if(seat<=2 && (seat==2 || mmx4_coop_alive(seat))) {
+            if(seat==2) {development_teleport(0,x,y);development_teleport(1,x,y);}
+            else development_teleport(seat,x,y);
+            psx_mod_write_word(diagnostic+0x54,1);
+        }
+    }else if(command==5) {
+        fixture_invulnerable=first_arg&3u;
+        psx_mod_write_word(diagnostic+0x54,1);
+    }else if(command==6 && first_arg<48 && second_arg>0 && second_arg<128) {
+        uint32_t actor=0x8013BED0u+first_arg*0x9Cu;
+        if(psx_mod_read_byte(actor)) {
+            psx_mod_write_byte(actor+0x5C,(uint8_t)second_arg);
+            psx_mod_write_word(diagnostic+0x54,1);
+        }
     }
     psx_mod_write_word(diagnostic+0x38,sequence);
 #else
@@ -588,6 +720,12 @@ static int render(CPUState *cpu,uint32_t address) {
     uint32_t original=psx_mod_read_word(SCRATCH+0x100),base=arena+(psx_mod_read_word(SCRATCH)&1u)*FRAME_ARENA;
     psx_mod_write_word(SCRATCH+0x100,base);
     if(second.body[3])render_actor(cpu,PLAYER,base);
+    if(psx_mod_read_byte(0x80175D58u+3))render_actor(cpu,0x80175D58u,base);
+    if(!second.body[2])for(unsigned i=0;i<2 && !failed;++i)
+        if(psx_mod_read_byte(CHARGE_GLOWS+i*0x50+3))render_actor(cpu,CHARGE_GLOWS+i*0x50,base);
+    /* The native renderer draws the three trails back to front. */
+    for(unsigned i=3;i && !failed;--i)
+        if(psx_mod_read_byte(TRAILS+(i-1)*0x60+3))render_actor(cpu,TRAILS+(i-1)*0x60,base);
     if(psx_mod_read_byte(MMX4_VEHICLE+3))render_actor(cpu,MMX4_VEHICLE,base);
     for(unsigned i=0;i<16 && !failed;++i)if(psx_mod_read_byte(SHOTS+i*0x9C+3))render_actor(cpu,SHOTS+i*0x9C,base);
     world_packet_used=psx_mod_read_word(SCRATCH+0x100)-base;
@@ -618,6 +756,7 @@ static uint32_t hash_player(uint32_t hash,const PlayerContext *p) {
     /* Arrays are original guest records, not host structs/pointers/padding. */
     hash=hash_bytes(hash,p->body,sizeof p->body);hash=hash_bytes(hash,p->shots,sizeof p->shots);
     hash=hash_bytes(hash,p->trails,sizeof p->trails);hash=hash_bytes(hash,p->double_body,sizeof p->double_body);
+    hash=hash_bytes(hash,p->charge_glows,sizeof p->charge_glows);
     return hash_bytes(hash,p->vehicle,sizeof p->vehicle);
 }
 static uint32_t state_digest(void) {
@@ -625,6 +764,14 @@ static uint32_t state_digest(void) {
     hash=hash_word(hash,split_views);
     hash=hash_word(hash,enrolled);hash=hash_word(hash,failed);hash=hash_word(hash,projected);
     hash=hash_word(hash,counterpart);hash=hash_word(hash,previous_input);hash=hash_word(hash,frames);
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+    hash=hash_word(hash,fixture_invulnerable);
+    hash=hash_word(hash,development_decoder.next);
+    hash=hash_word(hash,development_decoder.previous);
+    hash=hash_word(hash,development_decoder.have_previous);
+    hash=hash_word(hash,development_decoder.last_sequence);
+    for(unsigned i=0;i<7;++i)hash=hash_word(hash,development_decoder.words[i]);
+#endif
     hash=hash_player(hash,&second);
     if(projected) {
         hash=hash_player(hash,&first);hash=hash_word(hash,saved_dirty);
@@ -692,6 +839,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 static void activate(void) {
+    mmx4_diagnostics_reset();
     char cameras[16],layout[24];
     if(!psx_mod_current_option_value("cameras",cameras,sizeof cameras))strcpy(cameras,"unified");
     hud_side_by_side=psx_mod_current_option_value("hud_layout",layout,sizeof layout) &&
@@ -702,7 +850,10 @@ static void activate(void) {
     bank_count=ui_bank_count=inside=enrolled=failed=rendering=projected=camera_call=camera_update_call=hud_call=upload_guard=0;
     view_bank_count=view_ui_bank_count=local_view_call=local_view_seat=0;
     if(!mmx4_coop_split_activate())failed=1;
-    frames=fixture_sequence=previous_input=0;counterpart=0;menu_texture_owner=2;
+    frames=fixture_sequence=fixture_invulnerable=previous_input=0;counterpart=0;menu_texture_owner=2;
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+    memset(&development_decoder,0,sizeof development_decoder);
+#endif
     for(unsigned i=0;i<2;++i) {
         free(assets[i].file);free(assets[i].ui_pixels);memset(&assets[i],0,sizeof assets[i]);
         uint32_t space=psx_mod_alloc_guest_memory(0x60000,16);
@@ -712,7 +863,7 @@ static void activate(void) {
         assets[i].menu_gfx=space+0x50000;
         if(!space)failed=1;
     }
-    diagnostic=psx_mod_alloc_guest_memory(0x500,16);
+    diagnostic=psx_mod_alloc_guest_memory(0x800,16);
     arena=psx_mod_alloc_texture_packet_memory(2*FRAME_ARENA,16);
     hud_arena=psx_mod_alloc_texture_packet_memory(0x10000,16);
     if(!diagnostic || !arena || !hud_arena)failed=1;
@@ -720,7 +871,13 @@ static void activate(void) {
     psx_mod_set_savestate_blocked(1);
     psx_mod_counter_add("mmx4.coop.activated",1);
     psx_mod_counter_add("mmx4.coop.diagnostic-address",diagnostic);
-    if(diagnostic)diagnostics();
+    if(diagnostic) {
+        diagnostics();
+#ifdef MMX4_COOP_NETPLAY_DEBUG
+        psx_mod_write_word(diagnostic+0x50,0x44455631u);
+        psx_mod_write_word(diagnostic+0x48,0xFFFFFFFFu);
+#endif
+    }
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
     static const PSXModNetplayProfile profile={ID,MMX4_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,

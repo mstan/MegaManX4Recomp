@@ -307,6 +307,19 @@ int main(void) {
     psx_mod_write_half(CAMERA+0x26,1024);mmx4_coop_split_scene_camera_end(1,canonical,1);
     script_owner=1;mmx4_coop_split_camera_prepare(1);CHECK(psx_mod_read_half(CAMERA+0x26)==1024);
     script_owner=-1;split=0;CHECK(mmx4_coop_split_activate());
+    /* Unified has no private camera storage, but either living seat must
+     * activate the authored secret-room bounds/checkpoint once. */
+    psx_mod_write_byte(stage_actor+1,0);
+    actor_position(MMX4_PLAYER,100,140);second_position(1200,2000);
+    psx_mod_write_half(CAMERA+0x26,0);psx_mod_write_half(CAMERA+0x2C,160);
+    area_calls=shared_area_writes=0;cpu.gpr[4]=stage_actor;
+    invoke(&cpu,0x800B56F4u);
+    CHECK(area_calls==1 && shared_area_writes==1 && !projected);
+    CHECK(psx_mod_read_half(CAMERA+0x26)==512 && psx_mod_read_half(CAMERA+0x2C)==64);
+    CHECK(psx_mod_read_half(MMX4_PLAYER+10)==100);
+    psx_mod_write_byte(stage_actor+1,6);checkpoint_calls=0;
+    invoke(&cpu,0x800B6A0Cu);
+    CHECK(checkpoint_calls==1 && psx_mod_read_byte(MMX4_PLAY+0x1D)==2);
     CHECK(!mmx4_coop_split_camera_copy(1,view));
     puts("mmx4_coop_split_test: PASS");return 0;
 }

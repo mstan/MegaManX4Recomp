@@ -1,4 +1,34 @@
-# Mega Man X4 Recompiled — v0.1.1-coop-playtest.2
+# Mega Man X4 Recompiled — v0.1.1-coop-playtest.3
+
+Two-player co-op regression update for Windows and Linux. Unified remains
+the default; online Split cameras remain experimental.
+
+- P2 owns its pause menu and can resume it. Native world drawing, charge
+  glow/projectiles, saber hits, dash trails and water effects survive pause.
+- Both players' jump/hurt sounds can overlap through independent voices.
+- P2 can activate enemies and Web Spider's secret-hole camera.
+- Intro, Jet Stingray and Cyber Peacock handoffs retain living players at
+  native landing heights. Cyber orbs prevent withdrawal while captured.
+  Jet uses one READY actor, and a dead P2 stays dead across its sections.
+- Victory has one campaign reward and departure. P1 owns persistent progress
+  and upgrades; boss clears agree in Continue, native cards and grey portraits.
+  Fresh stage selection resets carry state so re-entry cannot inherit a corpse.
+- Playtest Diagnostics defaults on, displaying both accepted input streams
+  and recording inputs plus starting memory cards/mod choices under
+  `saves/diagnostics`. Offline replay requires the matching build and settings.
+
+The numbered [regression checklist](docs/COOP_PLAYTEST_REGRESSIONS.md) has all
+26 outcomes checked. Validation includes all 16 title CTests, hidden original
+disc scenarios, a two-boss native save/cold-load loop, and matching two-peer
+development netplay state through tick6253. These checks cover the reported
+cases; they do not establish complete campaign coverage. Split performance
+and an intermittent netplay watchdog stall remain open investigations.
+
+The Windows/Linux launcher lobby, two local controller assignments, stacked
+default HUD and Side by side option remain available. Use the same release
+on both peers. Co-op requires OpenGL and a fresh boot after changing mods.
+
+## Previous v0.1.1-coop-playtest.2
 
 Windows and Linux two-player co-op playtest. Unified cameras and vertically
 stacked lifebars are the defaults; Split cameras remain experimental.

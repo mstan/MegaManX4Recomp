@@ -43,6 +43,7 @@ static SolidContact solids[SOLID_CAPACITY];
 static unsigned solid_count;
 static unsigned combat_call, solid_call, allocation_call, aim_call;
 static unsigned effect_allocation_call;
+static unsigned personal_effect_call;
 static uint8_t second_effect_owner[EFFECT_CAPACITY];
 /* The type-11 death effect defers its character assembly and position reads
  * until the shared pool pass. Keep the allocation-time origin through rejoin. */
@@ -220,6 +221,35 @@ static int allocate_effect(CPUState *cpu, uint32_t address) {
     /* This must also run during enrollment before ready(), and clear an old
      * owner when a shared world/P1 allocator reuses the original slot. */
     return mmx4_coop_finish(cpu,actor);
+}
+
+static int personal_effect(CPUState *cpu,uint32_t address) {
+    uint32_t actor=cpu->gpr[4];
+    if(personal_effect_call || !world_ready() || actor<EFFECT_POOL ||
+       actor>=EFFECT_POOL+EFFECT_CAPACITY*EFFECT_STRIDE ||
+       (actor-EFFECT_POOL)%EFFECT_STRIDE ||
+       !second_effect_owner[(actor-EFFECT_POOL)/EFFECT_STRIDE])return 0;
+    /* Type 7 follows PLAYER/Double. Type 2 is X's delayed charge release:
+     * it uses the owner's assembly/pose, then allocates a native projectile
+     * at 800AF0A4. Keep that allocation in the owner's private shot pool. */
+    personal_effect_call=1;mmx4_coop_enter_second();
+    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+    mmx4_coop_leave_second();personal_effect_call=0;
+    return mmx4_coop_finish(cpu,result);
+}
+
+void mmx4_coop_combat_clear_current_effects(void) {
+    unsigned owner=(unsigned)(mmx4_coop_projected()!=0);
+    for(unsigned i=0;i<EFFECT_CAPACITY;++i) {
+        uint32_t actor=EFFECT_POOL+i*EFFECT_STRIDE;
+        if(second_effect_owner[i]==owner && psx_mod_read_byte(actor) &&
+           psx_mod_read_byte(actor+1)==2) {
+            /* An outgoing player cannot leave a delayed charge emitter
+             * behind to allocate another shot after its attacks were reset. */
+            psx_mod_write_byte(actor,0);psx_mod_write_byte(actor+3,0);
+            second_effect_owner[i]=0;
+        }
+    }
 }
 
 static int particle_slot(uint32_t actor) {
@@ -449,7 +479,7 @@ static int aim_at_participant(CPUState *cpu, uint32_t address) {
 }
 
 static void redirect_actor(CPUState *cpu,uint32_t address) {
-    if(!survivor_pool_call || !mmx4_coop_split_views() || actor_call ||
+    if(!survivor_pool_call || actor_call ||
        mmx4_coop_projected() || psx_mod_local_view_scope())return;
     uint32_t first=address==0x80021300u?0x8013BED0u:0x8013F328u;
     unsigned capacity=address==0x80021300u?48u:32u;
@@ -500,32 +530,15 @@ static void update_actor(CPUState *cpu,uint32_t address) {
 
 static int survivor_actor_pool(CPUState *cpu,uint32_t address) {
     if (survivor_pool_call || !world_ready() || psx_mod_local_view_scope())return 0;
-    if(mmx4_coop_split_views()) {
-        survivor_pool_call=1;actor_pool=address;
-        pool_first_freeze=psx_mod_read_byte(MMX4_PLAYER+0xBC);
-        psx_mod_write_byte(MMX4_PLAYER+0xBC,0);
-        uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
-        psx_mod_write_byte(MMX4_PLAYER+0xBC,pool_first_freeze);
-        survivor_pool_call=0;actor_pool=0;pool_first_freeze=0;
-        return mmx4_coop_finish(cpu,result);
-    }
-    if(mmx4_coop_alive(0) || !mmx4_coop_alive(1))return 0;
-    survivor_pool_call=1;
-    uint32_t x=psx_mod_read_word(MMX4_PLAYER+8);
-    uint32_t y=psx_mod_read_word(MMX4_PLAYER+12);
-    uint8_t freeze=psx_mod_read_byte(MMX4_PLAYER+0xBC);
-    uint8_t *second=mmx4_coop_second_body();
-    psx_mod_write_word(MMX4_PLAYER+8,body_word(second,8));
-    psx_mod_write_word(MMX4_PLAYER+12,body_word(second,12));
-    /* Both pool entries check PLAYER+BC at 80021238/80021450 and skip the
-     * whole pool while it is nonzero. A fallen owner's hurt freeze must not
-     * freeze the surviving player's enemies indefinitely. */
+    /* Native activation/attack decisions read the singleton player even in
+     * Unified. Run each shared actor once with the living nearest player,
+     * or the current script owner during a door/boss handoff. */
+    survivor_pool_call=1;actor_pool=address;
+    pool_first_freeze=psx_mod_read_byte(MMX4_PLAYER+0xBC);
     psx_mod_write_byte(MMX4_PLAYER+0xBC,0);
     uint32_t result=mmx4_coop_call(cpu,address,cpu->gpr[4],cpu->gpr[5]);
-    psx_mod_write_word(MMX4_PLAYER+8,x);
-    psx_mod_write_word(MMX4_PLAYER+12,y);
-    psx_mod_write_byte(MMX4_PLAYER+0xBC,freeze);
-    survivor_pool_call=0;
+    psx_mod_write_byte(MMX4_PLAYER+0xBC,pool_first_freeze);
+    survivor_pool_call=0;actor_pool=0;pool_first_freeze=0;
     return mmx4_coop_finish(cpu,result);
 }
 
@@ -540,7 +553,7 @@ void mmx4_coop_combat_reset(void) {
     hit_count=0;
     solid_count=0;
     combat_call=solid_call=allocation_call=aim_call=0;
-    effect_allocation_call=0;
+    effect_allocation_call=personal_effect_call=0;
     armor_call=armor_owner=armor_skip_update=0;
     survivor_pool_call=0;
     actor_call=actor_suspended=actor_owner=0;
@@ -602,6 +615,8 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_combat) {
     psx_mod_register_function_filter_plugin(COOP_ID,0x8002ACA4u,allocate_actor);
     psx_mod_register_function_filter_plugin(COOP_ID,0x8002ADBCu,allocate_actor);
     psx_mod_register_function_filter_plugin(COOP_ID,EFFECT_ALLOCATE,allocate_effect);
+    psx_mod_register_function_filter_plugin(COOP_ID,0x800AF22Cu,personal_effect);
+    psx_mod_register_function_filter_plugin(COOP_ID,0x800AEED8u,personal_effect);
     psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_ALLOCATE,allocate_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_INITIALIZE,initialize_death_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,ARMOR_UPDATE,armor_world_update);

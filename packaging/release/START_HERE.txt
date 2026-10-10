@@ -39,6 +39,14 @@ CO-OP PLAYTEST
   Split health pickups refill their collector without freezing the partner;
   Unified keeps the original shared refill pause.
 
+  Player 1 owns the campaign and permanent upgrades. Boss clears are shared;
+  the lives counter shows team retries. Player 2 cannot quit the campaign.
+
+  Playtest Diagnostics defaults on. It shows both players' accepted buttons
+  and records each run under saves/diagnostics, including starting memory
+  cards and mod choices. Keep the session folder for reproducing a report;
+  offline input replay needs the matching build and settings.
+
   This release has limited stage coverage. Split may still run below full
   speed, and retries, vehicle stages, and chained scenes need more playtesting.
   Report the release version, stage/area, camera mode, and which player led.
@@ -57,6 +65,6 @@ PRIVACY NOTE
   converted from your disc. Do not redistribute your own capture data.
 
 EARLY RELEASE
-  The intro, title screen, menus, attract demos, and starting a game are known
-  to work. Deep stages and end-to-end memory-card save/load are not yet fully
-  verified. Please report an unknown-dispatch halt with where it occurred.
+  Reported co-op regressions and a two-boss native memory-card save/cold-load
+  loop have passed bounded checks. Complete campaign coverage is still being
+  expanded. Please report an unknown-dispatch halt with where it occurred.
