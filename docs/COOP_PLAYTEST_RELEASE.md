@@ -1,4 +1,25 @@
-# Co-op playtest 1
+# Co-op playtest 2
+
+Version: `v0.1.1-coop-playtest.2`. The owner-approved Windows executable is
+`60ec07fe7597cec9a1a3ad0d12ecb019c3c7ae72b4f6e1197248419151b134f1`.
+It is packaged unchanged. Source `e2952be` contains the tested death-particle,
+audio, HUD-layout and quit-menu changes; the release pin retains those gameplay
+sources while aligning the Linux execution stamp to the approved Windows build.
+
+The owner confirmed P2 damage after pause, safe P1 during P2 death, correct
+particle origin/color, voices in both rosters, HUD alignment, Side by side,
+and no P2 gameplay drawing on Quit Game. Both platforms pass 14 title checks.
+Native SPU regressions cover concurrent private sample banks, DMA replacement,
+looping, KEYOFF, slot reuse and snapshot replay. Linux gets a fresh native build;
+Windows uses the owner's tested executable. Package checks cover catalog,
+fallback toolchain, release defaults, execution/co-op fingerprints and hashes.
+
+Unified and Stacked remain defaults; Split is experimental. Remaining coverage
+is the Split refill/section-transfer/door matrix, vehicles, chained scenes,
+performance and retry/menu disconnects. This release does not claim those are
+exhaustively validated. The unrelated music report was explicitly withdrawn.
+
+## Previous co-op playtest 1
 
 Version: `v0.1.1-coop-playtest.1`. Windows production binary SHA256:
 `347d614a428227ab50d2eeedecfd04915906e46e0fc91d18236f3324b8368d4b`.

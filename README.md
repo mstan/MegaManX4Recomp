@@ -43,7 +43,7 @@ Important files:
 
 ## Status
 
-The [co-op playtest](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.1)
+The [co-op playtest](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.2)
 adds simultaneous X and Zero with vertically stacked lifebars. Enable
 **X + Zero Co-op (Playtest)** in Mods for local play, or use the **X + Zero
 Co-op** netplay profile. Use OpenGL and the same release on both computers.

@@ -1,4 +1,41 @@
-# Mega Man X4 Recompiled — v0.1.1-coop-playtest.1
+# Mega Man X4 Recompiled — v0.1.1-coop-playtest.2
+
+Windows and Linux two-player co-op playtest. Unified cameras and vertically
+stacked lifebars are the defaults; Split cameras remain experimental.
+
+- The launcher exposes Netplay and its two-player lobby on both platforms.
+- Local play offers separate Player 1/Player 2 controller assignments,
+  including two controllers of the same model.
+- Player 2 uses their own character's attack, hurt and death audio. Private
+  audio banks prevent the campaign character's samples from replacing them.
+- Player 2's death particles start at their own position, with red particles
+  for Zero and blue particles for X, while Player 1 stays alive.
+- Both lifebars share the left anchor in widescreen. Mods offers **Stacked**
+  (default) and **Side by side** HUD layouts.
+- Player 2 no longer appears on the Quit Game screen.
+
+The owner approved the exact Windows build after checking P2 damage following
+pause/resume, death-particle ownership/color, both character voice orders,
+HUD alignment/layout and Quit Game drawing. The candidate passed all 14 title
+checks; Linux also passed them and the native private-audio-bank regression.
+The Windows download packages that tested executable without rebuilding it.
+
+Enable **X + Zero Co-op** in Mods for local play and assign both players under
+Controls. For online play, select **Netplay** and the **X + Zero Co-op** profile.
+The host chooses cameras/HUD layout for both peers. Use the same release on
+both computers. Offline play uses Unified. Co-op requires OpenGL and a fresh
+game launch after changing mods. Controllers use Start/Options to pause;
+keyboard pause follows each player's Controls binding.
+
+The Linux x86_64 AppImage requires glibc 2.38 or newer. Make it executable
+with `chmod +x`, then run it; `--appimage-extract-and-run` works without FUSE.
+Writable data lives in `~/.local/share/MegaManX4Recomp`.
+
+Split can still run below full speed, including on LAN. Split refill/section
+handoffs, vehicles, chained scenes and retry/menu disconnects need additional
+playtesting. This is a playtest release with limited stage coverage.
+
+## Previous v0.1.1-coop-playtest.1
 
 An early Windows and Linux co-op playtest. Unified is the default camera mode;
 Split (Experimental) is available for online co-op. The current main release
