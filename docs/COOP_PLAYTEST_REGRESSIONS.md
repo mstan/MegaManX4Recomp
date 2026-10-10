@@ -26,51 +26,51 @@ outcome has been validated, not merely that a patch compiles.
    pass. Native menus/resume were checked in both rosters; X/P2 fires full
    charged shots after either seat pauses. Native Zero/P2 saber damage also
    passes after P2 resumes its own menu (enemy HP16 to HP11). X/P2 native
-   projectile damage also passes (HP16 to HP15). Unreleased.
+   projectile damage also passes (HP16 to HP15). Prepared for playtest 3.
 9. [x] X/P2 charge glow and charged projectile; P2 dash afterimage/glitch
    (`beads-eio.9.27`). Native charge actors and trail update/draw were missing
    from private context. A native reproduction also found the shared delayed
    charge emitter running as P1 and exhausting P2's shot counter. The emitter
    now uses allocation ownership. Native glow/full projectile and counter
    recovery pass before/after either seat pauses. Both rosters produce three
-   private dash trails, with native screenshots checked. Unreleased.
+   private dash trails, with native screenshots checked. Prepared for playtest 3.
 10. [x] P2 Web Spider water effects (`beads-eio.9.28`). Native water callbacks
     now use allocation ownership; focused ownership tests pass. Exact visual
     comparison passes in both rosters: each seat has visible native splashes
-    at its own X +/-8 and native floor height. Screenshots checked. Unreleased.
+    at its own X +/-8 and native floor height. Screenshots checked. Prepared for playtest 3.
 11. [x] P2 intro boss door softlocks (`beads-eio.9.10`). Unified actor updates
     now honor script ownership. Native P2-first intro arena approach releases
     into the boss fight in both rosters; native-burn-42 repeats the P2-first
     route on the current build. The intro uses a scripted arena entrance;
-    its original placement lists have no separate C4 boss door. Unreleased.
+    its original placement lists have no separate C4 boss door. Prepared for playtest 3.
 12. [x] Jump/hurt sound from one seat interrupts the other (`beads-eio.9.29`,
     framework `beads-eio.3.323`). Private P2 voices and scoped native driver
     queues are implemented. Actual SPU mixing, independent stop/reuse and
     snapshot replay tests pass. Isolated original MIPS VAB/key-on calls pass
     for both characters. Native staggered jumps use logical channel20 on
     independent voices20/44: P2 starts before P1 ends naturally, with no P1
-    KEYOFF. Native 44.1kHz PCM captures retained. Unreleased.
+    KEYOFF. Native 44.1kHz PCM captures retained. Prepared for playtest 3.
 13. [x] P2 does not trigger enemies (`beads-eio.9.30`). Existing nearest-player
     native actor context now covers Unified; ownership tests pass in both
     camera modes. Native-burn-29 checks the authored Jungle enemy at X704:
     P2 alone triggers its native attack while P1 stays X500, outside the
-    144-pixel threshold. The swapped-seat control also passes. Unreleased.
+    144-pixel threshold. The swapped-seat control also passes. Prepared for playtest 3.
 14. [x] P2 Web Spider secret-area camera (`beads-eio.9.31`). The owner narrowed
     the trigger to P2 dropping into the hole first. Camera-area and
     checkpoint triggers now consider P2 in Unified. The region ownership test
     passes. Native P2-first drop opens area5 while P1 stays outside its box;
     P2-first area6 entry locks the secret-room camera. Both alive, screenshots
-    checked. Unreleased.
+    checked. Prepared for playtest 3.
 15. [x] P2 Quit Game promotes its character into P1 when continuing with
     current data (`beads-eio.9.32`). Select-to-Quit is blocked for P2's menu;
     both-roster ownership tests and native Select/Start menu checks pass.
 16. [x] Jet Stingray Ready appears twice when P2 participates (`beads-eio.9.33`).
     P2 bike reuses the native READY actor. Two hidden native runs show one
-    actor, the same wait pointer on both bikes, and normal riding. Unreleased.
+    actor, the same wait pointer on both bikes, and normal riding. Prepared for playtest 3.
 17. [x] Jet Stingray boss spawns at the wrong location after a boss door (`beads-eio.9.34`).
     Both leaders in both campaigns now place the initialized boss in the same
     native room and return both seats alive at native floor height. The native
-    entrance flies to a camera-relative position. Screenshots checked. Unreleased.
+    entrance flies to a camera-relative position. Screenshots checked. Prepared for playtest 3.
 18. [x] P2 death/lives state across Jet Stingray's two sections (`beads-eio.9.35`). The owner
     cannot confirm whether P2 revived or only the HUD still showed 2 lives.
     Current retry lives are shared and consumed on team wipe; reproduce
@@ -83,7 +83,7 @@ outcome has been validated, not merely that a patch compiles.
     with no fade/termination result. The voluntary rejoin path now has the
     same normal-play/control gates. Native P2/Zero and P1/Zero victories finish
     with zero passenger returns during victory; native Save and stage selection
-    also complete. Unreleased.
+    also complete. Prepared for playtest 3.
 20. [x] Boss completion lags by one boss, then grey portraits revert to color
     (`beads-eio.9.37`). Owner clarified one P1-owned campaign and shared
     persistent upgrades. Removed private permanent inventory; native record
@@ -97,24 +97,24 @@ outcome has been validated, not merely that a patch compiles.
     immediate cache/card/both grey portraits agree. Native-burn-43 cold reload
     retains17 and both grey portraits. Native stage-select clearing also used
     to carry a false P1 corpse into fresh same-stage entry; its carry reset now
-    passes native-burn-41 with both alive and17 retained. Unreleased.
+    passes native-burn-41 with both alive and17 retained. Prepared for playtest 3.
 21. [x] Cyber Peacock portal passenger returns before room changes (#11).
     Native-burn-42 traverses authored controller38 handoffs: P2 hub1 to
     checkpoint2, P1 hub5 to section1. No passenger arrival occurs before
     the native room changes; both return alive/grounded at its floor height.
-    The same runs qualify healthy outgoing-owner state3 carry. Unreleased.
+    The same runs qualify healthy outgoing-owner state3 carry. Prepared for playtest 3.
 22. [x] Cyber Peacock boss-door passenger appears above room and dies (#11).
     Native outer/inner doors complete with either seat leading; both return
     active and alive at Y2507/2506, the characters' native floor heights.
 23. [x] Cyber Peacock missiles do not target P2 (`beads-eio.9.39`). Native
     missiles home toward surviving P2, and toward P2 while moving away from
     living P1 on the opposite side of the arena. Both-live test retains 25
-    missile samples with seven distinguishing steering samples. Unreleased.
+    missile samples with seven distinguishing steering samples. Prepared for playtest 3.
 24. [x] Cyber Peacock yellow-orb hit followed by despawn/respawn (#11).
     Voluntary withdrawal now respects personal control locks, and rejoin
     respects ordinary-play/scene/fade gates. Native-burn-38 captures Zero/P2
     in the original orb (BA capture and personal67 lock, orb phase3). Holding
-    Select for 1.7 seconds while captured produces zero departures. Unreleased.
+    Select for 1.7 seconds while captured produces zero departures. Prepared for playtest 3.
 25. [x] Safe incoming spawn position, including IMG_0685.mov (#11). Removed
     the unconditional 96-pixel upward body relocation. Prefer the owner's
     native landing height and set P2's player/bike facing right on enrollment
@@ -130,16 +130,18 @@ outcome has been validated, not merely that a patch compiles.
     choices. Native-burn-42 host bitmap checks accepted inputs and idle release.
     Fresh installs also capture default mod choices. Projected callbacks label
     canonical P1 correctly. This is input/state-subset replay, not a full
-    GPU/SPU machine replay. Unreleased.
+    GPU/SPU machine replay. Prepared for playtest 3.
 
 New details under #8/#9 are additions to their existing issues. All new reports
 remain open until their requested gameplay outcome has been validated.
 
 ## Current validation boundaries
 
-The first Windows candidate contains #8/#9/#10 changes only. The current hidden
-developer build includes the later audio, ownership, save and diagnostic work.
-All 16 title CTests pass. Native screenshots show X/P2's full projectile after
+Playtest 3 includes the verified audio, ownership, save and diagnostic work.
+All 16 title CTests pass on Windows and Linux production builds, with debug
+tools and synchronized cheats disabled. Packaged Windows/Linux room offers
+match; Linux AppImage launcher/hidden boot checks pass through frame531.
+Native screenshots show X/P2's full projectile after
 P2 pause and both Jet Stingray riders facing right at the same height.
 The SPU overlap test checks two seats using the same logical channel, instead
 of the earlier test's two distinct hardware channels. Original VAB/key-on
