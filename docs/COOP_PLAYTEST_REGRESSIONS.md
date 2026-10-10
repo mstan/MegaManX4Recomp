@@ -20,14 +20,14 @@ outcome has been validated, not merely that a patch compiles.
 
 ## New regression work
 
-8. [x] P2 pause/resume corrupts graphics and disables attacks; later report
+8. [ ] P2 pause/resume corrupts graphics and disables attacks; later report
    says P2 opens P1's menu and P1 must resume it (`beads-eio.9.26`). Canonical
    world drawing and palette refresh handling are patched; ownership tests
    pass. Native menus/resume were checked in both rosters; X/P2 fires full
    charged shots after either seat pauses. Native Zero/P2 saber damage also
    passes after P2 resumes its own menu (enemy HP16 to HP11). X/P2 native
    projectile damage also passes (HP16 to HP15). Prepared for playtest 3.
-9. [x] X/P2 charge glow and charged projectile; P2 dash afterimage/glitch
+9. [ ] X/P2 charge glow and charged projectile; P2 dash afterimage/glitch
    (`beads-eio.9.27`). Native charge actors and trail update/draw were missing
    from private context. A native reproduction also found the shared delayed
    charge emitter running as P1 and exhausting P2's shot counter. The emitter
@@ -38,7 +38,7 @@ outcome has been validated, not merely that a patch compiles.
     now use allocation ownership; focused ownership tests pass. Exact visual
     comparison passes in both rosters: each seat has visible native splashes
     at its own X +/-8 and native floor height. Screenshots checked. Prepared for playtest 3.
-11. [x] P2 intro boss door softlocks (`beads-eio.9.10`). Unified actor updates
+11. [ ] P2 intro boss door softlocks (`beads-eio.9.10`). Unified actor updates
     now honor script ownership. Native P2-first intro arena approach releases
     into the boss fight in both rosters; native-burn-42 repeats the P2-first
     route on the current build. The intro uses a scripted arena entrance;
@@ -84,7 +84,7 @@ outcome has been validated, not merely that a patch compiles.
     same normal-play/control gates. Native P2/Zero and P1/Zero victories finish
     with zero passenger returns during victory; native Save and stage selection
     also complete. Prepared for playtest 3.
-20. [x] Boss completion lags by one boss, then grey portraits revert to color
+20. [ ] Boss completion lags by one boss, then grey portraits revert to color
     (`beads-eio.9.37`). Owner clarified one P1-owned campaign and shared
     persistent upgrades. Removed private permanent inventory; native record
     writers run canonically and reward refreshes Continue-current-data.
@@ -180,3 +180,7 @@ private cards. Native-burn-1/2 cover Jet shared READY, corpse/vehicle section
 carry, P2-led Cyber outer/inner doors, and P2-first intro scripted arena entry.
 The intro approach releases normally; a separate C4-door qualification is not
 inferred from this arena-script probe.
+
+## October10 follow-up
+
+The owner approved a new18-item scope in [COOP_PLAYTEST_FEEDBACK_20261010.md](COOP_PLAYTEST_FEEDBACK_20261010.md). Items8,9,11 and20 above are reopened after the new reports; their earlier tests document bounded evidence and do not cover every new route. The new list distinguishes visual evidence from text-only reports and keeps the original check numbers.

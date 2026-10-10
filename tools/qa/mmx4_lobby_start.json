@@ -1,0 +1,151 @@
+[
+  {
+    "seat": 0,
+    "command": "view:netplay_mode"
+  },
+  {
+    "seat": 0,
+    "command": "wait:3"
+  },
+  {
+    "seat": 0,
+    "command": "click:220,280",
+    "shot": true
+  },
+  {
+    "seat": 1,
+    "command": "view:netplay_mode"
+  },
+  {
+    "seat": 1,
+    "command": "wait:3"
+  },
+  {
+    "seat": 1,
+    "command": "click:220,280",
+    "shot": true
+  },
+  {
+    "seat": 0,
+    "command": "click:120,799",
+    "shot": true
+  },
+  {
+    "seat": 0,
+    "command": "click:709,472"
+  },
+  {
+    "seat": 0,
+    "command": "key:End"
+  },
+  {
+    "seat": 0,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 0,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 0,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 0,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 0,
+    "command": "text:{udp}",
+    "shot": true
+  },
+  {
+    "seat": 0,
+    "command": "click:551,599",
+    "shot": true
+  },
+  {
+    "sleep": 1
+  },
+  {
+    "seat": 1,
+    "command": "click:463,798",
+    "shot": true
+  },
+  {
+    "seat": 1,
+    "command": "click:995,799",
+    "shot": true
+  },
+  {
+    "seat": 1,
+    "command": "click:420,263"
+  },
+  {
+    "seat": 1,
+    "command": "key:End"
+  },
+  {
+    "seat": 1,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 1,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 1,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 1,
+    "command": "key:Backspace"
+  },
+  {
+    "seat": 1,
+    "command": "text:{udp}"
+  },
+  {
+    "seat": 1,
+    "command": "click:550,355",
+    "shot": true
+  },
+  {
+    "sleep": 1
+  },
+  {
+    "seat": 0,
+    "command": "shot:{out}/host-room.png"
+  },
+  {
+    "seat": 0,
+    "command": "click:991,797"
+  },
+  {
+    "sleep": 3
+  },
+  {
+    "seat": 0,
+    "runtime": "netplay_status",
+    "expect": {
+      "active": 1,
+      "players": 2,
+      "desync": 0,
+      "rollback": 0,
+      "host": 1
+    },
+    "tick_at_least": 120
+  },
+  {
+    "seat": 1,
+    "runtime": "netplay_status",
+    "expect": {
+      "active": 1,
+      "players": 2,
+      "desync": 0,
+      "rollback": 0,
+      "host": 0
+    },
+    "tick_at_least": 120
+  }
+]
