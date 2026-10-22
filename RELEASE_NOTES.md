@@ -1,3 +1,15 @@
+# Prepared 1.0.3 - portable generated texture-pack defaults
+
+- Rebuild against the accepted framework backport (#747) for portable generated defaults.
+  Generated texture-pack directories follow the current installation and remain
+  ephemeral, including while HD textures are disabled.
+- Explicit resource selections retain their meaning. Legacy absolute selections
+  are not migrated because the saved format cannot distinguish a generated value
+  from an intentional player choice.
+
+This is a source contribution, not a published or qualified package.
+See [the rebuild and two-artifact checklist](docs/PORTABLE_GENERATED_DEFAULTS.md).
+
 # Mega Man X4 Recompiled - 1.0.2 Stable Public Beta
 
 - Fixed Player 2 falling to their death when both players dismount at the end of Marine Base's bike section. Both heroes now complete their original dismounts and land normally.
