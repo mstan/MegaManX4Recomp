@@ -1969,18 +1969,28 @@ int main(void) {
         mmx4_coop_call(&cpu,0x80036AE4u,test==6?0x15:0x14,test==7?0x40:0);
         CHECK(psx_mod_read_half(0x801419D6u)==0);
     }
-    /* The survivor's Sigma ladder pass sees its own camera and keeps the
-     * authored deeper limit; other stages and Unified keep their context. */
-    for(unsigned test=0;test<4;++test) {
+    /* Every stage/section's survivor pool must cull and write bounds using
+     * its real camera before the first ordinary post-death camera update.
+     * This includes Web Spider's return strips as well as Sigma's. The
+     * canonical live-player and Unified paths retain their existing view. */
+    for(unsigned stage=0;stage<14;++stage)for(unsigned section=0;section<2;++section)
+    for(unsigned campaign=0;campaign<2;++campaign)for(unsigned test=0;test<4;++test) {
         reset();stage_camera_model=1;split_views=test!=1;
-        psx_mod_write_byte(PLAY+12,test==2?9:10);
-        psx_mod_write_byte(PLAYER+0x5C,test==3?32:0);
+        psx_mod_write_byte(PLAY+12,(uint8_t)stage);
+        psx_mod_write_byte(PLAY+13,(uint8_t)section);
+        psx_mod_write_byte(PLAY+0x43,(uint8_t)campaign);
+        psx_mod_write_byte(PLAYER+2,(uint8_t)campaign);p2[2]=(uint8_t)(campaign^1u);
+        psx_mod_write_byte(PLAYER+0x5C,test==2?32:0);
+        p2[0x5C]=(uint8_t)(test==3?0:32);
         psx_mod_write_half(0x801419BEu,2048);
         mmx4_coop_call(&cpu,0x8002166Cu,0,0);
         CHECK(stage_script_calls==1 && !projected);
         CHECK(stage_camera_y==(test?2048u:736u));
         CHECK(stage_camera_commits==(test==0));
         CHECK(psx_mod_read_half(0x801419D8u)==2048);
+        CHECK(observed_campaign==campaign);
+        CHECK(psx_mod_read_byte(PLAYER+0x5C)==(test==2?32:0));
+        CHECK(p2[0x5C]==(test==3?0:32));
     }
     /* The part2 pillar sequence is distinct from ordinary fireball emitters.
      * Exercise the original signed X>576 admission and exclusion boundaries. */

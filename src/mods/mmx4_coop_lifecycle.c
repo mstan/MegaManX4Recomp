@@ -1834,12 +1834,14 @@ static int stage_scripts(CPUState *cpu,uint32_t address) {
      * world loop. The surviving body's progression triggers run once. */
     script_pool_guard=1;
     uint8_t canonical_camera[0xFC];
-    int own_camera=psx_mod_read_byte(PLAY+12)==10 && !psx_mod_read_byte(PLAY+13) &&
-        mmx4_coop_split_scene_camera_begin(1,canonical_camera);
+    int own_camera=mmx4_coop_split_scene_camera_begin(1,canonical_camera);
     uint32_t result=call_story_as_second(cpu,address,cpu->gpr[4],cpu->gpr[5]);
-    /* Sigma1's narrow ladder return strips must update the survivor's real
-     * camera. Keep the native bounds/culling result when that shared pool
-     * is projected to P2, including the P1-death ownership transition. */
+    /* Stage actors cull against CAMERA before applying their room bounds.
+     * On P1's death this pool precedes the ordinary camera-owner handoff;
+     * using P1's old room deletes P2's ladder return strips (Web Spider and
+     * Sigma1), leaving its upper death boundary permanently clamped. Run
+     * the one native pool in the survivor's real view in every stage, then
+     * retain its completed camera/bounds writes for that same owner. */
     if(own_camera)mmx4_coop_split_scene_camera_end(1,canonical_camera,1);
     script_pool_guard=0;return mmx4_coop_finish(cpu,result);
 }
