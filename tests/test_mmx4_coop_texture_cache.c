@@ -6,7 +6,7 @@
 
 #define CHECK(v) do { if(!(v)) { fprintf(stderr,"line %d: %s\n",__LINE__,#v);exit(1); } } while(0)
 #define WORLD 0x1000u
-#define HUD (WORLD+2*0x40000u)
+#define HUD (WORLD+8*0x40000u)
 static uint32_t ram[(HUD+2*0x8000u)/4];
 static uint32_t saved[sizeof ram/sizeof ram[0]];
 static unsigned reads;
@@ -35,6 +35,11 @@ int main(void) {
     unsigned restored=slot(4096,0x6000,4095);
     memset(ram,0,sizeof ram);CHECK(slot(4096,0x6000,4095)==4095);
     memcpy(ram,saved,sizeof ram);CHECK(slot(4096,0x6000,4095)==restored);
+    memset(ram,0,sizeof ram);
+    for(unsigned buffer=0;buffer<8;++buffer)pair(WORLD+buffer*0x40000u+40000u,0x6000u+buffer);
+    CHECK(mmx4_coop_texture_cache_slot_buffers(4096,0x6000,0,WORLD,HUD,8,read_word)==8);
+    CHECK(mmx4_coop_texture_cache_slot_buffers(4096,0x6000,0,WORLD,HUD,2,read_word)==2);
+    CHECK(mmx4_coop_texture_cache_slot_buffers(4096,0x6000,0,WORLD,HUD,9,read_word)==UINT_MAX);
 
     /* Exercise sustained pressure beyond the old lifetime capacity in every
      * pool. A replacement must never change a current/previous-frame packet. */

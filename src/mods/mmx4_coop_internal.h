@@ -80,6 +80,8 @@ void mmx4_coop_lifecycle_view_restore(void);
 void mmx4_coop_lifecycle_surface(CPUState *cpu);
 void mmx4_widescreen_view_save(void);
 void mmx4_widescreen_view_restore(void);
+/* Draw-only horizontal camera translation, including native parallax. */
+void mmx4_widescreen_shift_view(int delta);
 int mmx4_coop_alive(unsigned seat);
 uint8_t *mmx4_coop_second_body(void);
 uint8_t *mmx4_coop_first_body(void);

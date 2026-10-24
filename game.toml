@@ -4,7 +4,7 @@ id = "SLUS-00561"
 # All changes are mods over this verified original USA raw disc.
 required_disc_sha256 = ["3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"]
 required_disc_fps = ["9bec883757c28ac6642f4e9a7952b3ef39cc519b4ad14dde500e32f9ea13bf64"]
-players = 2
+players = 4
 exe = "mmx4/SLUS_005.61"
 disc = "mmx4/Mega Man X4.cue"
 load_address = "0x80010000"

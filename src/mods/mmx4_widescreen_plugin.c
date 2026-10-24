@@ -57,6 +57,16 @@ static int scroll_mapping(unsigned mode, int x, int *value) {
     default: return 0;
     }
 }
+void mmx4_widescreen_shift_view(int delta) {
+    if(!psx_mod_local_view_scope())return;
+    /* Adjacent tiles of ONE camera, not camera motion: translate all three
+     * existing parallax origins equally so the artwork meets at the seam. */
+    for(unsigned layer=0;layer<3;++layer) {
+        uint32_t at=LAYERS+layer*0x54u;
+        psx_mod_write_word(at+8,psx_mod_read_word(at+8)+(uint32_t)(delta*65536));
+        psx_mod_write_word(at+16,psx_mod_read_word(at+16)+(uint32_t)(delta*65536));
+    }
+}
 static void background_tile_policy(unsigned layer,int *x,int *y,
                                    unsigned *mirror_x,uint16_t *bank) {
     (void)y;(void)mirror_x;(void)bank;
