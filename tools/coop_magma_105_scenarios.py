@@ -79,3 +79,47 @@ def magma_quake(s,qualify=True):
             results.append(_magma_quake(s,qualify))
     finally:s.output=output;s.victory_seat=seat
     return dict(local_quakes=results)
+
+
+def magma_slope_rumble(s,qualify=True):
+    """First-slope shared rolling rumble with native damage left enabled.
+
+    God mode changes this reproduction: it keeps early boulders alive beside
+    the leading hero instead of letting them retire after hitting the waiting
+    partner. Stage/HP setup alone is permitted here; input drives the descent.
+    """
+    results=[]
+    state=next(c['count'] for c in s.r.request('mod_counters')['counters']
+               if c['name']=='mmx4.coop.split-state')
+    for leader in (1,0):
+        s.load(4,0);s.r.fixture(5,0)
+        for seat in (0,1):s.r.fixture(2,seat,48)
+        rows=[];deadline=time.monotonic()+20;stopped=None
+        s.r.input(0xdfdf,leader) # Native Right + Dash; partner remains at spawn.
+        try:
+            while time.monotonic()<deadline:
+                row=s.sample(f'slope-rumble-{leader}-{len(rows)}')
+                views=s.r.read(state+16,504)
+                row['views']=[list(struct.unpack('<42h',views[v*252:v*252+0x54])) for v in (0,1)]
+                row['shake']=[views[v*252+0x34:v*252+0x48].hex() for v in (0,1)]
+                rows.append(row)
+                if row['players'][leader]['x']>=1160 and stopped is None:
+                    s.r.release();stopped=time.monotonic()
+                    capture_pair(s.r,s.output/f'slope-rumble-leader-{leader}.png')
+                if stopped is not None and time.monotonic()-stopped>1.5:break
+                time.sleep(.025)
+        finally:s.r.release()
+        (s.output/f'slope-rumble-{leader}.json').write_text(json.dumps(rows,indent=2))
+        descent=[r for r in rows if 400<=r['players'][leader]['x']<1100]
+        timers=sorted(set(bytes.fromhex(r['shake'][leader])[2] for r in descent
+                          if r['views'][leader][26]&16))
+        result=dict(leader=leader,reached_bottom=stopped is not None,descent_samples=len(descent),
+                    shaking_samples=sum(bool(r['views'][leader][26]&16) for r in descent),
+                    native_timers=timers,
+                    waiting_partner_hit=min(r['players'][leader^1]['hp'] for r in rows)<48,
+                    minimum_hp=[min(r['players'][v]['hp'] for r in rows) for v in (0,1)])
+        if qualify:
+            assert result['reached_bottom'] and len(descent)>=5 and len(timers)>=3,result
+            assert result['waiting_partner_hit'] and all(result['minimum_hp']),result
+        results.append(result)
+    return dict(slope_rumbles=results,observation_only=not qualify)

@@ -294,6 +294,20 @@ static void copy_shake_command(uint32_t destination,uint32_t source,unsigned axi
     for(unsigned i=0;i<5;++i)
         psx_mod_write_byte(destination+offsets[i]+axis,psx_mod_read_byte(source+offsets[i]+axis));
 }
+static int volcano_rolling_window(uint32_t camera) {
+    int center=(int16_t)psx_mod_read_half(camera+10)+160;
+    for(unsigned slot=0;slot<32;++slot) {
+        uint32_t emitter=0x80142F98u+slot*0x30u;
+        if(!psx_mod_read_byte(emitter) || psx_mod_read_byte(emitter+1)!=33 ||
+           psx_mod_read_byte(emitter+2)!=0x10 || psx_mod_read_byte(emitter+4)!=1)continue;
+        /* BC9F8/BCA88 admit the rightward rolling sequence from its authored
+         * X+385..X+1216 window. This is the environmental rumble's audience,
+         * even when its remaining boulders have not caught that view yet. */
+        int dx=center-(int16_t)psx_mod_read_half(emitter+10);
+        if(dx>384 && dx<=1216)return 1;
+    }
+    return 0;
+}
 static int intro_shake(CPUState *cpu,uint32_t address) {
     if(intro_shake_call || !state || !mmx4_coop_split_views() || !mmx4_coop_ready() ||
        psx_mod_local_view_scope() || psx_mod_read_byte(MMX4_PLAY)!=6)return 0;
@@ -312,12 +326,23 @@ static int intro_shake(CPUState *cpu,uint32_t address) {
     if(!explosion && !impact)return 0;
     int x=(int16_t)psx_mod_read_half(CAMERA+10)+160;
     int y=(int16_t)psx_mod_read_half(CAMERA+14)+128;
+    unsigned rolling_rumble=0;
     if(impact) {
         uint32_t actor=cpu->gpr[16];
         if(actor<0x80010000u || actor>0x801FF000u || !psx_mod_read_byte(actor))return 0;
         if(stage==4 && (actor<0x8013F328u || actor>=0x801406A8u ||
            (actor-0x8013F328u)%0x9Cu || psx_mod_read_byte(actor+1)!=33))return 0;
         x=(int16_t)psx_mod_read_half(actor+10);y=(int16_t)psx_mod_read_half(actor+14);
+        /* A0CB0 is part1's recurring rolling-ground rumble, issued on every
+         * grounded tick after the native quake-bit guard. It is not an
+         * impact at the ball's current XY. A fast hero can be far ahead of
+         * the remaining balls, especially after earlier balls hit the hero
+         * waiting at spawn. Retain this shared native environmental command
+         * in views inside the emitter's authored activation window;
+         * falling/pillar impacts keep their locality. */
+        rolling_rumble=stage==4 && !psx_mod_read_byte(MMX4_PLAY+13) &&
+            caller==0x800A0CB8u && psx_mod_read_byte(actor+4)==4 &&
+            !(psx_mod_read_byte(actor+0x15)&0x40u);
     }
     /* Subtype0 issues shake for the complete closing wall, whose authored
      * rows extend432px below its emitter. Test that full footprint, or a
@@ -336,7 +361,12 @@ static int intro_shake(CPUState *cpu,uint32_t address) {
     intro_shake_call=0;
     for(unsigned seat=0;seat<2;++seat) {
         uint32_t shadow=state+16u+seat*CAMERA_BYTES;
-        if(!mmx4_coop_alive(seat) || !intro_effect_near(shadow,x,y,half_height))continue;
+        if(!mmx4_coop_alive(seat) || (!intro_effect_near(shadow,x,y,half_height) &&
+           !(rolling_rumble && volcano_rolling_window(shadow))))continue;
+        /* Independent views may already be partway through this rumble.
+         * Preserve their native phase instead of restarting the amplitude
+         * toggle whenever another view admits the shared command. */
+        if(rolling_rumble && (psx_mod_read_half(shadow+0x34)&bit))continue;
         copy_shake_command(shadow,CAMERA,axis);
         if(intro_explosion_call || volcano_fireball_call)intro_explosion_published|=1u<<(seat*2u+axis);
         psx_mod_counter_add(stage==4?(seat?"mmx4.coop.p2-volcano-shakes":"mmx4.coop.p1-volcano-shakes"):
@@ -344,7 +374,8 @@ static int intro_shake(CPUState *cpu,uint32_t address) {
     }
     /* The world event runs once. Only its native shake command is published;
      * room limits, camera origins and the other shake axis remain personal. */
-    if(!intro_effect_near(CAMERA,x,y,half_height)) {
+    if(!intro_effect_near(CAMERA,x,y,half_height) &&
+       !(rolling_rumble && volcano_rolling_window(CAMERA))) {
         psx_mod_write_half(CAMERA+0x34,(uint16_t)((psx_mod_read_half(CAMERA+0x34)&~bit)|(flags&bit)));
         for(unsigned i=0;i<5;++i)psx_mod_write_byte(CAMERA+offsets[i]+axis,previous[i]);
     }

@@ -1791,6 +1791,68 @@ static void intro_effect_views(CPUState *cpu) {
     CHECK(mmx4_coop_split_snapshot_ready());
 }
 
+static void volcano_rolling_rumble(CPUState *cpu) {
+    const uint32_t ball=0x8013F328u,emitter=0x80142F98u;
+    split=ready=1;projected=local_scope=0;script_owner=-1;
+    psx_mod_write_byte(MMX4_PLAY,6);psx_mod_write_byte(MMX4_PLAY+1,0);
+    psx_mod_write_byte(MMX4_PLAY+12,4);psx_mod_write_byte(MMX4_PLAY+13,0);
+    psx_mod_write_byte(MMX4_PLAYER,1);psx_mod_write_byte(MMX4_PLAYER+4,1);
+    second[0]=second[4]=1;
+    actor_position(MMX4_PLAYER,128,651);second_position(1120,954);
+    memset(ram+(CAMERA&0x1FFFFFu),0,0xFC);
+    actor_position(CAMERA,0,512);
+    CHECK(mmx4_coop_split_activate());mmx4_coop_split_camera_prepare(0);
+    actor_position(saved_camera(1,0),960,768);
+    psx_mod_write_half(saved_camera(1,0)+0x24,800);
+    psx_mod_write_byte(ball,1);psx_mod_write_byte(ball+1,33);
+    psx_mod_write_byte(ball+4,4);psx_mod_write_byte(ball+0x15,0);actor_position(ball,200,654);
+    actor_position(emitter,36,649);psx_mod_write_byte(emitter,1);
+    psx_mod_write_byte(emitter+1,33);psx_mod_write_byte(emitter+2,0x10);
+    psx_mod_write_byte(emitter+4,1);
+    cpu->gpr[16]=ball;cpu->gpr[31]=0x800A0CB8u;cpu->gpr[6]=2;
+    unsigned before=shake_calls;
+    mmx4_coop_call(cpu,0x80028B68u,8,4);
+    CHECK(shake_calls==before+1);
+    for(unsigned seat=0;seat<2;++seat) {
+        uint32_t view=saved_camera(seat,0);
+        CHECK(psx_mod_read_half(view+0x34)&16u);
+        CHECK(psx_mod_read_byte(view+0x36)==8);
+        CHECK(psx_mod_read_byte(view+0x45)==4);
+    }
+    CHECK(psx_mod_read_half(saved_camera(1,0)+10)==960);
+    CHECK(psx_mod_read_half(saved_camera(1,0)+14)==768);
+    CHECK(psx_mod_read_half(saved_camera(1,0)+0x24)==800);
+    /* A fresh command admitted by one view cannot restart the other view's
+     * independent running timer, phase, vertical shake or room bounds. */
+    psx_mod_write_half(saved_camera(0,0)+0x34,0);
+    psx_mod_write_byte(saved_camera(1,0)+0x36,5);
+    psx_mod_write_byte(saved_camera(1,0)+0x3E,0x84);
+    psx_mod_write_byte(saved_camera(1,0)+0x37,19);
+    mmx4_coop_call(cpu,0x80028B68u,8,4);
+    CHECK(psx_mod_read_byte(saved_camera(0,0)+0x36)==8);
+    CHECK(psx_mod_read_byte(saved_camera(1,0)+0x36)==5);
+    CHECK(psx_mod_read_byte(saved_camera(1,0)+0x3E)==0x84);
+    CHECK(psx_mod_read_byte(saved_camera(1,0)+0x37)==19);
+    /* Other part/caller/phase, private redraw, Unified, and a dead partner
+     * must not gain a remote rolling-rumble command. */
+    for(unsigned excluded=0;excluded<10;++excluded) {
+        split=excluded!=4;local_scope=excluded==3;
+        second[4]=(uint8_t)(excluded==5?3:1);
+        psx_mod_write_byte(MMX4_PLAY+13,(uint8_t)(excluded==0));
+        psx_mod_write_byte(ball+4,(uint8_t)(excluded==2?1:4));
+        psx_mod_write_byte(ball+0x15,(uint8_t)(excluded==6?0x40:0));
+        psx_mod_write_byte(emitter+4,(uint8_t)(excluded==7?2:1));
+        psx_mod_write_byte(emitter+2,(uint8_t)(excluded==8?0x11:0x10));
+        actor_position(saved_camera(1,0),excluded==9?4000:960,768);
+        cpu->gpr[31]=excluded==1?0x800A0858u:0x800A0CB8u;
+        psx_mod_write_half(saved_camera(1,0)+0x34,0);
+        psx_mod_write_byte(saved_camera(1,0)+0x36,0);
+        mmx4_coop_call(cpu,0x80028B68u,8,4);
+        CHECK(!psx_mod_read_byte(saved_camera(1,0)+0x36));
+    }
+    split=ready=1;local_scope=projected=0;second[4]=1;
+    psx_mod_write_byte(MMX4_PLAY+13,0);
+}
 int main(void) {
     CPUState cpu={0};cpu.gpr[29]=0x801FF000u;
     psx_mod_write_byte(MMX4_PLAY,6);psx_mod_write_byte(MMX4_PLAYER,1);
@@ -2128,6 +2190,7 @@ int main(void) {
     mushroom_lift_high_jump(&cpu);
     jet_prefetched_placement(&cpu);
     intro_effect_views(&cpu);
+    volcano_rolling_rumble(&cpu);
     const unsigned laser_stages[]={7,8,11};
     for(unsigned site=0;site<3;++site)for(unsigned stage_index=0;stage_index<3;++stage_index)for(unsigned owner=0;owner<2;++owner) {
         unsigned stage=laser_stages[stage_index];
