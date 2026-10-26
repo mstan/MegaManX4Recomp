@@ -236,7 +236,7 @@ void mmx4_coop_split_actors(Mmx4CoopViewActor actors[2]) {
 unsigned mmx4_coop_split_view_seat(unsigned seat) {
     if(seat>1)seat=0;
     int owner=mmx4_coop_lifecycle_script_owner();
-    if(owner>=0 && !mmx4_coop_lifecycle_paired_door())return (unsigned)owner;
+    if(owner>=0 && !mmx4_coop_lifecycle_paired_door() && !mmx4_coop_lifecycle_free_views())return (unsigned)owner;
     if(!mmx4_coop_alive(seat))return mmx4_coop_alive(seat^1u)?seat^1u:0;
     return seat;
 }
@@ -245,7 +245,8 @@ int mmx4_coop_split_camera_copy(unsigned seat,uint8_t layers[0xFC]) {
     /* Initial arrivals render before the first enabled camera tick. Use the
      * authored starting camera without mutating snapshot state in a draw. */
     if(!psx_mod_read_word(state) ||
-       (mmx4_coop_lifecycle_script_owner()>=0 && !mmx4_coop_lifecycle_paired_door())) {
+       (mmx4_coop_lifecycle_script_owner()>=0 && !mmx4_coop_lifecycle_paired_door() &&
+        !mmx4_coop_lifecycle_free_views())) {
         /* Scripted pans advance the native camera while private gameplay
          * cameras are parked. Share the pan, retaining each pane's own HUD. */
         read_bytes(CAMERA,layers,CAMERA_BYTES);return 1;
@@ -950,10 +951,11 @@ static int fortress_background(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 int mmx4_coop_split_scene_camera_begin(unsigned owner,uint8_t canonical[0xFC]) {
+    unsigned free_views=(unsigned)mmx4_coop_lifecycle_free_views();
     if(!available() || owner>1 || (mmx4_coop_lifecycle_script_owner()>=0 &&
-       !mmx4_coop_lifecycle_paired_door()) ||
-       psx_mod_read_byte(MMX4_PLAY+0x10) ||
-       (psx_mod_read_byte(MMX4_PLAY+0x1C) && !mmx4_coop_lifecycle_nova_active()))return 0;
+       !mmx4_coop_lifecycle_paired_door() && !free_views) ||
+       (psx_mod_read_byte(MMX4_PLAY+0x10) && !free_views) ||
+       (psx_mod_read_byte(MMX4_PLAY+0x1C) && !mmx4_coop_lifecycle_nova_active() && !free_views))return 0;
     /* Nova's personal attack lock does not move the other hero's camera.
      * Door eligibility still runs natively, including while Both waits;
      * its trailing visibility query needs that waiting hero's real view. */
@@ -998,8 +1000,9 @@ void mmx4_coop_split_camera_prepare(unsigned owner) {
     unsigned previous=psx_mod_read_word(state+8u);
     /* A surviving P2 must start its native camera update in its own room,
      * rather than inherit the fallen P1's origins and clamping targets. */
-    if(previous && previous!=owner+1u && mmx4_coop_lifecycle_script_owner()<0 &&
-       !psx_mod_read_byte(MMX4_PLAY+0x10) && !psx_mod_read_byte(MMX4_PLAY+0x1C))
+    if(previous && previous!=owner+1u && (mmx4_coop_lifecycle_free_views() ||
+       (mmx4_coop_lifecycle_script_owner()<0 && !psx_mod_read_byte(MMX4_PLAY+0x10) &&
+        !psx_mod_read_byte(MMX4_PLAY+0x1C))))
         copy_camera(CAMERA,state+16u+owner*CAMERA_BYTES);
     psx_mod_write_word(state+8u,owner+1u);
 }
@@ -1071,7 +1074,7 @@ void mmx4_coop_split_camera(CPUState *cpu,unsigned owner) {
     unsigned other=owner^1u;
     /* PLAY+10 also freezes the world while a native pickup counts health.
      * That pause must not copy room bounds or clamp the distant partner. */
-    unsigned paired=mmx4_coop_lifecycle_paired_door();
+    unsigned paired=mmx4_coop_lifecycle_paired_door() || mmx4_coop_lifecycle_free_views();
     if((mmx4_coop_lifecycle_script_owner()>=0 && !paired) ||
        (psx_mod_read_byte(MMX4_PLAY+0x1C) && !paired && !mmx4_coop_lifecycle_nova_active()) || !mmx4_coop_alive(other)) {
         copy_camera(state+16u+other*CAMERA_BYTES,state+16u+owner*CAMERA_BYTES);
@@ -1100,7 +1103,10 @@ void mmx4_coop_split_camera(CPUState *cpu,unsigned owner) {
     for(unsigned offset=0;offset<8u;++offset)psx_mod_write_byte(shadow+offset,canonical[offset]);
     copy_camera(CAMERA,shadow);
     if(other)mmx4_coop_enter_second();
+    uint8_t freeze=mmx4_coop_lifecycle_free_scene()?psx_mod_read_byte(MMX4_PLAY+0x10):0;
+    if(freeze)psx_mod_write_byte(MMX4_PLAY+0x10,0);
     mmx4_coop_call(cpu,0x80027850u,0,0);
+    if(freeze)psx_mod_write_byte(MMX4_PLAY+0x10,freeze);
     mushroom_lift_scroll(canonical);
     mmx4_coop_call(cpu,0x80027D40u,0,0);
     mmx4_coop_call(cpu,0x800281E8u,0,0);
@@ -1274,7 +1280,7 @@ static unsigned eligible_regions(PSXPlacementRect regions[2]) {
         views[seat]=(Mmx4CoopView){(int16_t)psx_mod_read_half(shadow+10),
             (int16_t)psx_mod_read_half(shadow+14)};
     }
-    int owner=mmx4_coop_lifecycle_paired_door()?-1:mmx4_coop_lifecycle_script_owner();
+    int owner=(mmx4_coop_lifecycle_paired_door() || mmx4_coop_lifecycle_free_scene())?-1:mmx4_coop_lifecycle_script_owner();
     return mmx4_coop_view_regions(views,actors,owner,
         psx_mod_widescreen_x_margin(),regions);
 }
@@ -1362,7 +1368,7 @@ static int scan_players(CPUState *cpu,uint32_t address) {
     }
     uint8_t canonical[CAMERA_BYTES];read_bytes(CAMERA,canonical,CAMERA_BYTES);
     Mmx4CoopViewActor actors[2];mmx4_coop_split_actors(actors);
-    int owner=mmx4_coop_lifecycle_paired_door()?-1:mmx4_coop_lifecycle_script_owner();scanning=1;
+    int owner=(mmx4_coop_lifecycle_paired_door() || mmx4_coop_lifecycle_free_scene())?-1:mmx4_coop_lifecycle_script_owner();scanning=1;
     uint32_t result=0;
     for(unsigned seat=0;seat<2;++seat) {
         if(!actors[seat].active || (owner>=0 && owner!=(int)seat))continue;
@@ -1396,7 +1402,7 @@ static int actor_bounds(CPUState *cpu,uint32_t address) {
     initialize_cameras();
     uint8_t canonical[CAMERA_BYTES];read_bytes(CAMERA,canonical,CAMERA_BYTES);
     Mmx4CoopViewActor actors[2];mmx4_coop_split_actors(actors);
-    int owner=mmx4_coop_lifecycle_paired_door()?-1:mmx4_coop_lifecycle_script_owner();
+    int owner=(mmx4_coop_lifecycle_paired_door() || mmx4_coop_lifecycle_free_scene())?-1:mmx4_coop_lifecycle_script_owner();
     unsigned visible=0;
     uint32_t result=draw?0:1;bounds_call=1;
     for(unsigned seat=0;seat<2;++seat) {

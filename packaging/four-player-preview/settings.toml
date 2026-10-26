@@ -1,0 +1,12 @@
+# Clean public defaults for the Windows four-player preview.
+# No user bindings, mod selections, disc paths or saves are included.
+[video]
+renderer = "opengl"
+internal_resolution = "native"
+dynamic_resolution = false
+render_thread = true
+fullscreen = 0
+window_width = 960
+aspect_ratio = "4:3"
+frame_interpolation = false
+rewind = false

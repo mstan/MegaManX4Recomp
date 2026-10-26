@@ -1,6 +1,6 @@
 MegaManX4Recomp - Mega Man X4, recompiled
 ==========================================
-1.0.11 Stable Public Beta
+1.0.11-4p-spike.1 - Four Player Co-op Preview (Windows x64)
 
 WHAT YOU NEED
   Your own original, unmodified Mega Man X4 (USA, SLUS-00561) disc image.
@@ -17,21 +17,47 @@ WHAT YOU NEED
   You may optionally select your own legally obtained SCPH1001.BIN instead.
 
 FIRST RUN
-  1. Run MegaManX4Recomp.exe on Windows, or the .AppImage on Linux.
+  1. Run MegaManX4Recomp.exe on Windows.
   2. Set the Disc row to your Mega Man X4 image.
-  3. Custom Renderer / Adaptive and Resident Asset Loading default on.
-     Internal resolution defaults to 1080p. Interpolation is unavailable;
+  3. Widescreen / Adaptive and Resident Asset Loading default on.
+     This preview uses native internal resolution and the render worker. Interpolation is unavailable;
      generic CD speed and host timing controls are retired. Optional Damage
      Multiplier defaults to normal 1x damage.
   4. Press Play. Your choices are remembered for next time.
 
-CO-OP PUBLIC BETA
+FOUR PLAYER CO-OP PREVIEW
+  Enable Mods -> Four Player Co-op. In Controls, assign every seat to a
+  controller or keyboard. Your personal bindings are not included in this ZIP.
+  Default roster: X / Zero / Ultimate Armor X / Black Zero. Forms must be
+  unique. Set Player 4 to None for three players. Only complete forms are
+  available. This mod disables the two-player and separate armor-code mods.
+
+  Local play always uses independent split cameras: P1 top left, P2 top
+  right, P3 bottom left and P4 bottom right. With three players, P3 uses
+  one centered 4:3 pane below P1/P2, with black pillars on either side.
+  Local unified four-player play is deferred.
+  Online camera choices are on Netplay; individual views are the default.
+  Every peer must use this exact preview build and the same roster.
+
+  Each player has their own X/Zero pause screen, HUD and spawn animation.
+  Co-op Free Cutscenes is a separate default-off experiment. Doors and room
+  transfers retain the normal partner gathering and protection rules.
+
+  Four-player save states and rewind are unavailable. Native memory-card
+  saves retain mod isolation. Diagnostic recording is optional and off.
+  Complete campaign, vehicles, all bosses/scripts/weapons, Internet/ICE,
+  spectators and cross-platform four-player play are not yet qualified.
+  Heavy gameplay performance and some legacy two-player menu/pause cases
+  remain under investigation. See RELEASE_NOTES.md and
+  docs/EXPERIMENTAL_FOUR_PLAYER.md for scope and evidence.
+
+TWO-PLAYER CO-OP (SEPARATE MOD)
   In Mods, enable X + Zero Co-op for local play. OpenGL is required, and
   enabling co-op takes effect on a fresh boot. The X + Zero Co-op netplay
   profile enables it for both peers; use the same release on both computers.
   Unified is the default camera mode. The host may choose Split
-  for independent online views. Local co-op display also offers Side by side
-  8:3, with two 4:3 cameras in one window. Requires a fresh boot.
+  for independent online views. Local co-op display also offers Side by side 8:3
+  with two 4:3 cameras in one window. Requires a fresh boot.
 
   Select Netplay in the launcher to host or join a two-player room using the
   X + Zero Co-op profile. For local play, Controls offers Player 1 and Player 2
@@ -55,7 +81,7 @@ CO-OP PUBLIC BETA
   the lives counter shows team retries. Either living player can use Select in
   the pause menu to Quit, or select Escape in a cleared stage.
 
-  Offline co-op supports save states and rewind. F7 opens save states:
+  Offline TWO-PLAYER co-op supports save states and rewind. F7 opens save states:
   Square saves, Cross loads, and Circle goes back, using your configured
   controller/keyboard bindings. F8 opens rewind when Rewind is enabled.
   These features are unavailable during a netplay match.

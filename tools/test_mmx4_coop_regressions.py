@@ -31,12 +31,69 @@ class Scenarios:
     def magma_slope_rumble(self):
         from coop_magma_105_scenarios import magma_slope_rumble
         return magma_slope_rumble(self)
+
     def spider_ladder_pair(self):
         from coop_spider_ladder_scenario import spider_ladder_survivor
         return spider_ladder_survivor(self,kill_partner=False)
+
     def spider_ladder_survivor(self):
         from coop_spider_ladder_scenario import spider_ladder_survivor
         return spider_ladder_survivor(self)
+
+    def free_cutscenes(self):
+        from coop_debug import capture_pair
+        owner=self.free_scene_owner
+        partner=owner^1
+        self.load(8, 0, 2)
+        self.r.fixture(5, 3)
+        self.r.teleport(owner, 6976, 362 if (self.campaign^owner) else 363)
+        self.r.input(0xffdf, owner)
+        try:
+            self.wait('free-scene-started', lambda row: row['players'][owner]['script'] and
+                      any(e['type'] == 45 for e in self.enemies()), 25)
+        finally:
+            self.r.release()
+        before = self.sample('free-scene-before-move', True)
+        capture_pair(self.r, self.output/'free-scene-before-composed.png')
+        self.r.input(0xffdf, partner)
+        try:
+            after = self.wait('free-scene-movement', lambda row:
+                row['players'][partner]['x'] > before['players'][partner]['x'] + 24 and
+                row['players'][owner]['script'], 12)
+        finally:
+            self.r.release()
+        assert after['players'][partner]['active'] and after['players'][partner]['visible'], after
+        assert after['players'][partner]['hp'] > 0 and not after['players'][partner]['script'], after
+        self.sample('free-scene-moving', True)
+        capture_pair(self.r, self.output/'free-scene-moving-composed.png')
+        render = self.r.request('render_pass_stats')
+        assert render['verify_checks'] and not render['verify_mismatch'], render
+        # Explicit setup of a frozen-world phase during the still-live native
+        # scene. This verifies the controller gate; it is not evidence that
+        # this midboss itself naturally requests a freeze. No success flag is
+        # written, and the original scene must finish after releasing setup.
+        saved_freeze=self.r.read(0x801721d0,1)[0]
+        frozen_before=self.sample('free-scene-before-freeze')
+        try:
+            self.r.write(0x801721d0,1)
+            self.r.input(0xffdf,partner)
+            frozen=self.wait('free-scene-frozen-movement', lambda row:
+                row['freeze']==1 and row['players'][owner]['script'] and
+                row['players'][partner]['x']>frozen_before['players'][partner]['x']+24,15)
+            assert frozen['players'][partner]['active'] and frozen['players'][partner]['visible'],frozen
+            capture_pair(self.r,self.output/'free-scene-frozen-composed.png')
+        finally:
+            self.r.release()
+            self.r.write(0x801721d0,saved_freeze)
+        self.wait('free-scene-completed', lambda row: not row['blocked'] and
+                  not row['warning'] and all(p['active'] and p['visible'] and
+                    not p['script'] and not p['door'] for p in row['players']), 45, True)
+        from test_mmx4_coop_doors import run_case
+        door = run_case(self.r, self.campaign, 0, False, self.output)
+        assert door['status'] == 'passed', door
+        return dict(owner=owner, before=before, during=after,
+                    door=door, render_stats=render, frozen_setup=frozen,
+                    method='Native Slash Beast midboss admission; ordinary controller input during its live script')
     def stock_charge_hud(self):
         from coop_stock_charge_scenario import stock_charge_hud
         return stock_charge_hud(self)
@@ -2371,8 +2428,10 @@ def main():
                         choices=('p2-survivor', 'p1-survivor', 'both', 'both-p2'),
                         default=['p2-survivor', 'p1-survivor', 'both', 'both-p2'])
     parser.add_argument('--individual-pausing',action='store_true',help='Use the legacy one-owner menu instead of independent simultaneous menus')
+    parser.add_argument('--free-cutscenes', action='store_true')
+    parser.add_argument('--free-scene-owner', type=int, choices=(0,1), default=0)
     parser.add_argument('--boss-cooldowns',choices=('per_player','shared'),default='per_player')
-    parser.add_argument('--cases', nargs='+', choices=('sigma_lower_route','sigma_phase3_survivor','double_standing','magma_armor_entry','jet_door','jet_dash','intro_near_entry','stock_charge_hud','spider_ladder_pair','spider_ladder_survivor','magma_slope_rumble','magma_pillars','magma_quake','sigma_ladder_survivor','intro_bees','magma_giga_death','fmv_transitions','magma_distant_entry','sigma1_doors','sigma2_lasers','fortress_probe','intro_dragon_snapshot','magma_idle_resolution','mushroom_lift_crush','magma_effects_field','magma_effects','intro_dragon_views','intro_effect_corridor','intro_distant_entry','intro_structure_shake','intro_closing_shake','p2_pause_quit','p2_pause_escape','slash_midboss_entry','slash_cannon_origins','owl_cannon_origins','mushroom_midboss_exit','personal_menus','local_pair','local_canvas','jet','jet_intro','bike_probe', 'cyber','handoff_dash','section_health','weapon_cycle','dash_effects','zero_elemental','fire_weakness','initial_arrivals','stationary_arrivals','intro_arrivals','web_walljump','train_background','dialogue_native','cyber_flip_probe','cyber_flip','snow_base_survivor','frost_late_path', 'intro','intro_entry','trail_probe','post_victory_trails','open_airdash','train_visual','door_death','train_return','train_deaths','train_boss','arrival_death','combat','jet_boss',
+    parser.add_argument('--cases', nargs='+', choices=('free_cutscenes','sigma_lower_route','sigma_phase3_survivor','double_standing','magma_armor_entry','jet_door','jet_dash','intro_near_entry','stock_charge_hud','spider_ladder_pair','spider_ladder_survivor','magma_slope_rumble','magma_pillars','magma_quake','sigma_ladder_survivor','intro_bees','magma_giga_death','fmv_transitions','magma_distant_entry','sigma1_doors','sigma2_lasers','fortress_probe','intro_dragon_snapshot','magma_idle_resolution','mushroom_lift_crush','magma_effects_field','magma_effects','intro_dragon_views','intro_effect_corridor','intro_distant_entry','intro_structure_shake','intro_closing_shake','p2_pause_quit','p2_pause_escape','slash_midboss_entry','slash_cannon_origins','owl_cannon_origins','mushroom_midboss_exit','personal_menus','local_pair','local_canvas','jet','jet_intro','bike_probe', 'cyber','handoff_dash','section_health','weapon_cycle','dash_effects','zero_elemental','fire_weakness','initial_arrivals','stationary_arrivals','intro_arrivals','web_walljump','train_background','dialogue_native','cyber_flip_probe','cyber_flip','snow_base_survivor','frost_late_path', 'intro','intro_entry','trail_probe','post_victory_trails','open_airdash','train_visual','door_death','train_return','train_deaths','train_boss','arrival_death','combat','jet_boss',
                         'mushroom_lift_high_jump','intro_first_drop','mushroom_survivor_colors','marine_dismount','sigma_entry','spider_balance','boss_balance','story_bosses','boss_door_policy','spider_visual','cyber_missiles','spider_hole','victory','dragoon_survivor_reward','diagnostics','audio',
                         'cyber_orb','cyber_course','cyber_course_leader','cyber_indicator','cyber_moving','volcano_probe','ride_armor','volcano_entry','save_loop','second_save_loop','stage_reentry','portrait_exit','portrait_escape','reload_save','enemy_activation','x_armor','spider_capture','storm_survivor_exit','storm_team_exit','storm_exit_race','storm_midboss_exit','intro_platform_leader','teleport_fall','balance_saved_control','balance_saved_slashes','frost_shaft'), default=['jet', 'cyber', 'intro'])
     args = parser.parse_args()
@@ -2405,6 +2464,9 @@ def main():
         'boss_cooldowns = "'+args.boss_cooldowns+'"\n\n[[feature]]\n'
         'package_id = "mmx4.enhancement.widescreen"\nid = "widescreen"\nenabled = '+str(args.custom_renderer).lower()+'\n\n[[feature]]\n'
         'package_id = "mmx4.diagnostics"\nid = "inputs"\nenabled = true\n')
+    if args.free_cutscenes:
+        with (args.output/'mods/state.toml').open('a', encoding='utf-8') as state:
+            state.write('\n[[feature]]\npackage_id = "mmx4.coop-free-cutscenes"\nid = "free-cutscenes"\nenabled = true\n')
     if args.fmv_media:
         resource={'none':'japanese-disc','en':'english-movies','es':'spanish-movies'}[args.fmv_language]
         with (args.output/'mods/state.toml').open('a',encoding='utf-8') as state:
@@ -2430,7 +2492,7 @@ def main():
     env['SDL_AUDIODRIVER']='dummy'
     if args.diagnostic_watchdog_seconds:
         env['PSX_STARVATION_TIMEOUT_US']=str(args.diagnostic_watchdog_seconds*1000000)
-    if any(case in args.cases for case in ('local_pair','local_canvas','personal_menus','stock_charge_hud')):
+    if any(case in args.cases for case in ('local_pair','local_canvas','personal_menus','free_cutscenes','stock_charge_hud')):
         env['PSX_RENDER_PASS_VERIFY']='1'
     argv = [str(executable), '--hidden-window' if args.hidden_window else '--headless-opengl', '--no-launcher', '--debug-port', str(args.port),
             '--game', str(args.output / 'game.toml'), '--bios', str(args.bios), '--disc', str(args.disc),
@@ -2457,6 +2519,7 @@ def main():
     scenarios.fmv_both=args.fmv_both
     scenarios.fmv_turbo=args.fmv_turbo
     scenarios.simultaneous_menus=not args.individual_pausing
+    scenarios.free_scene_owner=args.free_scene_owner
     report = dict(campaign=args.campaign, cases=[], argv=argv,
                   diagnostic_watchdog_seconds=args.diagnostic_watchdog_seconds)
     with (args.output / 'runtime.log').open('wb') as log:

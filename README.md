@@ -11,10 +11,20 @@ from acediez/Hondoori (English) and El Retro Dan (Spanish), with
 
 **X and Zero. Together.**
 
-Mega Man X4 on Windows and Linux. **1.0.11 Stable Public Beta**, with two-player co-op.
-Bring a friend through X's or Zero's campaign, on one computer or over netplay.
+**Four Player Co-op Preview - `1.0.11-4p-spike.1` (Windows x64).**
+This feature branch adds experimental three/four-player co-op with independent
+local split cameras and individual online views. Enable **Mods -> Four Player
+Co-op**, then assign each seat in **Controls**. The default roster is X, Zero,
+Ultimate Armor X and Black Zero; Player 4 can be None for three-player play.
 
-**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.11](RELEASE_NOTES.md) · [Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
+**[Download this prerelease](https://github.com/mstan/MegaManX4Recomp/releases/tag/v1.0.11-4p-spike.1)** | [Setup and limitations](docs/EXPERIMENTAL_FOUR_PLAYER.md) | [Release notes](RELEASE_NOTES.md)
+
+The preview is separate from the [1.0.11 Stable Public Beta](https://github.com/mstan/MegaManX4Recomp/releases/tag/v1.0.11).
+Local unified four-player cameras are deferred. Four-player save states and
+rewind are unavailable; native memory-card saves remain supported. Full-campaign,
+Internet and cross-platform four-player play remain unqualified. See the preview
+release notes before testing. The two-player features below remain available as
+a separate, mutually exclusive mod.
 
 <p align="center">
   <img src="docs/images/coop-jungle.png" width="640" alt="X and Zero together at the Jungle waterfall, with vertically stacked lifebars">

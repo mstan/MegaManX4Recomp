@@ -28,3 +28,8 @@ original capsule requirement; Black Zero uses the original black palette.
 The same codes are also options under X + Zero Co-op for local and online play.
 Select the co-op feature to configure its codes, boss doors and boss settings.
 For online co-op, the host chooses these settings for both peers.
+
+Keep moving during co-op cutscenes is a separate experimental checkbox, off by
+default. With either co-op mod it keeps the other players controllable during
+ordinary scenes, while preserving doors and actual room transfers. See
+`docs/COOP_FREE_CUTSCENES.md` for scope and native validation.

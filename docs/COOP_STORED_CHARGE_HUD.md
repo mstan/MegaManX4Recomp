@@ -33,8 +33,17 @@ UI bank and retain its left HUD anchor. Restore temporary draw coordinates and
 contexts before returning. No charge counter, gameplay body or native code is
 patched, and private views do not advance the controller.
 
-This correctness change is independent of the experimental four-player mod.
-Additional X seats need the feature branch's seat-aware ownership adaptation.
+The two-player correctness change is independent of the experimental
+four-player mod. On the feature branch, the four-player engine separately
+tracks all 64 particle slots with a 1-based allocating seat, resets ownership
+on allocation/stage initialization, and includes it in its synchronized
+digest. Each X variant's controller uses that seat's context and each private
+view draws only its own stock display. This works with the centered
+three-player presenter, whose draw callbacks are exactly seats 0, 1 and 2.
+The canonical four-player fallback contains only P1's native HUD, so it also
+admits only P1's stock display. Extra-seat stock cannot attach to P1's meter
+when private rendering is refused. Two-player Unified retains its separate
+two-HUD layout and offsets.
 
 ## Validation
 
@@ -96,3 +105,56 @@ Evidence is retained in `qa-x-p1-split`, `qa-x-p2-split`,
 `report.json` and empty/charged/consumed composed PNGs. This qualifies the
 two-player correctness fix; four-player and actual online gameplay remain
 separate checks.
+
+## Native three- and four-player qualification, 2026-10-24
+
+`tools/test_mmx4_coop4_stock_hud.py` passed four legal complete-form rosters
+on game `b672ed435bc614948a47d932fdd6134f546e16b8`, framework
+`2f3f38403250b2937cf61179a17dc648c3392765`, and UI
+`b964eabe5a3438b8ed121064354ba27c1accef3f`. The private Release
+ENHANCED/LLE QA binary had debug tools and development fixtures enabled,
+with SHA-256
+`f6ae5f45f8f81b061d56703ba4f8d8c4d66e4255c804fd61b5b06ff24b17e47c`.
+
+| Roster, P1 through P4 | Stock owner | Layout | Restore checks |
+|---|---|---|---:|
+| X, Zero, Force X, None | P3 | Three players, P3 centered below | 2667 |
+| Zero, Force X, Ultimate X, None | P2 | Three players, P3 centered below | 2670 |
+| X, Zero, Ultimate X, Force X | P4 | Four-player grid | 4172 |
+| Force X, Black Zero, X, Ultimate X | P1 | Four-player grid | 4172 |
+
+Each isolated, hidden, muted process used four distinct normal SDL keyboard
+bindings. A guarded window-local input helper verified the executable and PID,
+required a hidden drawable, and never changed foreground focus or sent global
+input. The debug TCP input override was used for P1 boot navigation only;
+it does not support P3/P4. Fixtures protected the players and aligned their
+positions/cameras on the opening-stage platform. The legal roster supplied
+Force Armor X's stock-charge arm. No stock count was written.
+
+Actual hold/release input generated `0 -> 4` stocks; subsequent presses consumed
+`4 -> 3 -> 2 -> 1 -> 0`. Charging normal/Ultimate X and attacking with
+Zero/Black Zero left the owner's count unchanged and every unrelated count
+zero. Composed PNG stock-region comparisons and image inspection put the
+original four X icons exclusively below the owning HUD, and verified their
+removal when empty. This includes Force X in the centered third pane.
+
+Every case also refused private rendering while input consumed the first
+stock. Canonical screenshots showed only P1's stock when P1 was Force X,
+and no stock below P1 when an extra seat owned it. The foreign-stock rejection
+counter increased during refusal in all three extra-seat cases. Restoring
+private rendering returned the three remaining icons to the owner's pane.
+All 13,681 render restoration checks passed, with zero mismatches, aborts,
+watchdogs, VRAM leaks or co-op view-state leaks.
+
+Evidence directories are `labels-production-qa-stock-3p-force-p3-v2`,
+`labels-production-qa-stock-3p-force-p2`,
+`labels-production-qa-stock-4p-force-p4`, and
+`labels-production-qa-stock-4p-force-p1`, with reports, composed and canonical
+PNGs, runtime logs, and build provenance. The initial P3 run stopped before
+charging because its test crop included one final X/Zero portrait row; the
+corrected stock-only crop starts at Y=97. That harness calibration is retained
+separately in `labels-production-qa-stock-3p-force-p3`.
+
+These checks qualify local stock-HUD ownership and render restoration in this
+opening-stage setup. They do not establish an online gameplay session or
+broader campaign progression.

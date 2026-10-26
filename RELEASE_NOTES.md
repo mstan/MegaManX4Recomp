@@ -1,69 +1,177 @@
-# Mega Man X4 Recompiled - 1.0.11 Stable Public Beta
+# Mega Man X4 Recompiled - 1.0.11 Four Player Co-op Preview 1
 
-- Fixed Zero's first standing saber slash failing to damage Double.
-- Fixed an early drop into Sigma stage 2's lower route killing the leading player before the camera reached the lower room. Real pit deaths remain active.
-- Fixed Player 2 being unable to start Sigma's entrance scene while Player 1 was alive and waiting behind.
-- Fixed the final Sigma fight failing to start after a surviving Player 2 defeated the upper forms and dropped into the lower arena.
+**`1.0.11-4p-spike.1` - experimental Windows x64 prerelease.**
 
-The Frost Walrus refight camera report remains open: the recording confirms
-P2's death, but has not established that a camera fault caused it. Jet boss
-performance and the earlier one-frame pause-view report also remain open.
+Rebased onto stable 1.0.11 and merged PR #78. The two-player mod includes
+Zero's standing slash against Double, the early Sigma2 lower-route floor,
+either living player's Sigma corridor entrance and the survivor's final
+Sigma arena release. Four Player Co-op uses separate stage logic; these
+Sigma fixes are qualified in the two-player mod, not its four-player routes.
 
-Diagnostic recording remains optional and **off by default**. All netplay
-players must update. Native memory-card saves carry forward. Public packages
-require the original, unmodified USA disc and omit CD Speed, Fast Loading
-and developer cheats. Four Player Co-op remains a separate prerelease.
+The existing four-player implementation is retained: independent cameras,
+centered three-player layout, roster choices, personal menus and prior HUD
+and rendering fixes. Four Player Co-op and Free Cutscenes remain separate,
+default-off mods. Local unified 4P stays deferred. Diagnostic recording stays
+off by default, and release packages exclude loading mods and developer tools.
 
-See [native regression evidence and limits](docs/COOP_PLAYTEST_REGRESSIONS.md).
+The Frost refight camera cause, Jet slowdown and documented four-player
+Magma activation, Web Spider ownership and heavy-gameplay performance gaps
+remain open. Full-campaign, Internet and cross-platform 4P play are unqualified.
+All netplay players must use this exact preview. Native memory-card saves
+remain supported; four-player save states and rewind remain unavailable.
 
-## Previous v1.0.10 Stable Public Beta
+## Previous 1.0.10 Four Player preview
 
-- Fixed either player triggering the opening boss introduction on the wrong hero, causing a camera pan and forced walk to the left.
-- Fixed a Ride Chaser dash accelerating the other player in either section of Jet Stingray's stage.
-- Fixed the lower boss-room floor being lost during Jet Stingray's paired door crossing, killing the entering player.
-- Fixed a lower-route Ride Armor rider being tested against the upper-route player's camera limits before Magma Dragoon's fight.
+# Mega Man X4 Recompiled - 1.0.10 Four Player Co-op Preview 1
 
-Jet Stingray boss-fight performance remains under investigation. The earlier
-one-frame pause-view report also remains open. These fixes do not establish
-full-campaign or cross-OS netplay coverage.
+**`1.0.10-4p-spike.1` - experimental Windows x64 prerelease.**
 
-Diagnostic recording remains optional and **off by default**. Both netplay
-peers must update. Native memory-card saves carry forward. Public packages
-require the original, unmodified USA disc and omit CD Speed, Fast Loading
-and developer cheats. Four Player Co-op remains a separate prerelease.
+Rebased onto 1.0.10 stable, including merged PR #77. The two-player mode includes the
+opening boss admission, Jet Stingray dash/paired-door and Magma Dragoon
+Ride Armor camera corrections. Four Player Co-op remains a separate,
+mutually exclusive mod on this feature branch; its stage-specific boss and
+vehicle paths are not established by those two-player regression checks.
 
-See [native regression evidence and limits](docs/COOP_PLAYTEST_REGRESSIONS.md).
+The existing four-player implementation is retained: independent cameras,
+centered three-player layout, roster choices and personal pause menus.
+Diagnostics and experimental cutscene movement remain optional and off by
+default. Jet boss performance and the documented four-player stage gaps
+remain open. Every netplay player must use the same build.
 
-## Previous v1.0.9 Stable Public Beta
+## Previous 1.0.9 Four Player preview
 
-- Keep each Split player's HUD and camera through story cutscenes and the fade into and out of pause.
-- Keep each player's own pause portrait when returning from Continue / Quit.
-- Preserve native scene fades without briefly recoloring the world with a menu portrait palette.
+# Mega Man X4 Recompiled - Four Player Co-op Preview
 
-Diagnostic recording remains optional and **off by default**. Both netplay
-peers must update. Native memory-card saves carry forward. The original,
-unmodified USA disc remains required; CD Speed, Fast Loading and developer
-cheats are absent from public packages.
+**`1.0.9-4p-spike.1` - experimental Windows x64 prerelease.**
+Rebased onto stable 1.0.9, with every existing Four Player fix retained.
 
-The reproduced cutscene HUD and Quit-return portrait failures pass native
-checks. The exact reported one-frame duplicate-view pause flash still needs
-confirmation on this release. Four Player Co-op remains a separate prerelease.
+- Carries the stable cutscene/pause presentation polish into all three/four private views, including native fades and returning from Continue / Quit to each player's own pause portrait.
+- Retains centered three-player presentation, the four-player grid, per-seat HUD ownership, personal menus, arrival animations and background-layer fixes.
+- Four Player Co-op and Free Cutscenes remain separate, default-off mods. Local unified 4P is deferred. Diagnostic recording remains off by default; CD Speed, Fast Loading and developer cheats are excluded.
+- Known Four-specific Magma activation, Web Spider camera-area ownership and heavy-gameplay performance gaps remain open.
 
-## Previous v1.0.8 Stable Public Beta
+The original USA disc remains required. All peers must use this exact preview.
+Native memory-card saves retain their mod isolation; four-player save states
+and rewind remain unavailable. Full-campaign, Internet and cross-platform
+four-player play remain unqualified. See [setup and limits](docs/EXPERIMENTAL_FOUR_PLAYER.md).
 
-- Fixed stacked health meters briefly appearing in each Split view during stage arrival and team retry. Each player keeps their own HUD while X and Zero finish their entrance animations.
-- Removed the Experimental label from independent local and netplay cameras.
-- Includes the 1.0.7 fixes for X's stored-charge HUD, Magma Dragoon's first-slope shake and Web Spider's survivor ladder camera.
+## Previous 1.0.8 Four Player Preview
 
-Diagnostic recording remains optional and **off by default**. Both netplay
-peers must update. Native memory-card saves carry forward. The original,
-unmodified USA disc remains required; CD Speed, Fast Loading and developer
-cheats are absent from public packages.
+**`1.0.8-4p-spike.1` - experimental Windows x64 prerelease.**
+Rebased onto stable 1.0.8 with every existing Four Player fix retained.
 
-See [arrival HUD validation and limits](docs/COOP_INITIAL_HUD.md).
-Four Player Co-op remains available in its separate prerelease.
+- Includes the shared stage-arrival HUD correction and mature independent-camera labels from 1.0.8. The two-player mod keeps its own HUD in each private view throughout both entrance animations and team retry.
+- Retains centered three-player presentation, the four-player grid, per-seat stock/HUD ownership, personal menus, arrival animations and background-layer fixes.
+- Four Player Co-op and Free Cutscenes remain separate, default-off mods. Local unified 4P is deferred. Diagnostic recording is off by default; CD Speed, Fast Loading and developer cheats are excluded.
+- Known Four-specific Magma activation, Web Spider camera-area ownership and heavy-gameplay performance gaps remain open. This rebase does not claim to resolve those reports.
 
-## Previous v1.0.7 Stable Public Beta
+The original USA disc remains required. All netplay peers must use this exact preview. Native memory-card saves retain their existing mod isolation; four-player save states and rewind remain unavailable. See [setup and limits](docs/EXPERIMENTAL_FOUR_PLAYER.md).
+
+## Previous 1.0.7 Four Player Preview
+
+**`1.0.7-4p-spike.1` - experimental Windows x64 prerelease.**
+This feature-branch preview incorporates stable 1.0.7. The stable two-player
+release remains a separate download. Supply your own original USA disc.
+
+- Three-player Split now uses three 4:3 panes: P1/P2 across the top, P3 centered
+  below with black pillars on either side. Four-player Split retains its 2x2
+  grid. Menus, movies and temporary canonical fallback use the same placement.
+- X's stored charged-shot display belongs to its allocating seat. Each private
+  view shows only its own X variant's stock; Zero and Black Zero do not inherit
+  another player's icons. Controllers use the owning character's resources.
+- Includes stable 1.0.7's two-player Magma first-slope rumble, Web Spider
+  survivor-ladder correction and stored-charge HUD fix. Four-player stage
+  behavior uses its own engine and still requires separate qualification.
+- Enable **Mods -> Four Player Co-op**, then assign Player 1-4 in **Controls**.
+  Set Player 4 to **None** for three players. Complete forms must be unique;
+  defaults remain X / Zero / Ultimate Armor X / Black Zero. The two-player
+  mod and separate Ultimate Armor/Black Zero code mods are mutually exclusive
+  with Four Player Co-op.
+- Independent local Split and individual online views remain available. Local
+  unified play is deferred. **Co-op Free Cutscenes** remains a separate,
+  default-off experiment; doors and room transfers retain their safety rules.
+- Preview defaults retain OpenGL, native internal resolution, the render worker,
+  windowed presentation and normal audio. HLE textured batching and bounded
+  extra-player/camera work remain part of this feature's ENHANCED profile.
+- Diagnostic recording remains optional and **off by default**. CD Speed, Fast
+  Loading and developer cheats are excluded. No discs, media packs, personal
+  saves, bindings or disc paths are bundled.
+
+**Qualification:** fresh native three/four-player layout, personal menus,
+stored-charge ownership, original-disc package boots and four-peer LAN checks
+pass. Both two-player rosters also pass the imported stage fixes.
+See [the preview qualification record](docs/FOUR_PLAYER_107_PRERELEASE_QA.md).
+Older preview results below describe their original binary and layout.
+
+**Known four-player stage limitation:** when P2 leads Magma Dragoon while P1
+waits behind, the volcano emitter remains idle: its boulders and slope rumble
+do not start. The matched P1-led control works. This is tracked separately as
+`beads-eio.9.244`; the stable two-player correction does not fix this separate
+four-player controller path.
+Web Spider also has a Four-specific camera-area gap: P2 entering the shaft
+does not admit the bounds that a matched P1 approach admits (`beads-eio.9.245`).
+The subsequent Four survivor-ladder case remains unverified.
+
+Four-player save states and rewind remain blocked; native memory-card saves
+retain their existing isolation. Full-campaign, all boss/door/script paths,
+vehicles, all weapons, Internet/ICE and cross-OS/CPU matches remain unqualified.
+No new performance result or full-speed guarantee is claimed by this merge.
+See [setup and limits](docs/EXPERIMENTAL_FOUR_PLAYER.md),
+[centered layout checks](docs/THREE_PLAYER_CENTERED_QA.md), and
+[stored-charge evidence](docs/COOP_STORED_CHARGE_HUD.md).
+
+---
+
+# Previous Four Player Co-op Preview - 1.0.6-4p-spike.1
+
+**`1.0.6-4p-spike.1` - experimental Windows x64 prerelease.**
+Based on stable 1.0.6, published from `spike/four-player-coop`; this preview does
+not replace the stable download. Supply your own original USA disc as usual.
+
+- Enable **Mods -> Four Player Co-op**, and assign Player 1-4 in **Controls**.
+  Three-player play uses **Player 4 -> None**. The mod starts disabled.
+- Choose unique complete forms: X, Fourth (Force) Armor X, Ultimate Armor X,
+  Zero and Black Zero. Defaults are X / Zero / Ultimate X / Black Zero.
+  Four Player Co-op disables the two-player mod and the separate armor code mods.
+- Local play uses an 8:6 split canvas: P1 top left, P2 top right, P3 bottom left
+  and P4 bottom right. In three-player play P3 spans the bottom half. Local
+  unified play is deferred. Online cameras are configured in Netplay and default
+  to each peer's individual view; all peers need this build and the same roster.
+- Each player gets the matching X/Zero pause menu, arrival animation and HUD.
+  This includes the corrected temporary red damage trail, initial HUD placement,
+  all-layer background tile seams and stray Black Zero art in Button Config.
+  Living players are gathered/protected during doors and room transfers.
+- **Co-op Free Cutscenes** is a separate, default-off experiment for partner
+  control during scenes, with doors/room transfers retaining their safety rules.
+- Includes the shared-runtime gameplay optimizations and render worker used in
+  the approved build. Clean preview defaults use OpenGL at native internal
+  resolution, windowed, with normal audio. Resolution remains configurable.
+  Heavy gameplay remains slow: the final package smoke measured about 43 FPS
+  idle and 37 FPS while charging/firing on its busy-area route. Host load and
+  route conditions vary; this is not a controlled comparison with earlier runs.
+- Diagnostic recording remains optional and off by default. CD Speed, Fast
+  Loading and developer cheats are absent. No game discs, Japanese media,
+  personal saves, bindings or disc paths are bundled.
+
+**Known limits:** four-player save states and rewind are blocked. Native
+memory-card saves use the existing mod isolation. Full-campaign progression,
+all bosses/doors/scripts, vehicles, all weapons, Internet/ICE, spectators and
+cross-OS/CPU four-player matches have not been qualified. Some legacy two-player
+Unified/Widescreen menu and Split pause-close cases remain under investigation.
+Do not assume earlier two-player stage fixes qualify four-player behavior.
+
+Validation includes 45/45 Windows checks on the production build, GCC/Clang
+portable HUD fixtures, native three/four-player HUD and background regressions,
+production keyboard/pause smoke, and four production LAN peers with 106 matching
+core/mod CRC samples through tick 3424. These are bounded checks, not a complete
+campaign or Internet qualification. See [four-player setup](docs/EXPERIMENTAL_FOUR_PLAYER.md),
+[HUD evidence](docs/FOUR_PLAYER_HUD_QA.md) and [layer evidence](docs/FOUR_PLAYER_LAYER_QA.md). The clean archive also passes
+native four-player input/combat/pause/resume using the public configuration;
+see [prerelease package checks](docs/FOUR_PLAYER_PRERELEASE_QA.md).
+
+---
+
+# Mega Man X4 Recompiled - 1.0.7 Stable Public Beta
 
 - Fixed X's stored charged-shot indicators appearing under Zero's HUD. The icons now belong to the X player in Split and follow that player's HUD layout in Unified, including when Zero is Player 1.
 - Fixed missing screen shake when Player 2 leads down Magma Dragoon's first slope ahead of the rolling boulders. Each eligible camera retains its own native shake timing.

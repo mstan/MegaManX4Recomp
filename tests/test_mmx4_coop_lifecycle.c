@@ -2,6 +2,7 @@
  * These prove projection/lifecycle bookkeeping, not original game behavior;
  * the original executable stage/menu/vehicle matrix remains required. */
 #include "mmx4_coop_internal.h"
+void mmx4_coop_menu_seat(unsigned seat) {(void)seat;}
 void mmx4_coop_bosses_new_stage(void) {}
 void mmx4_coop_bosses_stage_initialization(void) {}
 uint32_t mmx4_coop_counterpart_story_text(void) {return 0x9F046000u;}
@@ -110,6 +111,12 @@ int psx_mod_register_function_filter_plugin(const char *id,uint32_t a,PSXModFunc
 }
 int psx_mod_register_function_entry_plugin(const char *id,uint32_t a,PSXModFunctionEntryCallback f) {
     (void)id;(void)a;(void)f;return 1;
+}
+int psx_mod_register_activation_plugin(const char *id,PSXModActivationCallback callback) {
+    (void)id;(void)callback;return 1;
+}
+int psx_mod_register_session_reset_plugin(const char *id,PSXModActivationCallback callback) {
+    (void)id;(void)callback;return 1;
 }
 void psx_mod_counter_add(const char *name,uint32_t amount) {
     if(!strcmp(name,"mmx4.coop.concurrent-stage-arrivals"))natural_arrivals+=amount;
@@ -774,7 +781,7 @@ static void reset(void) {
     door_map_queries=0;door_map_kind=0x38;
     CPUState cpu={0};memset(ram,0,sizeof ram);memset(p2,0,sizeof p2);
     memset(p2_vehicle,0,sizeof p2_vehicle);
-    fresh_game(&cpu,0);separate_etanks=simultaneous_menus=0;projected=local_view=0;inputs[0]=inputs[1]=0;
+    fresh_game(&cpu,0);free_cutscenes=0;separate_etanks=simultaneous_menus=0;projected=local_view=0;inputs[0]=inputs[1]=0;
     world_calls=observed_campaign=pause_commit=pause_exit=world_draws=0;
     personal_model=0;memset(personal_native_calls,0,sizeof personal_native_calls);
     personal_exit_model=late_menu_assets=0;memset(menu_asset_calls,0,sizeof menu_asset_calls);
@@ -1298,6 +1305,23 @@ int main(void) {
     CHECK(!simultaneous_menu_ownership());
     CHECK(!personal_tank_inventory());
     CPUState cpu={0};reset();
+    /* The removable scene experiment keeps the non-owner's real input.
+     * A physical door/transport still suppresses free movement. */
+    activate_free_cutscenes();script_active=1;script_owner=0;
+    CHECK(mmx4_coop_lifecycle_free_scene());
+    mmx4_coop_enter_second();psx_mod_write_half(PLAYER+0x7C,0x20);
+    mmx4_coop_call(&cpu,0x800311ECu,0,0);
+    CHECK(observed_controls==0x20 && !warp_pending && !warp_phase);
+    psx_mod_write_byte(PLAY+0x10,1);
+    mmx4_coop_call(&cpu,0x800311ECu,0,0);
+    CHECK(observed_controls==0x20 && psx_mod_read_byte(PLAY+0x10)==1);
+    psx_mod_write_byte(PLAY+0x10,0);
+    psx_mod_write_byte(PLAYER+0xC4,1);
+    CHECK(!mmx4_coop_lifecycle_free_scene());
+    psx_mod_write_byte(PLAYER+0xC4,0);mmx4_coop_leave_second();
+    warp_pending=1;CHECK(!mmx4_coop_lifecycle_free_scene());warp_pending=0;
+    reset_free_cutscenes();CHECK(!mmx4_coop_free_cutscenes_enabled());
+    reset();
     /* Hub return pads include Slash's wall-adjacent spawn. Enrollment may
      * prefer +24 elsewhere; a refight return must wait for the existing
      * standing-box/floor probe before making either counterpart visible. */

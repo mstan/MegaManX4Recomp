@@ -41,8 +41,10 @@ void psx_mod_counter_add(const char *n,uint32_t v) {(void)n;(void)v;}
 int mmx4_coop_ready(void) {return ready;}
 int mmx4_coop_projected(void) {return projected;}
 int mmx4_coop_finish(CPUState *c,uint32_t v) {c->gpr[2]=v;return 1;}
+static unsigned registered_hooks[2];
 int psx_mod_register_function_filter_plugin(const char *id,uint32_t a,PSXModFunctionFilterCallback cb) {
-    CHECK(!strcmp(id,"mmx4.coop"));
+    CHECK(!strcmp(id,"mmx4.coop") || !strcmp(id,"mmx4.coop4"));
+    ++registered_hooks[!strcmp(id,"mmx4.coop4")];
     if(a==SOUND)sound_filter=cb;else if(a==KEY_ON)key_filter=cb;
     else if(a==0x80015930u)stop_filter=cb;else if(a==0x800DBF34u)status_filter=cb;
     else if(a==0x800E0090u)off_filter=cb;else {CHECK(a==0x800E0E7Cu);volume_filter=cb;}
@@ -96,6 +98,7 @@ uint32_t psx_mod_call_guest_uncharged(CPUState *cpu,uint32_t a,uint32_t ra,uint3
 }
 static void put(uint8_t *p,uint32_t n) {for(unsigned i=0;i<4;++i)p[i]=(uint8_t)(n>>(i*8));}
 int main(void) {
+    CHECK(registered_hooks[0]==6 && registered_hooks[1]==6);
     CHECK(sound_filter && key_filter);CHECK(mmx4_coop_audio_activate());
     uint8_t full[10240]={0};put(full,14);put(full+4,sizeof full);
     /* Zero-sized unrelated members, then two typed header/body pairs. */

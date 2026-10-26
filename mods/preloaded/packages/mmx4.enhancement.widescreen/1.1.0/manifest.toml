@@ -1,7 +1,7 @@
 format_version = 5
 id = "mmx4.enhancement.widescreen"
 version = "1.1.0"
-name = "Mega Man X4 Custom Renderer"
+name = "Widescreen"
 author = "mstan"
 description = "Adaptive scene reveal from the original stage map, native parallax, room-edge framing, HUD and ordinary enemy placement."
 resolver = "declarative"
@@ -13,7 +13,7 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 
 [[feature]]
 id = "widescreen"
-name = "Custom Renderer"
+name = "Widescreen"
 description = "Follow window resizing with the modern authored-map renderer and native actor reveal."
 group = "Display"
 default_enabled = true
@@ -22,7 +22,7 @@ default_enabled = true
 feature = "widescreen"
 id = "aspect"
 label = "Aspect"
-description = "Adaptive follows the window. Fixed choices use the same custom renderer."
+description = "Adaptive follows the window. Fixed choices reveal the stage at the selected aspect ratio."
 group = "Display"
 type = "choice"
 default = "adaptive"

@@ -72,14 +72,22 @@ def local_canvas(self):
     capture('canvas-pause')
     canvas('pause')
     assert r.request('stereo_stats')['published']['mode'] == 2
-    deadline = time.monotonic() + 10
+    deadline = time.monotonic() + 30
+    while True:
+        menu=list(r.read(0x801754a4,2))
+        if menu[0]==1 and menu[1]<3:
+            break
+        if time.monotonic()>deadline:
+            raise TimeoutError('Native pause did not become interactive')
+        time.sleep(.03)
+    r.input(0xfff7,0)
+    time.sleep(.15)
+    r.release()
+    deadline = time.monotonic() + 30
     while r.read(0x801721c0, 2) != bytes([6, 0]):
         if time.monotonic() > deadline:
             raise TimeoutError('Native pause did not close')
-        r.input(0xfff7, 0)
-        time.sleep(.2)
-        r.release()
-        time.sleep(.3)
+        time.sleep(.03)
     time.sleep(.5)
     capture('canvas-resumed')
     canvas('resumed')

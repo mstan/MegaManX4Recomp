@@ -129,6 +129,8 @@ static int frost_leader_x;
 static unsigned jungle_calls,jungle_private_calls;
 int mmx4_coop_combat_actor_context(void) {return (int)actor_context;}
 int mmx4_coop_lifecycle_script_owner(void) {return script_owner;}
+int mmx4_coop_lifecycle_free_scene(void) {return 0;}
+int mmx4_coop_lifecycle_free_views(void) {return 0;}
 void mmx4_coop_lifecycle_camera_bounds(CPUState *cpu,unsigned owner) {
     (void)cpu;unsigned other=owner^1u;
     if(other)mmx4_coop_enter_second();

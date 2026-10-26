@@ -7,6 +7,7 @@
 #include "mmx4_coop_internal.h"
 #include "mmx4_coop_snapshot.h"
 #include <string.h>
+#include <stdio.h>
 
 #define LAYERS 0x801419b0u
 #define PKG "mmx4.enhancement.widescreen"
@@ -55,6 +56,16 @@ static int scroll_mapping(unsigned mode, int x, int *value) {
     case 7: *value=x+psx_capcom_floor_div(x,4); return 1;
     case 8: *value=x+psx_capcom_floor_div(x,2); return 1;
     default: return 0;
+    }
+}
+void mmx4_widescreen_shift_view(int delta) {
+    if(!psx_mod_local_view_scope())return;
+    /* Adjacent tiles of ONE camera, not camera motion: translate all three
+     * existing parallax origins equally so the artwork meets at the seam. */
+    for(unsigned layer=0;layer<3;++layer) {
+        uint32_t at=LAYERS+layer*0x54u;
+        psx_mod_write_word(at+8,psx_mod_read_word(at+8)+(uint32_t)(delta*65536));
+        psx_mod_write_word(at+16,psx_mod_read_word(at+16)+(uint32_t)(delta*65536));
     }
 }
 static void background_tile_policy(unsigned layer,int *x,int *y,
@@ -128,7 +139,12 @@ static void mmx4_bg_end(CPUState *cpu, uint32_t address) {
         psx_mod_read_byte(b+0x4du),psx_mod_read_byte(b+0x4eu)};
     int packets=psx_capcom_background_render(&background,arena,psx_mod_read_word(0x1f800000u),
         &map,sx,sy,view,packet,background_tile_policy);
-    if (packets>=0) psx_mod_counter_add("mmx4.renderer.tiles",(uint32_t)packets);
+    if (packets>=0) {
+        static const char *const counters[]={"mmx4.renderer.layer0-tiles",
+            "mmx4.renderer.layer1-tiles","mmx4.renderer.layer2-tiles"};
+        psx_mod_counter_add("mmx4.renderer.tiles",(uint32_t)packets);
+        psx_mod_counter_add(counters[layer],(uint32_t)packets);
+    }
     else psx_mod_counter_add("mmx4.renderer.invalid-layer",1);
 }
 static void finish_objects(uint32_t end) {
@@ -338,7 +354,13 @@ static void mmx4_scan_view(CPUState *cpu, uint32_t address) {
     *cpu=saved;
 }
 static void mmx4_widescreen_activate(void) {
-    arena=psx_capcom_background_activate(3u);if(!arena)return;
+    arena=psx_capcom_background_activate(3u);
+    if(!arena) {
+        psx_mod_counter_add("mmx4.renderer.arena-failed",1);
+        fprintf(stderr,"mmx4.renderer: background packet allocation failed\n");
+        return;
+    }
+    psx_mod_counter_add("mmx4.renderer.activated",1);
     placement_state=psx_mod_memory_alloc(PLACEMENT_STATE_BYTES,4);
     gpu_ws_bg2d_configure(LAYERS,0x801441c8u,0x80172224u,0x8013bd48u,32u,3u,0x54u,1000u);
     gpu_ws_bg2d_set_parent_links(0);
@@ -362,6 +384,13 @@ static void mmx4_widescreen_activate(void) {
     if(psx_mod_netplay_is_active()) {
         int aspect=psx_mod_netplay_aspect();
         (void)psx_mod_set_fixed_display_aspect(aspect==2?21u:aspect==1?16u:4u,aspect?9u:3u);
+        return;
+    }
+    if(mmx4_coop_split_views()) {
+        /* Co-op composes native camera cells into its own canvas. Install
+         * every authored-map hook, but never widen those cells because this
+         * package happened to activate after the co-op package. */
+        (void)psx_mod_set_fixed_display_aspect(4u,3u);
         return;
     }
     char aspect[16];

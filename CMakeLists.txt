@@ -15,6 +15,17 @@ set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
 # generic runtime defaults netplay off; select it before including that runtime.
 option(PSX_NETPLAY "Build X4 netplay and co-op profile support" ON)
 option(MMX4_COOP_NETPLAY_DEBUG "Development-only synchronized co-op cheats" OFF)
+# Use painter-ordered textured batches in the experimental enhanced build.
+# Keep the faithful batching tier available through either explicit LLE or
+# a fresh REFERENCE build; this is a build selection, never a live setting.
+if(NOT DEFINED PSX_GL_BATCH_IMPL)
+    string(TOUPPER "${PSX_EXECUTION_PROFILE}" _mmx4_execution_profile)
+    if(_mmx4_execution_profile STREQUAL "REFERENCE")
+        set(PSX_GL_BATCH_IMPL "LLE" CACHE STRING "OpenGL textured batching: LLE or HLE")
+    else()
+        set(PSX_GL_BATCH_IMPL "HLE" CACHE STRING "OpenGL textured batching: LLE or HLE")
+    endif()
+endif()
 include("${PSXRECOMP_V4_ROOT}/runtime/runtime.cmake")
 
 # The current recompiler emits the game as split translation units. Keep the
@@ -63,6 +74,7 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     DEBUG_PORT 4525
     WINDOW_TITLE "MegaManX4Recomp"
     GAME_VERSION "${MMX4_RELEASE_VERSION}"
+    MAX_PLAYERS 4
     DEFAULT_GAME_CONFIG_PATH "game.toml"
     LAUNCHER_BOXART "${CMAKE_SOURCE_DIR}/recomp/launcher/boxart.tga"
     PRELOADED_MODS_DIR "${MMX4_PRELOADED_MODS}"
@@ -88,7 +100,9 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
     src/mods/mmx4_coop_memory.c src/mods/mmx4_coop_memory.h
     src/mods/mmx4_coop_texture_cache.c src/mods/mmx4_coop_texture_cache.h
+    src/mods/mmx4_coop_hud.c src/mods/mmx4_coop_hud.h
     src/mods/mmx4_coop_snapshot.h
+    src/mods/mmx4_coop_roster.c src/mods/mmx4_coop_roster.h src/mods/mmx4_coop4.inc
     src/mods/mmx4_cheats.c src/mods/mmx4_cheats.h
     src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
     src/mods/mmx4_coop_split.c src/mods/mmx4_coop_web.c src/mods/mmx4_coop_bosses.c
@@ -97,7 +111,9 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_diagnostics.cpp src/mods/mmx4_diagnostics.h src/mods/mmx4_diagnostic_paths.h
     src/mods/mmx4_diagnostic_writer.h src/mods/mmx4_diagnostic_mode.h
     src/mods/mmx4_widescreen_plugin.c
-    mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml)
+    mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml
+    mods/preloaded/packages/mmx4.coop-free-cutscenes/0.0.1/manifest.toml
+    mods/preloaded/packages/mmx4.coop4/0.0.1/manifest.toml)
 set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
 set(MMX4_COOP_PROFILE_PREFIX "mmx4-coop-delay-v3")
 if(MMX4_COOP_NETPLAY_DEBUG)
@@ -134,6 +150,7 @@ string(SHA256 MMX4_COOP_CONTRACT_HASH "${MMX4_COOP_CONTRACT}")
 # The framework limits compatibility IDs to 63 bytes; 160 hash bits fit.
 string(SUBSTRING "${MMX4_COOP_CONTRACT_HASH}" 0 40 MMX4_COOP_CONTRACT_SHORT_HASH)
 set_property(SOURCE src/mods/mmx4_coop_plugin.c APPEND PROPERTY COMPILE_DEFINITIONS
+    "MMX4_COOP_FOUR_NETPLAY_COMPATIBILITY=\"mmx4-4p-v1:${MMX4_COOP_CONTRACT_SHORT_HASH}\""
     "MMX4_COOP_NETPLAY_COMPATIBILITY=\"${MMX4_COOP_PROFILE_PREFIX}:${MMX4_COOP_CONTRACT_SHORT_HASH}\"")
 set_property(SOURCE src/mods/mmx4_diagnostics.cpp APPEND PROPERTY COMPILE_DEFINITIONS
     "MMX4_DIAGNOSTIC_BUILD_ID=\"${MMX4_COOP_PROFILE_PREFIX}:${MMX4_COOP_CONTRACT_SHORT_HASH}\""
@@ -147,6 +164,51 @@ add_custom_command(TARGET psx-runtime POST_BUILD
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_executable(psx_render_pass_sandbox_test
+        "${PSXRECOMP_V4_ROOT}/runtime/src/frame_trace.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/stereo_shed_policy.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/tests/test_render_pass_sandbox.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/render_pass.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/render_pass_plan.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_cycles.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/timers.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_video_timing.c")
+    target_include_directories(psx_render_pass_sandbox_test PRIVATE "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME psx_render_pass_sandbox_test COMMAND psx_render_pass_sandbox_test)
+    if(NOT MSVC)
+        target_link_libraries(psx_render_pass_sandbox_test PRIVATE m)
+        add_executable(psx_render_pass_abort_test
+            "${PSXRECOMP_V4_ROOT}/runtime/src/frame_trace.c"
+            "${PSXRECOMP_V4_ROOT}/runtime/src/stereo_shed_policy.c"
+            "${PSXRECOMP_V4_ROOT}/runtime/tests/test_render_pass_abort.c"
+            "${PSXRECOMP_V4_ROOT}/runtime/src/render_pass.c"
+            "${PSXRECOMP_V4_ROOT}/runtime/src/psx_cycles.c")
+        target_include_directories(psx_render_pass_abort_test PRIVATE "${PSXRECOMP_V4_ROOT}/runtime/include")
+        add_test(NAME psx_render_pass_abort_test COMMAND psx_render_pass_abort_test)
+    endif()
+    add_executable(psx_mod_profiles_test
+        "${PSXRECOMP_V4_ROOT}/runtime/tests/test_mod_netplay_profiles.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_netplay.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
+    target_include_directories(psx_mod_profiles_test PRIVATE "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME psx_mod_profiles_test COMMAND psx_mod_profiles_test)
+    add_executable(psx_mod_packages_test
+        "${PSXRECOMP_V4_ROOT}/runtime/tests/test_mod_packages.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/disc_path.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/cue_sheet.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/crc32.c"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
+    target_include_directories(psx_mod_packages_test PRIVATE "${PSXRECOMP_V4_ROOT}/runtime/include"
+        "${PSXRECOMP_V4_ROOT}/recompiler/include" "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11")
+    psxrecomp_sha256_file(psx_mod_packages_test)
+    target_link_libraries(psx_mod_packages_test PRIVATE chdr-static)
+    add_test(NAME psx_mod_packages_test COMMAND psx_mod_packages_test)
+    add_executable(mmx4_coop_roster_test tests/test_mmx4_coop_roster.c src/mods/mmx4_coop_roster.c)
+    target_include_directories(mmx4_coop_roster_test PRIVATE src/mods)
+    add_test(NAME mmx4_coop_roster_test COMMAND mmx4_coop_roster_test)
     add_executable(mmx4_localization_assets_test
         tests/test_localization_assets.cpp src/mods/mmx4_localization.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/native_text.cpp"
@@ -217,6 +279,9 @@ if(BUILD_TESTING)
     add_executable(mmx4_coop_views_test tests/test_mmx4_coop_views.c src/mods/mmx4_coop_views.c)
     target_include_directories(mmx4_coop_views_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_views_test COMMAND mmx4_coop_views_test)
+    add_executable(mmx4_coop_hud_test tests/test_mmx4_coop_hud.c src/mods/mmx4_coop_hud.c)
+    target_include_directories(mmx4_coop_hud_test PRIVATE src/mods)
+    add_test(NAME mmx4_coop_hud_test COMMAND mmx4_coop_hud_test)
     add_executable(mmx4_coop_split_test tests/test_mmx4_coop_split.c
         src/mods/mmx4_coop_split.c src/mods/mmx4_coop_views.c src/mods/mmx4_coop_memory.c)
     target_include_directories(mmx4_coop_split_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")

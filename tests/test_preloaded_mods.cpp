@@ -50,13 +50,13 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 9) return fail("expected nine package manifests, including one Japanese FMVs mod");
+    if (manifest_count != 11) return fail("expected eleven package manifests, including the optional cutscene experiment");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
-             "mmx4.widescreen", "mmx4.coop", "mmx4.diagnostics",
+             "mmx4.widescreen", "mmx4.coop", "mmx4.coop4", "mmx4.diagnostics", "mmx4.coop-free-cutscenes",
              "mmx4.ultimate_armor", "mmx4.black_zero",
              "mmx4.japanese-media", "mmx4.translation",
              "mmx4.japanese-fmvs"}) {
@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 9)
-        return fail("expected nine package families");
+    if (manager.packages().size() != 11)
+        return fail("expected eleven package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (!default_plan.ok || !default_plan.writes.empty() ||
@@ -78,6 +78,15 @@ int main(int argc, char** argv) {
         return fail("normal-damage override was not enabled by default");
     }
     bool diagnostics_default=false;
+    if(manager.feature_enabled("mmx4.coop-free-cutscenes","free-cutscenes"))
+        return fail("free cutscenes experiment must default off");
+    if(!manager.set_feature_enabled("mmx4.coop-free-cutscenes","free-cutscenes",true,&error))return fail(error);
+    const auto free_scene_plan=manager.resolve(kGameId,"",kDiscSha256);
+    if(!free_scene_plan.ok || free_scene_plan.fingerprint==default_plan.fingerprint)
+        return fail("cutscene experiment must affect session identity");
+    if(!manager.set_feature_enabled("mmx4.coop-free-cutscenes","free-cutscenes",false,&error) ||
+       manager.resolve(kGameId,"",kDiscSha256).fingerprint!=default_plan.fingerprint)
+        return fail("disabling the experiment must restore the normal plan");
     for(const auto& plugin:default_plan.plugins)diagnostics_default|=plugin.id=="mmx4.diagnostics";
     if(diagnostics_default || manager.feature_enabled("mmx4.diagnostics","inputs"))
         return fail("input diagnostics must default off");
@@ -145,6 +154,51 @@ int main(int argc, char** argv) {
         {"mmx4.cheat.ultimate-armor","ultimate-armor"},{"mmx4.cheat.black-zero","black-zero"}}) {
         if(!manager.set_feature_enabled(feature.first,feature.second,false,&error))return fail(error);
     }
+
+    // Four-player roster owns its forms; conflicting packages cannot leak in.
+    if(manager.feature_enabled("mmx4.coop4","coop"))return fail("experimental co-op defaults off");
+    if(manager.feature_option_value("mmx4.coop4","coop","local_cameras")!="split" ||
+       manager.set_feature_option("mmx4.coop4","coop","local_cameras","unified",&error))
+        return fail("experimental local cameras must use independent split views");
+    const char* defaults[]={"x","zero","ultimate_x","black_zero"};
+    const char* seats[]={"p1","p2","p3","p4"};
+    for(unsigned i=0;i<4;++i)
+        if(manager.feature_option_value("mmx4.coop4","coop",seats[i])!=defaults[i])return fail("incorrect roster default");
+    if(!manager.set_feature_enabled("mmx4.coop","coop",true,&error) ||
+       !manager.set_feature_enabled("mmx4.cheat.black-zero","black-zero",true,&error) ||
+       !manager.set_feature_enabled("mmx4.cheat.ultimate-armor","ultimate-armor",true,&error) ||
+       !manager.set_feature_enabled("mmx4.coop4","coop",true,&error))return fail(error);
+    if(manager.feature_enabled("mmx4.coop","coop") ||
+       manager.feature_enabled("mmx4.cheat.black-zero","black-zero") ||
+       manager.feature_enabled("mmx4.cheat.ultimate-armor","ultimate-armor"))return fail("four-player mode did not force conflicting mods off");
+    if(manager.set_feature_enabled("mmx4.coop","coop",true,&error) ||
+       manager.set_feature_enabled("mmx4.cheat.black-zero","black-zero",true,&error))return fail("conflicting package reenabled during four-player mode");
+    if(manager.set_feature_option("mmx4.coop4","coop","p2","x",&error) ||
+       manager.set_feature_option("mmx4.coop4","coop","p1","none",&error))return fail("invalid roster accepted");
+    auto four=manager.resolve(kGameId,"",kDiscSha256);
+    bool has_four=false;
+    for(const auto& plugin:four.plugins) {
+        has_four|=plugin.id=="mmx4.coop4";
+        if(plugin.id=="mmx4.coop" || plugin.id=="mmx4.black_zero" || plugin.id=="mmx4.ultimate_armor")return fail("conflicting native plugin active");
+    }
+    if(!four.ok || !has_four)return fail("four-player plan did not resolve");
+    auto edited=manager.selections();
+    for(const auto& selection:std::vector<std::pair<const char*,const char*>>{
+        {"mmx4.coop","coop"},{"mmx4.cheat.black-zero","black-zero"},
+        {"mmx4.cheat.ultimate-armor","ultimate-armor"}}) {
+        auto& state=edited[selection.first].features[selection.second];state.enabled=state.has_enabled=true;
+    }
+    auto original=manager.exchange_selections(std::move(edited));
+    const auto guarded=manager.resolve(kGameId,"",kDiscSha256);
+    if(!guarded.ok)return fail("hand-edited conflicting flags should resolve with forced suppression");
+    for(const auto& plugin:guarded.plugins)
+        if(plugin.id=="mmx4.coop" || plugin.id=="mmx4.black_zero" || plugin.id=="mmx4.ultimate_armor")
+            return fail("hand-edited saved flags bypassed forced suppression");
+    manager.exchange_selections(std::move(original));
+    if(!manager.set_feature_option("mmx4.coop4","coop","p4","none",&error))return fail(error);
+    auto three=manager.resolve(kGameId,"",kDiscSha256);
+    if(!three.ok || three.fingerprint==four.fingerprint)return fail("three-player roster must have distinct session identity");
+    if(!manager.set_feature_enabled("mmx4.coop4","coop",false,&error))return fail(error);
 
     if (!manager.set_feature_option(
             "mmx4.cheat.damage-multiplier", "damage-multiplier",

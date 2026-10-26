@@ -84,6 +84,18 @@ void mmx4_coop_lifecycle_view_restore(void);
 void mmx4_coop_lifecycle_surface(CPUState *cpu);
 void mmx4_widescreen_view_save(void);
 void mmx4_widescreen_view_restore(void);
+/* Draw-only horizontal camera translation, including native parallax. */
+void mmx4_widescreen_shift_view(int delta);
+void mmx4_coop_menu_seat(unsigned seat);
+void mmx4_coop_personal_begin(unsigned count,unsigned eligible);
+void mmx4_coop_personal_reset(void);
+void mmx4_coop_personal_export(uint8_t menus[4][0x34]);
+uint32_t mmx4_coop_personal_digest(uint32_t seed);
+void mmx4_coop_personal_register(const char *plugin);
+int mmx4_coop_personal_world(CPUState *cpu,uint32_t address);
+int mmx4_coop_free_cutscenes_enabled(void);
+int mmx4_coop_lifecycle_free_scene(void);
+int mmx4_coop_lifecycle_free_views(void);
 int mmx4_coop_alive(unsigned seat);
 uint8_t *mmx4_coop_second_body(void);
 uint8_t *mmx4_coop_first_body(void);

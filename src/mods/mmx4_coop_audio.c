@@ -242,10 +242,13 @@ static int character_stop(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop_audio) {
-    psx_mod_register_function_filter_plugin(ID,SOUND,character_sound);
-    psx_mod_register_function_filter_plugin(ID,VOICE_KEY_ON,voice_key_on);
-    psx_mod_register_function_filter_plugin(ID,0x80015930u,character_stop);
-    psx_mod_register_function_filter_plugin(ID,0x800DBF34u,voice_status);
-    psx_mod_register_function_filter_plugin(ID,0x800E0090u,private_stop);
-    psx_mod_register_function_filter_plugin(ID,0x800E0E7Cu,private_stop);
+    const char *ids[]={ID,"mmx4.coop4"};
+    for(unsigned i=0;i<2;++i) {
+    psx_mod_register_function_filter_plugin(ids[i],SOUND,character_sound);
+    psx_mod_register_function_filter_plugin(ids[i],VOICE_KEY_ON,voice_key_on);
+    psx_mod_register_function_filter_plugin(ids[i],0x80015930u,character_stop);
+    psx_mod_register_function_filter_plugin(ids[i],0x800DBF34u,voice_status);
+    psx_mod_register_function_filter_plugin(ids[i],0x800E0090u,private_stop);
+    psx_mod_register_function_filter_plugin(ids[i],0x800E0E7Cu,private_stop);
+    }
 }

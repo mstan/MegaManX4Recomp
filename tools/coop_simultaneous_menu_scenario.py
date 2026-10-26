@@ -81,7 +81,10 @@ def simultaneous_menus(s, capture=None):
         pulse(0xfff7,seat)
         s.wait('paired-menu-open',lambda q:q['mode'][:2]==[6,2] and
                q['menu'][0]==1 and q['menu'][1]<3,20)
-        time.sleep(.2)
+        deadline=time.monotonic()+30
+        while r.read(0x80141bdc,1)[0]:
+            assert time.monotonic()<deadline,'Native menu opening fade did not finish'
+            time.sleep(.03)
 
     def resumed(seat):
         pulse(0xfff7,seat)

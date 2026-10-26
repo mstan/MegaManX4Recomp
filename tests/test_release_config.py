@@ -20,12 +20,12 @@ class ReleaseConfigTest(unittest.TestCase):
                 self.assertEqual(config(path)["game"]["required_disc_sha256"], expected)
                 self.assertEqual(config(path)["game"]["required_disc_fps"], expected_mount)
 
-    def test_two_player_launcher_contract(self):
-        # This selects both the visible Netplay entry point and the P2
-        # Controls row; compiling netplay support alone does not expose them.
+    def test_experimental_four_player_launcher_capacity(self):
+        # Advertise controls for all seats; the selected session profile still
+        # limits ordinary co-op to two and optional-P4 rosters to three.
         for path in (ROOT / "game.toml", ROOT / "packaging/release/game.toml"):
             with self.subTest(path=path):
-                self.assertEqual(config(path)["game"]["players"], 2)
+                self.assertEqual(config(path)["game"]["players"], 4)
 
     def test_coop_camera_choices(self):
         package = config(ROOT / "mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml")
@@ -62,6 +62,14 @@ class ReleaseConfigTest(unittest.TestCase):
             self.assertEqual(player["game"][key], dev["game"][key])
         self.assertNotIn("overlay_autocompile_cmd", player["runtime"])
         self.assertNotIn("audit", player)
+
+    def test_release_keeps_audited_runtime_optimizations(self):
+        dev = config(ROOT / "game.toml")
+        player = config(ROOT / "packaging/release/game.toml")
+        for key in ("idle_skip", "idle_skip_store_counters", "idle_skip_store_counter_sites"):
+            with self.subTest(key=key):
+                self.assertEqual(player["runtime"][key], dev["runtime"][key])
+        self.assertEqual(player["timing"], dev["timing"])
 
     def test_recompiler_hook_contract_matches_development(self):
         # Keep the shipped codegen metadata aligned with the trusted hooks
