@@ -8,6 +8,10 @@
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"line %d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static uint8_t memory[32u*1024u*1024u];
 static unsigned split=1,local=1,tiles;
+static int menu_personal,menu_shared;
+int mmx4_coop_lifecycle_personal_menus(void){return menu_personal;}
+int mmx4_coop_lifecycle_shared_menu(void){return menu_shared;}
+void gpu_ws_set_native_scene_predicate(int (*predicate)(void)){(void)predicate;}
 uint8_t psx_mod_read_byte(uint32_t p){return memory[p&0x1ffffffu];}
 uint16_t psx_mod_read_half(uint32_t p){return psx_mod_read_byte(p)|(uint16_t)psx_mod_read_byte(p+1)<<8;}
 uint32_t psx_mod_read_word(uint32_t p){return psx_mod_read_half(p)|(uint32_t)psx_mod_read_half(p+2)<<16;}
@@ -46,6 +50,9 @@ int psx_mod_option_value(const char *p,const char *f,const char *o,char *v,uint3
 void psx_dispatch_call(CPUState *cpu,uint32_t p,uint32_t c){(void)cpu;(void)p;(void)c;}
 #include "../src/mods/mmx4_widescreen_plugin.c"
 int main(void){
+    CHECK(!native_coop_menu());menu_personal=1;CHECK(native_coop_menu());
+    menu_personal=0;menu_shared=1;CHECK(native_coop_menu());menu_shared=0;
+    CHECK(!native_coop_menu()); /* World classification resumes immediately. */
     arena=0x01000000u;
     const uint32_t map=0x80100000u,blocks=0x80101000u,descriptors=0x80102000u,packet=0x80103000u;
     psx_mod_write_word(0x1F800004u,map);psx_mod_write_word(0x1F800008u,blocks);

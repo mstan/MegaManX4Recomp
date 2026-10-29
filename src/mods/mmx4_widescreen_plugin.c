@@ -337,7 +337,18 @@ static void mmx4_scan_view(CPUState *cpu, uint32_t address) {
     }
     *cpu=saved;
 }
+static int native_coop_menu(void) {
+    /* Personal menus and their shared Options/Quit frontend are native
+     * screen images. Unified gameplay otherwise leaves full_2d native-wide
+     * active, sending their draw to the wide surface while the local pair
+     * captures empty native rectangles. Read the lifecycle throughout GPU
+     * submission/presentation, including nested native menu presents. World
+     * fades and resumed gameplay keep their usual wide classification. */
+    return mmx4_coop_ready() && (mmx4_coop_lifecycle_personal_menus() ||
+                               mmx4_coop_lifecycle_shared_menu());
+}
 static void mmx4_widescreen_activate(void) {
+    gpu_ws_set_native_scene_predicate(native_coop_menu);
     arena=psx_capcom_background_activate(3u);if(!arena)return;
     placement_state=psx_mod_memory_alloc(PLACEMENT_STATE_BYTES,4);
     gpu_ws_bg2d_configure(LAYERS,0x801441c8u,0x80172224u,0x8013bd48u,32u,3u,0x54u,1000u);
