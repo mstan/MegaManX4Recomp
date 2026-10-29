@@ -1,4 +1,17 @@
-# Mega Man X4 Recompiled - 1.0.16 Stable Public Beta
+# Mega Man X4 Recompiled - 1.0.17 Stable Public Beta
+
+- Fix black paired pause menus when local Unified cameras and Widescreen are enabled.
+- Position Slash Beast's foreground train pillars using the camera of the player who triggered them.
+- Keep both heroes present through Frost Walrus's introduction after a Both-player door crossing.
+- Preserve widescreen scenery during the opening stage dragon's scripted door camera lock.
+
+Diagnostic recording remains optional and off by default. Native memory-card
+saves carry forward. All netplay players must update. Four Player Co-op and
+the paused X1 character replacements remain separate.
+
+See [native presentation evidence and remaining qualification](docs/COOP_STABLE_PRESENTATION_117.md).
+
+## Previous v1.0.16 Stable Public Beta
 
 - Fix airborne participants being crushed during Both-player boss-door entry,
   including Cyber Peacock and Web Spider.
