@@ -1,6 +1,6 @@
 MegaManX4Recomp - Mega Man X4, recompiled
 ==========================================
-1.0.16 Stable Public Beta
+1.0.17 Stable Public Beta
 
 WHAT YOU NEED
   Your own original, unmodified Mega Man X4 (USA, SLUS-00561) disc image.
