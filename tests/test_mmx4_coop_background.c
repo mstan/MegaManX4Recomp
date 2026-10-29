@@ -9,6 +9,8 @@
 static uint8_t memory[32u*1024u*1024u];
 static unsigned split=1,local=1,tiles;
 static int menu_personal,menu_shared;
+static int bounds_enabled,bounds_min,bounds_max;
+void gpu_ws_set_view_bounds_override(int on,int minimum,int maximum){bounds_enabled=on;bounds_min=minimum;bounds_max=maximum;}
 int mmx4_coop_lifecycle_personal_menus(void){return menu_personal;}
 int mmx4_coop_lifecycle_shared_menu(void){return menu_shared;}
 void gpu_ws_set_native_scene_predicate(int (*predicate)(void)){(void)predicate;}
@@ -63,6 +65,15 @@ int main(void){
     for(unsigned i=0;i<256;++i){psx_mod_write_half(blocks+512u+i*2,1);psx_mod_write_half(blocks+1024u+i*2,2);}
     psx_mod_write_word(descriptors+4,0x00010000u);psx_mod_write_word(descriptors+8,0x00020000u);
     CPUState cpu={0};cpu.gpr[4]=0;
+    psx_mod_write_byte(MMX4_PLAY,6);
+    psx_mod_write_half(LAYERS+0x1C,2976);psx_mod_write_half(LAYERS+0x1E,2976);
+    uint8_t native_bounds[0x10];memcpy(native_bounds,&memory[(LAYERS+0x1C)&0x1FFFFFFu],sizeof native_bounds);
+    mmx4_bg_begin(&cpu,0x80026AA0u);
+    CHECK(bounds_enabled && bounds_min==0 && bounds_max==2976);
+    CHECK(!memcmp(native_bounds,&memory[(LAYERS+0x1C)&0x1FFFFFFu],sizeof native_bounds));
+    psx_mod_write_byte(MMX4_PLAY+12,2);mmx4_bg_begin(&cpu,0x80026AA0u);CHECK(!bounds_enabled);
+    psx_mod_write_byte(MMX4_PLAY+12,0);psx_mod_write_half(LAYERS+0x1E,0);
+    mmx4_bg_begin(&cpu,0x80026AA0u);CHECK(!bounds_enabled);
     mmx4_bg_end(&cpu,0x80026894u);
     CHECK(tiles==22u*16u);
     CHECK((psx_mod_read_word(arena+12)&0xFFFFu)==0x10u);

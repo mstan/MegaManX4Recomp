@@ -76,6 +76,19 @@ static void background_tile_policy(unsigned layer,int *x,int *y,
 }
 static void mmx4_bg_begin(CPUState *cpu, uint32_t address) {
     (void)address;
+    if(!cpu->gpr[4]) {
+        /* Eregion's first dragon locks follow at2976 while it shoots the
+         * door. This is a scripted camera lock, not a320px-wide room: the
+         * same authored stretch behind X still exists. Retain the section's
+         * native0..2976 world extent for presentation, borrowing reveal on
+         * the left at its right edge. Do not change native camera/physics
+         * limits or reveal beyond the unopened door. */
+        int first_door=psx_mod_read_byte(MMX4_PLAY)==6 &&
+            !psx_mod_read_byte(MMX4_PLAY+12) && !psx_mod_read_byte(MMX4_PLAY+13) &&
+            psx_mod_read_half(LAYERS+0x1Cu)==2976 &&
+            psx_mod_read_half(LAYERS+0x1Eu)==2976;
+        gpu_ws_set_view_bounds_override(first_door,0,2976);
+    }
     gpu_ws_bg2d_begin_view_layer(cpu->gpr[4],psx_mod_read_word(0x1f800108u),6u);
 #if PSX_EXECUTION_ENHANCED
     /* Offline own-view draws replace these retail tile-ring packets in

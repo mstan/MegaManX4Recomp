@@ -69,6 +69,32 @@ recording. Host capacity/configuration and raw writes/images are retained in
 Earlier teleports ahead skipped moving train collision progression; those
 failed fixture routes are excluded from passing evidence.
 
+## Intro dragon camera lock (GitHub87, `beads-eio.9.281`)
+
+Native solo reproduced the apparent return to4:3: the renderer still used a
+426px canvas, but the first dragon-door lock set minX=maxX2976, producing
+53px of empty padding on each side. The camera lock does not erase the
+authored stretch behind the hero. During that exact lock, retain the original
+0..2976 presentation extent, borrowing the full106px reveal on the left.
+Native camera limits, physics and the unopened door's far side stay unchanged.
+
+Inspected baseline/candidate native captures show the removed empty margins.
+The original door takes native buster hits and is crossed; the dragon's real
+screen-relative corner and return phases run. The final Eregion introduction
+also completes, then native Right input moves X15.5px. Its brief scripted walk
+left before the boss is native positioning; an endless walk was not reproduced
+with co-op disabled. Evidence: `solo-intro`, `solo-intro-fixed-r2`.
+
+## Other report dispositions
+
+Current native Zero/P1 and X/P2 death sequences show the native death burst
+on both composed panes, with the survivor retaining HP. Both Slash boss
+entrant orders keep near/far scenery scrolling while foreground idles.
+Evidence: `effects-native`, together with the older two-peer survivor check
+recorded in `beads-eio.9.55`. Existing hover-jet correction3ac1021 remains
+delivered; diagnostics recording stays optional/off. These checks did not
+reproduce the remaining visuals from GitHub32 (`beads-eio.9.193`).
+
 ## Remaining qualification
 
 ### Frost Walrus paired-door introduction (`beads-eio.9.187`)
@@ -92,6 +118,6 @@ Evidence: `frost-native` and `frost-native-fixed` in the private task directory.
 The first harness receipt mislabeled Walrus as enemy16; retained raw native
 rows correctly identify57 and are not discarded or rewritten as a passing run.
 
-The stable presentation tracker also retains the older Frost enemy/dialogue,
-armor/death, train-background and Quit/Continue reports, with their individual
-evidence and caveats. Cosmetic severity alone is not a reason to defer a bug.
+The stable presentation tracker retains the older unlocated Frost enemy-sprite
+report and Quit/Continue qualification with their individual evidence/caveats.
+Cosmetic severity alone is not a reason to defer a bug.
