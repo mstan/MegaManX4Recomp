@@ -654,6 +654,7 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
     }
     case 0x80085F8C:
     case 0x80088D30:
+    case 0x80072240:
         psx_mod_write_byte(a0+5,(uint8_t)(psx_mod_read_byte(a0+5)+1));
         cpu->gpr[31]=0x80085FE4u;
         mmx4_coop_call(cpu,0x80036AE4u,0x15,0);
@@ -3267,10 +3268,10 @@ int main(void) {
     /* Colonel's WARNING must not cancel an in-progress physical crossing.
      * The native initializer advances its actor and starts action15 once;
      * both projections defer all of that until the door/camera are ready. */
-    for(unsigned admission=0;admission<3;++admission)for(unsigned seat=0;seat<2;++seat) {
+    for(unsigned admission=0;admission<4;++admission)for(unsigned seat=0;seat<2;++seat) {
         CHECK(!open_both_door(&cpu,actor));
         uint32_t colonel=0x8013BED0u;
-        static const uint32_t admissions[]={0x80085F8Cu,0x80088D30u,0x80052218u};
+        static const uint32_t admissions[]={0x80085F8Cu,0x80088D30u,0x80052218u,0x80072240u};
         uint32_t entry=admissions[admission];
         if(seat)mmx4_coop_enter_second();
         for(unsigned phase=1;phase<=3;++phase) {

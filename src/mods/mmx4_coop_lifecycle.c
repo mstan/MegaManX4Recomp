@@ -2199,8 +2199,8 @@ static int paired_boss_admission(CPUState *cpu,uint32_t address) {
     (void)address;
     if(!mmx4_coop_ready() || !both_door_scope() ||
        both_door.serial!=script_serial || both_door.phase>3)return 0;
-    /* Colonel's 80085F8C, Storm Owl's General 80088D30 and Frost's
-     * midboss 80052218 start admission without waiting for C4/camera arrival.
+    /* Colonel's 80085F8C, Storm Owl's General 80088D30, Frost's
+     * midboss80052218 and Walrus72240 start admission without C4/camera arrival.
      * A leading player can reach that trigger with the partner still in the
      * aperture. That command aborts the crossing, restores
      * the sealed map's collision and crushes the leader. Defer the entire
@@ -2831,6 +2831,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_lifecycle) {
     psx_mod_register_function_filter_plugin(ID,0x800C1E7Cu,waiting_door_query);
     psx_mod_register_function_filter_plugin(ID,0x800C1D90u,both_door_traversal);
     psx_mod_register_function_filter_plugin(ID,0x80052218u,paired_boss_admission);
+    psx_mod_register_function_filter_plugin(ID,0x80072240u,paired_boss_admission);
     psx_mod_register_function_filter_plugin(ID,0x80085F8Cu,paired_boss_admission);
     psx_mod_register_function_filter_plugin(ID,0x80088D30u,paired_boss_admission);
     psx_mod_register_instruction_plugin(ID,0x800D0580u,0x14620006u,paired_intro_camera);

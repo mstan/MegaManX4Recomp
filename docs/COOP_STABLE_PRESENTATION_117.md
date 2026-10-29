@@ -71,6 +71,27 @@ failed fixture routes are excluded from passing evidence.
 
 ## Remaining qualification
 
+### Frost Walrus paired-door introduction (`beads-eio.9.187`)
+
+The current native Both-door route reproduced the old cosmetic warp. Walrus
+constructor72240 created WARNING and issued command20 at7227C while the
+paired crossing was still in phase3, before camera arrival. That command
+aborted the crossing and withdrew/rejoined P2 although both heroes had entered.
+
+Apply the existing paired-boss admission barrier to Walrus's complete native
+constructor. It now waits for physical clearance and camera arrival, allowing
+the original closing and subsequent introduction to finish in order. The
+passenger remains visible and receives neutral scripted controls; this does
+not enable free movement in cutscenes or change the separate experimental mod.
+
+Original-disc CP3 to real inner door, WARNING, first-entry conversation and
+fight release passed. Both heroes remain visible with32HP throughout; native
+Walrus57 reaches48HP and both heroes recover ordinary idle state with no
+script/door lock. Baseline had one departure/rejoin; candidate has none.
+Evidence: `frost-native` and `frost-native-fixed` in the private task directory.
+The first harness receipt mislabeled Walrus as enemy16; retained raw native
+rows correctly identify57 and are not discarded or rewritten as a passing run.
+
 The stable presentation tracker also retains the older Frost enemy/dialogue,
 armor/death, train-background and Quit/Continue reports, with their individual
 evidence and caveats. Cosmetic severity alone is not a reason to defer a bug.
