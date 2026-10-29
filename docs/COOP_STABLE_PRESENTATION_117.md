@@ -34,13 +34,42 @@ Private evidence and exact capacity/source/binary receipts:
 `baseline-menu-unified`, `baseline-menu-unified-stock`,
 `candidate-menu-unified-r2` and `candidate-unified-management`.
 
-## Remaining qualification
+## Train foreground pillars (`beads-eio.9.279`)
 
-The train foreground pillar report at
-<https://youtu.be/ucIsvq2lM3k?t=2032> is still being qualified under
-`beads-eio.9.279`. Teleporting ahead skips moving train collision progression;
-those failed fixture routes are not passing evidence. Native deferred-pillar
-ownership work is separate from the validated menu correction.
+Report: <https://youtu.be/ucIsvq2lM3k?t=2032>. Native D9A58 queues a type20
+foreground pillar while running the progressing hero's train controller.
+Its deferred CB940 initializer subsequently reads the shared camera at
+CAMERA+(352,128), after the hero's projection has ended. A leading P2 can
+therefore receive a pillar at P1's older camera origin, inside P2's screen.
+
+The original CB8F8 dispatch now initializes that pillar once with the
+allocating hero's saved camera and layer. The stage assembly at SCRATCH+20
+stays intact; projecting character resources here would corrupt its graphics.
+Live pillar movement/culling, train physics, scene timing and shared updates
+remain native and run at their existing rate.
+
+Both-owner unit checks cover initialization, body/camera restoration,
+stage-resource preservation, ordinary live dispatch and unrelated/Unified
+paths. The generated hook is declared in both authored game configurations;
+only generated shard61 changes after regeneration with the pinned emitter.
+
+Native baseline/candidate checks use controller movement from the original
+checkpoint through the actual stop, followed by P2's native run/jump/dash.
+Both complete the stop, recover controls and retain32HP through P2 reaching
+X>6720. Native CB990 write traces show baseline repeated births at P1's
+5472 origin while P2 advances; the candidate uses advancing P2 origins
+5553,5878,5910 before the shared stop. Four P2-owned initializations run in
+the candidate. Inspected post-stop captures place the first observed pillar
+at P2 screenX310 versus baseline280, nearer the viewport edge. This is a
+bounded equivalent route, not deterministic playback of the old netplay
+recording. Host capacity/configuration and raw writes/images are retained in
+`candidate-pillar-route-r2`, `baseline-pillar-route-r2` and
+`pillar-comparison.json` under the private evidence directory above.
+
+Earlier teleports ahead skipped moving train collision progression; those
+failed fixture routes are excluded from passing evidence.
+
+## Remaining qualification
 
 The stable presentation tracker also retains the older Frost enemy/dialogue,
 armor/death, train-background and Quit/Continue reports, with their individual

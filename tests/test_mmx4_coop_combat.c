@@ -16,6 +16,7 @@
 #define EFFECT 0x8013E510u
 #define PARTICLE_ALLOC 0x8002AE50u
 #define PARTICLE_INIT 0x800CAE38u
+#define TRAIN_PILLAR 0x800CB8F8u
 #define STOCK_HUD 0x800B2C8Cu
 #define PARTICLE 0x80173CA0u
 #define WATER 0x800AF22Cu
@@ -187,13 +188,13 @@ int mmx4_coop_split_views(void) {return (int)split;}
 int mmx4_coop_lifecycle_script_owner(void) {return script_owner;}
 static unsigned scene_camera_model,scene_camera_begins,scene_camera_ends;
 int mmx4_coop_split_scene_camera_begin(unsigned owner,uint8_t canonical[0xFC]) {
-    CHECK(owner==1);
+    CHECK(owner<2);
     if(!scene_camera_model || !split)return 0;
     ++scene_camera_begins;memcpy(canonical,address_ptr(0x801419B0u),0xFC);
-    psx_mod_write_half(0x801419BAu,4500);return 1;
+    psx_mod_write_half(0x801419BAu,owner?4500:1000);return 1;
 }
 void mmx4_coop_split_scene_camera_end(unsigned owner,const uint8_t canonical[0xFC],int committed) {
-    CHECK(owner==1);++scene_camera_ends;
+    CHECK(owner<2);++scene_camera_ends;
     if(!committed)memcpy(address_ptr(0x801419B0u),canonical,0xFC);
 }
 int mmx4_coop_alive(unsigned seat) { CHECK(seat<2);return (int)alive[seat]; }
@@ -369,6 +370,14 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         if (allocated_actor && address!=EFFECT_ALLOC && address!=PARTICLE_ALLOC)
             psx_mod_write_byte(allocated_actor+0x65,0);
         return allocated_actor;
+    }
+    if(address==TRAIN_PILLAR) {
+        ++particle_initializations;
+        CHECK(psx_mod_read_word(0x1F800020u)==0x80108000u);
+        psx_mod_write_half(a0+10,(uint16_t)(psx_mod_read_half(0x801419BAu)+352));
+        psx_mod_write_half(a0+14,(uint16_t)(psx_mod_read_half(0x801419BEu)+128));
+        psx_mod_write_byte(a0+0x14,psx_mod_read_byte(MMX4_PLAYER+0x14));
+        psx_mod_write_byte(a0+4,1);return 0xABCDEF20u;
     }
     if(address==PARTICLE_INIT || address==0x8009485Cu || address==0x80098474u) {
         ++particle_initializations;particle_character=psx_mod_read_byte(MMX4_PLAYER+2);
@@ -659,6 +668,42 @@ static void death_particle_ownership(void) {
         psx_mod_write_byte(PARTICLE+1,0x12);CHECK(!filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT));
         mmx4_coop_combat_reset();psx_mod_write_byte(PARTICLE+1,0x11);
         CHECK(!filter(PARTICLE_INIT)(&cpu,PARTICLE_INIT));
+    }
+}
+static void train_pillar_ownership(void) {
+    for(unsigned owner=0;owner<2;++owner) {
+        setup();split=scene_camera_model=1;
+        scene_camera_begins=scene_camera_ends=0;
+        psx_mod_write_byte(MMX4_PLAY+12,8);psx_mod_write_byte(MMX4_PLAY+13,1);
+        psx_mod_write_byte(MMX4_PLAYER+0x14,0);second[0x14]=1;
+        psx_mod_write_word(0x1F800020u,0x80108000u);
+        psx_mod_write_half(0x801419BAu,900);psx_mod_write_half(0x801419BEu,200);
+        allocated_actor=PARTICLE;
+        if(owner)mmx4_coop_enter_second();
+        invoke(PARTICLE_ALLOC);
+        if(owner)mmx4_coop_leave_second();
+        psx_mod_write_byte(PARTICLE,0x41);psx_mod_write_byte(PARTICLE+1,20);
+        psx_mod_write_word(PARTICLE+0x50,0x80169CB8u);
+        psx_mod_write_byte(0x80169CB8u,1);psx_mod_write_byte(0x80169CB9u,2);
+        uint8_t camera[0xFC],p1[0xE4],p2[0xE4];
+        memcpy(camera,address_ptr(0x801419B0u),sizeof camera);
+        memcpy(p1,address_ptr(MMX4_PLAYER),sizeof p1);memcpy(p2,second,sizeof p2);
+        CPUState cpu={0};cpu.gpr[4]=PARTICLE;
+        CHECK(filter(TRAIN_PILLAR)(&cpu,TRAIN_PILLAR) && cpu.gpr[2]==0xABCDEF20u);
+        CHECK(particle_initializations==1 && scene_camera_begins==1 && scene_camera_ends==1);
+        CHECK(psx_mod_read_half(PARTICLE+10)==(owner?4500:1000)+352);
+        CHECK(psx_mod_read_half(PARTICLE+14)==328 && psx_mod_read_byte(PARTICLE+0x14)==owner);
+        CHECK(!memcmp(camera,address_ptr(0x801419B0u),sizeof camera));
+        CHECK(!memcmp(p1,address_ptr(MMX4_PLAYER),sizeof p1) && !memcmp(p2,second,sizeof p2));
+        CHECK(!projected && mmx4_coop_combat_snapshot_ready());
+        CHECK(!filter(TRAIN_PILLAR)(&cpu,TRAIN_PILLAR)); /* Native live tick, once. */
+        psx_mod_write_byte(PARTICLE+4,0);split=0;
+        CHECK(!filter(TRAIN_PILLAR)(&cpu,TRAIN_PILLAR));
+        split=1;psx_mod_write_byte(MMX4_PLAY+12,4);
+        CHECK(!filter(TRAIN_PILLAR)(&cpu,TRAIN_PILLAR));
+        psx_mod_write_byte(MMX4_PLAY+12,8);psx_mod_write_word(PARTICLE+0x50,0);
+        CHECK(!filter(TRAIN_PILLAR)(&cpu,TRAIN_PILLAR));
+        scene_camera_model=0;
     }
 }
 static void stored_charge_hud_ownership(void) {
@@ -1556,6 +1601,7 @@ int main(void) {
     spider_capture_ownership();
     attached_dash_slide_effects();
     death_particle_ownership();
+    train_pillar_ownership();
     for(unsigned campaign=0;campaign<2;++campaign)for(unsigned target=0;target<2;++target) {
         setup();water_updates=0;
         psx_mod_write_byte(MMX4_PLAYER+2,(uint8_t)campaign);second[2]=(uint8_t)(campaign^1u);

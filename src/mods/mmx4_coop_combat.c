@@ -21,6 +21,7 @@
 #define SECONDARY_STRIDE 0x9Cu
 #define PARTICLE_ALLOCATE 0x8002AE50u
 #define PARTICLE_INITIALIZE 0x800CAE38u
+#define TRAIN_PILLAR_UPDATE 0x800CB8F8u
 #define PARTICLE_POOL 0x80173CA0u
 #define PARTICLE_STRIDE 0x60u
 #define PARTICLE_CAPACITY 64u
@@ -537,6 +538,36 @@ static int initialize_character_particle(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 
+static int initialize_train_pillar(CPUState *cpu,uint32_t address) {
+    uint32_t actor=cpu->gpr[4];int slot=particle_slot(actor);
+    if(particle_init_call || !world_ready() || mmx4_coop_projected() ||
+       psx_mod_local_view_scope() || !mmx4_coop_split_views() || slot<0 ||
+       psx_mod_read_byte(MMX4_PLAY+12)!=8 || psx_mod_read_byte(MMX4_PLAY+13)!=1 ||
+       psx_mod_read_byte(actor+1)!=20 || psx_mod_read_byte(actor+4))return 0;
+    uint32_t train=psx_mod_read_word(actor+0x50);
+    if(train<0x80169CB8u || train>=0x80169D78u || (train-0x80169CB8u)%0x30u ||
+       !psx_mod_read_byte(train) || psx_mod_read_byte(train+1)!=2)return 0;
+    unsigned owner=particles[slot].owner;
+    uint8_t canonical[0xFC];
+    if(!mmx4_coop_split_scene_camera_begin(owner,canonical))return 0;
+    particle_init_call=1;
+    uint8_t layer=psx_mod_read_byte(MMX4_PLAYER+0x14);
+    if(owner)psx_mod_write_byte(MMX4_PLAYER+0x14,mmx4_coop_second_body()[0x14]);
+    /* D9A58 queues type20 inside the train owner's projection. The shared
+     * particle pass later calls CB940, placing it at CAMERA+(352,128).
+     * Use that owner's view for this one native initialization, retaining
+     * stage resources at SCRATCH+20 rather than projecting hero graphics.
+     * Live movement/culling and the shared train clock still run once. */
+    uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
+    psx_mod_write_byte(MMX4_PLAYER+0x14,layer);
+    mmx4_coop_split_scene_camera_end(owner,canonical,0);
+    particles[slot].owner=0;
+    psx_mod_counter_add(owner?"mmx4.coop.p2-train-pillar-inits":
+                              "mmx4.coop.p1-train-pillar-inits",1);
+    particle_init_call=0;
+    return mmx4_coop_finish(cpu,result);
+}
+
 int mmx4_coop_armor_mounted(void) {
     return mmx4_coop_ready() && psx_mod_read_byte(MMX4_PLAYER+0xC5) &&
         psx_mod_read_byte(MMX4_VEHICLE) && psx_mod_read_byte(MMX4_VEHICLE+1)==1 &&
@@ -1021,6 +1052,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_combat) {
     psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_ALLOCATE,allocate_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,0x800B2C8Cu,stored_charge_hud);
     psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_INITIALIZE,initialize_character_particle);
+    psx_mod_register_function_filter_plugin(COOP_ID,TRAIN_PILLAR_UPDATE,initialize_train_pillar);
     psx_mod_register_function_filter_plugin(COOP_ID,0x8009485Cu,initialize_character_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,0x80098474u,initialize_character_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,ARMOR_UPDATE,armor_world_update);
