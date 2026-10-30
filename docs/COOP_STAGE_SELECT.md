@@ -1,14 +1,17 @@
 # Co-op stage selection and victory music
 
-Co-op stage selection shows X and Zero together. Double remains beside them
-in X's campaign; Iris remains beside them in Zero's campaign. The original
-story conditions still remove that companion when appropriate.
+Co-op stage selection shows X, Zero, Iris and Double together. Both companions
+leave at Player 1's campaign's original companion-departure point. The
+original interstitial exclusions remain; Player 2 has no separate campaign.
 
 In local Unified, the campaign hero keeps the original main position. Each
 local Split pane and each netplay peer instead puts its own hero in that
-position, with the partner next to them. This also applies to Unified-camera
+left slot, with the partner next to them. This also applies to Unified-camera
 netplay: each peer has its own display. Player 1 still chooses the stage and
 owns campaign progress. Both heroes play their original selection animation.
+Double takes the front companion position on X's screen; Iris takes it on
+Zero's screen. The other companion stands nearby, slightly behind. Iris
+plays her native selection animation in either campaign.
 
 When a player delivers the defeating hit to a boss, the existing victory-music
 request selects that hero's theme. This does not add another clear, reward,
@@ -16,13 +19,20 @@ warp or music request. Authored scene and ending music keep their own flow.
 
 ## Implementation
 
-`mmx4_coop_frontend.inc` extends native board initializer `8002E698` with one
-additional hero particle. The native companion-admission logic is unchanged.
-The added hero runs native `800C9EAC` with its own animation table and assembly.
+`mmx4_coop_frontend.inc` extends native board initializer `8002E698` with an
+additional hero and, when the native companion is admitted, its counterpart.
+All four use native `800C9EAC` with their own animation tables and assemblies.
 Its graphics and palette come from the original disc's `ST0D_0X/Z.ARC` and
 `COL0D_0X/Z.ARC`, retained in immutable host texture banks. No original assets
-are redistributed. A reserved board bucket puts both heroes above the map
-and its frame, below the native fade, including final-fortress selection.
+are redistributed. Native character depth keeps the portrait/map frames above
+the cast. The private pass calls the complete native renderer `80023D68`,
+including its backdrop, rather than the sprite-only `80023DB8` routine.
+
+Board admission uses native minors1..7 and9 (board dialogue), not stage13:
+the selected stage changes before selection animation finishes, and the later
+boss introduction can reuse board particle addresses. Both actor type and
+screen ownership are checked. On leaving the board, cached private pair
+images are retired before the introduction/loading frame.
 
 Independent views swap only draw positions inside the existing presentation
 transaction. They do not change campaign identity, cursor state or animation
@@ -47,14 +57,16 @@ simulation evidence are retained privately in
 | Native check | Result |
 | --- | --- |
 | X and Zero campaigns, local Unified and local Split | Both heroes use their own artwork and original selection animations. |
-| Early and late board story states | Original companion appears early and is absent late. Final-fortress map/frame and native fade retain correct layering. |
+| Early and late board story states | Both companions appear only while the campaign's native companion is admitted; original disappearance rules own that boundary. |
 | Current-build board save/load | Both board actors and native animation state restore. |
-| Two loopback peers, Unified-camera netplay | Each screen puts its own hero first; 55 matching core/mod CRC samples, zero mismatches. |
+| Two loopback peers, Unified-camera netplay, original two-hero implementation | Each screen puts its own hero first; 55 matching core/mod CRC samples, zero mismatches. The later four-character layout needs a refreshed network check. |
 | P2 Zero defeats Web Spider in X's campaign, scaling enabled | One native victory request, `21/72` from `80034FF0`. |
 | P2 X defeats Web Spider in Zero's campaign, scaling disabled | One native victory request, `22/75` from `80034FF0`. |
+| Owner review corrections | Restored backdrop and portrait depth, both companions, original selection animations, matching nonblack Storm Owl intro panes, and no board animation table in recorded gameplay spawn states. |
 
 `tools/test_mmx4_coop_regressions.py --cases stage_select --card-seed ...`
 adds a reusable native board scenario to the existing hidden QA runner.
 It checks both actors, companion admission, Player 1's stage-choice ownership,
-both animation tracks and actual entry into gameplay. Its screenshots require
+both animation tracks, a visible Storm Owl introduction and actual entry
+into gameplay. Spawn records are retained in `spawn-frames.json`. Screenshots require
 visual inspection; actor counts alone do not establish correct artwork.

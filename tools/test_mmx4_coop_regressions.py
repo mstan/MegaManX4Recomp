@@ -2479,7 +2479,7 @@ def main():
     env['SDL_AUDIODRIVER']='dummy'
     if args.diagnostic_watchdog_seconds:
         env['PSX_STARVATION_TIMEOUT_US']=str(args.diagnostic_watchdog_seconds*1000000)
-    if any(case in args.cases for case in ('local_pair','local_canvas','personal_menus','stock_charge_hud','door_animation')):
+    if any(case in args.cases for case in ('stage_select','local_pair','local_canvas','personal_menus','stock_charge_hud','door_animation')):
         env['PSX_RENDER_PASS_VERIFY']='1'
     argv = [str(executable), '--hidden-window' if args.hidden_window else '--headless-opengl', '--no-launcher', '--debug-port', str(args.port),
             '--game', str(args.output / 'game.toml'), '--bios', str(args.bios), '--disc', str(args.disc),
