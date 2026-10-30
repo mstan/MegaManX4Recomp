@@ -11,10 +11,10 @@ from acediez/Hondoori (English) and El Retro Dan (Spanish), with
 
 **X and Zero. Together.**
 
-Mega Man X4 on Windows and Linux. **1.0.17 Stable Public Beta**, with two-player co-op.
+Mega Man X4 on Windows and Linux. **1.0.18 Stable Public Beta**, with two-player co-op.
 Bring a friend through X's or Zero's campaign, on one computer or over netplay.
 
-**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.17](RELEASE_NOTES.md) · [Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
+**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.18](RELEASE_NOTES.md) · [Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
 
 <p align="center">
   <img src="docs/images/coop-jungle.png" width="640" alt="X and Zero together at the Jungle waterfall, with vertically stacked lifebars">
@@ -81,6 +81,11 @@ Optional language mods offer **Spanish** and **Brazilian Portuguese** dialogue
 using the game's own font. Supply your Japanese Rockman X4 disc to choose
 Japanese movies, voices and the title screen independently. Translations are
 drafts awaiting native-speaker review. [Language setup and scope →](docs/LOCALIZATION.md)
+
+**Complete Story** is an optional local solo/co-op mod, off by default. Add
+Zero's playable Memorial Hall duel, fight both Double and Iris, and watch the
+additional Colonel, Iris and Zero/Sigma movies in your campaign.
+[Complete Story setup and scope →](docs/COMPLETE_STORY.md)
 
 <details>
 <summary>See the co-op settings</summary>
