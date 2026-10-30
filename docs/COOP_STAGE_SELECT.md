@@ -59,7 +59,7 @@ simulation evidence are retained privately in
 | X and Zero campaigns, local Unified and local Split | Both heroes use their own artwork and original selection animations. |
 | Early and late board story states | Both companions appear only while the campaign's native companion is admitted; original disappearance rules own that boundary. |
 | Current-build board save/load | Both board actors and native animation state restore. |
-| Two loopback peers, Unified-camera netplay, original two-hero implementation | Each screen puts its own hero first; 55 matching core/mod CRC samples, zero mismatches. The later four-character layout needs a refreshed network check. |
+| Two loopback peers, Unified-camera netplay, corrected four-character implementation | Each screen puts its own hero and companion first; 56 matching core/mod CRC samples through simulation1837, no desync, zero render verification mismatches. This checks the board and selection, not a complete network campaign. |
 | P2 Zero defeats Web Spider in X's campaign, scaling enabled | One native victory request, `21/72` from `80034FF0`. |
 | P2 X defeats Web Spider in Zero's campaign, scaling disabled | One native victory request, `22/75` from `80034FF0`. |
 | Owner review corrections | Restored backdrop and portrait depth, both companions, original selection animations, matching nonblack Storm Owl intro panes, and no board animation table in recorded gameplay spawn states. |
