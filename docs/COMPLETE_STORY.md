@@ -68,9 +68,9 @@ the high-resolution gameplay capture does not support that format.
 
 Validation status and final evidence are recorded on `beads-eio.9.283`.
 
-## Qualified preview
+## Qualification
 
-The preview is based on stable 1.0.17 (`ce00634`) without framework or UI pin
+The feature is based on stable 1.0.17 (`ce00634`) without framework or UI pin
 changes. All 44 Windows CTests passed; the four affected checks passed again
 after sharing the cross-character damage adapter. The package resolves alone,
 defaults off and changes the session compatibility identity.
@@ -98,9 +98,9 @@ checks, not performance measurements or proof of fully native BIOS execution.
 The repeatable helper's explicit compiler option now uses the pinned compiler
 tool's supported `--gcc` argument.
 
-Human playtesting, online qualification and Linux packaging have not been
-performed for this feature. It remains a local preview, separate from stable
-1.0.17, the X1 sprites and the Four Player branch.
+The owner approved the corrected local preview for stable 1.0.18 integration.
+This approval does not establish a full campaign playthrough or online
+qualification. The X1 sprites and Four Player branch remain separate.
 
 ## Prepared owner review
 
@@ -144,5 +144,5 @@ the largest observed heartbeat gap was 47ms. A separate native check switched
 from the reported post-Colonel dialogue to X's fortress approach through that
 same panel, returning paused with the correct campaign and roster. All44
 Windows CTests passed, and both solo and Split dialogue captures were inspected.
-These checks do not replace the owner's review; their original failed report
-and per-case notes are retained.
+The owner's subsequent approval authorizes the stable release; the original
+failed report and individual per-case notes remain retained as evidence.

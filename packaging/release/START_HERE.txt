@@ -1,6 +1,6 @@
 MegaManX4Recomp - Mega Man X4, recompiled
 ==========================================
-1.0.17 Stable Public Beta
+1.0.18 Stable Public Beta
 
 WHAT YOU NEED
   Your own original, unmodified Mega Man X4 (USA, SLUS-00561) disc image.
@@ -85,6 +85,16 @@ CO-OP PUBLIC BETA
   This release has limited stage coverage. Split may still run below full
   speed, and retries, vehicle stages, and chained scenes need more playtesting.
   Report the release version, stage/area, camera mode, and which player led.
+
+OPTIONAL COMPLETE STORY
+  Enable Mods -> Complete Story before starting local solo or co-op play.
+  It defaults off. Zero gains the playable Memorial Hall Colonel duel; both
+  campaigns see the Colonel movie and fight Double and Iris. X also sees
+  Iris's aftermath and the Zero/Sigma flashback before Sigma.
+  The added Zero Memorial duel uses the original X/Colonel dialogue and
+  portraits while keeping Zero playable. Movies use your selected language.
+  Native campaign progress and memory-card saves keep their original identity.
+  This option has not been qualified for online play. See docs/COMPLETE_STORY.md.
 
 OPTIONAL LANGUAGES
   In Mods -> Text Translation, choose Spanish or Brazilian Portuguese.

@@ -1,4 +1,24 @@
-# Mega Man X4 Recompiled - 1.0.17 Stable Public Beta
+# Mega Man X4 Recompiled - 1.0.18 Stable Public Beta
+
+- Add **Complete Story**, an optional mod for local solo and two-player co-op.
+- Play the Memorial Hall Colonel duel in Zero's campaign, then see the original
+  Zero/Colonel movie in either campaign.
+- Fight both Double and Iris in one campaign. X also sees Iris's aftermath and
+  the Zero/Sigma flashback before Sigma, using your selected movie language.
+- Correct the added Zero Memorial encounter's dialogue and portraits, and keep
+  the prepared story QA selector responsive while the game is busy.
+
+Complete Story defaults off. Its added Zero Memorial duel uses the original
+X/Colonel dialogue and portraits while keeping Zero playable. It is qualified
+for local play; the online co-op profile retains its existing settings.
+
+Diagnostic recording remains optional and off by default. Native memory-card
+saves carry forward. All netplay players must update. Four Player Co-op and
+the paused X1 character replacements remain separate.
+
+See [Complete Story behavior, validation and limits](docs/COMPLETE_STORY.md).
+
+## Previous v1.0.17 Stable Public Beta
 
 - Fix black paired pause menus when local Unified cameras and Widescreen are enabled.
 - Position Slash Beast's foreground train pillars using the camera of the player who triggered them.
