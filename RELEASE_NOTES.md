@@ -8,6 +8,8 @@ This build includes the combined qualified engine optimizations and uses the sha
 
 Automated gameplay validation for this release batch is limited to Ape Escape and Tomba 2. The other titles use build and package checks followed by owner visual approval; no per-title performance gain is claimed.
 
+# Mega Man X4 Recompiled - 1.0.18 Stable Public Beta
+
 - Add **Complete Story**, an optional mod for local solo and two-player co-op.
 - Play the Memorial Hall Colonel duel in Zero's campaign, then see the original
   Zero/Colonel movie in either campaign.
