@@ -69,7 +69,10 @@ list(REMOVE_ITEM MMX4_MOD_PLUGIN_SOURCES
 set(MMX4_NATIVE_TEXT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/compat/native_text.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/compat/json11/json11.cpp")
-list(APPEND MMX4_MOD_PLUGIN_SOURCES ${MMX4_NATIVE_TEXT_SOURCES})
+# The donor snapshot is verified/owned by the framework. Its small original
+# immutable ISO reader remains title-local with the original bounds contract.
+set(MMX4_MODE2_DISC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/compat/mode2_disc.cpp")
+list(APPEND MMX4_MOD_PLUGIN_SOURCES ${MMX4_NATIVE_TEXT_SOURCES} ${MMX4_MODE2_DISC_SOURCES})
 
 # X4's game-owned mod catalog. Package manifests contain metadata
 # and guarded writes only; the trusted plugin implementations are compiled in
@@ -118,6 +121,7 @@ psxrecomp_add_implementation(psx-runtime
 set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_localization.cpp src/mods/mmx4_language_assets.h
     src/compat/native_text.cpp src/compat/native_text.h
+    src/compat/mode2_disc.cpp src/compat/mode2_disc.h
     src/compat/json11/json11.cpp src/compat/json11/json11.hpp
     game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_frontend.inc src/mods/mmx4_coop_lifecycle.c
     src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c src/mods/mmx4_coop_audio.c
@@ -198,6 +202,7 @@ if(BUILD_TESTING)
     add_executable(mmx4_localization_assets_test
         tests/test_localization_assets.cpp src/mods/mmx4_localization.cpp
         ${MMX4_NATIVE_TEXT_SOURCES}
+        ${MMX4_MODE2_DISC_SOURCES}
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/cue_sheet.cpp"
@@ -394,6 +399,7 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/src/crc32.c"
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c"
     )
+    target_compile_definitions(mmx4_preloaded_mods_test PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
     target_include_directories(mmx4_preloaded_mods_test PRIVATE
         "${PSXRECOMP_V4_ROOT}/runtime/include"
         "${PSXRECOMP_V4_ROOT}/recompiler/include"

@@ -34,3 +34,36 @@ The pure text test checks catalogs, malformed UTF-8, line/page controls,
 unsupported glyphs and Spanish/Portuguese font composition. The no-argument
 asset test checks archive/movie-pack structure; real-disc language combinations
 and native visual/audio playback remain separate existing qualifications.
+
+## Immutable Mode-2 donor reader
+
+`mode2_disc.h` and `mode2_disc.cpp` retain the `ModMode2Disc` declaration,
+`find`/`read` implementations and their two endian helpers from the same
+`9868d30c604d146c9a150d01f60cb1bf4025d180` revision's
+`runtime/include/mod_media.h` and `runtime/src/mod_media.cpp`. Only the owning
+namespace becomes `Mmx4Media`; this prevents clashes with engines that also
+provide the original helper. The PolyForm Noncommercial 1.0.0 license applies
+to this retained implementation too.
+
+The reader borrows an already verified, immutable canonical `psx-mode2`
+snapshot containing 2336 bytes per sector, including XA subheaders and Form-2
+streams. It never opens a path, modifies media, or reads the guest drive.
+`find` preserves raw stream extents; `read` returns ordinary 2048-byte file
+payloads and rejects Form-2 data. The original directory-record, endian,
+parent-traversal, extent and 16 MiB file/directory bounds remain unchanged.
+The shared framework remains responsible for canonicalization, selected-media
+SHA/size verification and snapshot lifetime; a cooked `psx-disc` image is not
+a substitute for a Mode-2 donor.
+
+Runtime, optional COSIM and localization-assets fixture compile the same
+implementation, and both files enter the co-op source fingerprint. The
+no-argument localization fixture now also retains the original synthetic
+Mode-2 lookup/cross-sector-read and malformed-input checks. Those checks
+establish no Japan-disc asset, playback, translation or co-op gameplay claim.
+
+The existing `mmx4_preloaded_mods_test` also enables the title's same service
+contract so its catalog scan accepts both authored Mode-2 resource packages.
+After the shared canonical loader/validator support is present, the focused
+title CTest expression is
+`^(mmx4_native_text_test|mmx4_localization_assets_test|mmx4_preloaded_mods_test)$`,
+again with `--no-tests=error`.

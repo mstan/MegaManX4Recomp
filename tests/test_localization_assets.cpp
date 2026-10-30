@@ -1,5 +1,6 @@
 #include "mod_plugins.h"
 #include "mod_media.h"
+#include "../src/compat/mode2_disc.h"
 #include "iso_reader.h"
 #include "psx_sha256.h"
 #include "mmx4_language_assets.h"
@@ -13,6 +14,7 @@
 #include <string>
 #include <cstring>
 using namespace PSXRecompV4;
+using Mmx4Media::ModMode2Disc;
 using namespace Mmx4Language;
 namespace fs=std::filesystem;
 using Call=void(*)(void);
@@ -87,8 +89,35 @@ static std::vector<uint8_t> read_file(const std::string& path) {
     uint32_t size=0;check(psx_mod_read_disc_file(path.c_str(),nullptr,0,&size),"file query "+path);
     std::vector<uint8_t> data(size);check(psx_mod_read_disc_file(path.c_str(),data.data(),size,&size),"file read "+path);return data;
 }
+static void mode2_disc_contract() {
+    // Bounded immutable ISO9660 lookup, including a file crossing sectors.
+    std::vector<uint8_t> mode2_files(24*2336);
+    auto dual=[&](size_t at,uint32_t value) {
+        for(unsigned i=0;i<4;++i) {mode2_files[at+i]=uint8_t(value>>(i*8));mode2_files[at+7-i]=uint8_t(value>>(i*8));}
+    };
+    const size_t volume=16*2336+8,dir=20*2336+8;
+    mode2_files[volume]=1;std::copy_n("CD001",5,mode2_files.begin()+volume+1);mode2_files[volume+6]=1;
+    dual(volume+158,20);dual(volume+166,2048);
+    mode2_files[dir]=42;dual(dir+2,21);dual(dir+10,3000);mode2_files[dir+32]=8;
+    std::copy_n("TEXT.BIN",8,mode2_files.begin()+dir+33);
+    for(unsigned i=0;i<3000;++i)mode2_files[(21+i/2048)*2336+8+i%2048]=uint8_t(i*7);
+    ModMode2Disc native(mode2_files.data(),mode2_files.size());
+    uint32_t found_lba=0,found_size=0;std::vector<uint8_t> found;
+    check(native.find("text.bin",found_lba,found_size) && found_lba==21 && found_size==3000 &&
+          native.read("TEXT.BIN",found) && found[2049]==uint8_t(2049*7),"Mode-2 ISO file lookup and cross-sector read");
+    check(!native.find("../TEXT.BIN",found_lba,found_size),"Mode-2 lookup rejects parent traversal");
+    mode2_files[dir]=1;
+    check(!native.find("TEXT.BIN",found_lba,found_size),"short directory record rejected before name-length access");
+    mode2_files[dir]=42;mode2_files[dir+9]^=1;
+    check(!native.find("TEXT.BIN",found_lba,found_size),"directory dual-endian fields must agree");
+    mode2_files[dir+9]^=1;dual(dir+2,24);
+    check(!native.find("TEXT.BIN",found_lba,found_size),"donor file extent cannot escape snapshot");
+    dual(dir+2,21);mode2_files[21*2336+2]=0x20;
+    check(!native.read("TEXT.BIN",found) && found.empty(),"ordinary file reads cannot consume Form-2 XA payload");
+}
 int main(int argc,char** argv) {
     try {
+        mode2_disc_contract();
         std::vector<uint8_t> movie_fixture(11*2336);
         std::memcpy(movie_fixture.data(),"X4FMV001",8);put32(movie_fixture,8,10);put32(movie_fixture,12,2336);
         for(unsigned i=0;i<10;++i) {

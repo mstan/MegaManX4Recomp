@@ -8,6 +8,7 @@ recompiled game code or the game imagery in screenshots.
 | --- | --- |
 | PSXRecomp, the pinned runtime and recompiler | [PolyForm Noncommercial 1.0.0](psxrecomp-v4/LICENSE) |
 | Title-local native-text compatibility helper from psxrecomp `9868d30c` | Original [PolyForm Noncommercial 1.0.0](psxrecomp-v4/LICENSE); [provenance](src/compat/README.md) |
+| Title-local immutable Mode-2 donor reader from psxrecomp `9868d30c` | Original [PolyForm Noncommercial 1.0.0](psxrecomp-v4/LICENSE); [provenance](src/compat/README.md) |
 | json11 native-text catalog parser | Copyright (c) 2013 Dropbox, Inc.; [MIT notice](src/compat/json11/LICENSE.txt), also staged in `licenses/json11-LICENSE.txt` |
 | recomp-ui | [MIT](recomp-ui/LICENSE) |
 | OpenBIOS and its bundled components | [OpenBIOS notice](psxrecomp-v4/bios/OpenBIOS.LICENSE) |
