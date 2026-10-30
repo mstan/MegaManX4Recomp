@@ -1,6 +1,6 @@
 # Mega Man X4 Recompiled release notes
 
-## v1.0.19 — shared optimization release
+## v1.0.20 — shared optimization release
 
 Fresh settings enable Internal Resolution at 4x. The Mods selector offers 1x through 32x; saved choices are preserved, and GPU texture and memory limits still apply. Disabling the mod selects native resolution.
 
@@ -8,7 +8,23 @@ This build includes the combined qualified engine optimizations and uses the sha
 
 Automated gameplay validation for this release batch is limited to Ape Escape and Tomba 2. The other titles use build and package checks followed by owner visual approval; no per-title performance gain is claimed.
 
-# Mega Man X4 Recompiled - 1.0.18 Stable Public Beta
+# Mega Man X4 Recompiled - 1.0.19 Stable Public Beta
+
+- Show X, Zero, Iris and Double together on co-op stage select while the story permits. Each independent screen puts its own hero first, with Double primary for X and Iris primary for Zero.
+- Play the victory theme of the hero who lands the boss's finishing hit.
+- Fix Storm Owl's independent scrolling backgrounds drifting out of range, causing jumps and misplaced or missing aircraft.
+- Preserve the stage-select backdrop, portrait layering, native character animations and the following boss introduction.
+
+These additions are included automatically with X + Zero Co-op. They have no
+separate mod or opt-in switch. Complete Story remains its own optional mod.
+
+Diagnostic recording remains optional and off by default. Native memory-card
+saves carry forward. All netplay players must update.
+
+See [co-op stage select and victory music](docs/COOP_STAGE_SELECT.md) and
+[Storm Owl background evidence](docs/COOP_STORM_BACKGROUND.md).
+
+## Previous v1.0.18 Stable Public Beta
 
 - Add **Complete Story**, an optional mod for local solo and two-player co-op.
 - Play the Memorial Hall Colonel duel in Zero's campaign, then see the original

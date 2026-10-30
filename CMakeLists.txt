@@ -105,6 +105,7 @@ psxrecomp_v4_add_runtime_target(psx-runtime
         psx.enhancement.fast-loading
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
+target_compile_definitions(psx-runtime PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
 psxrecomp_add_implementation(psx-runtime
     NAME resident-loading CONTRACT slus00561-arc-callback-v1
     HLE_SOURCES src/mods/mmx4_resident.cpp
@@ -118,7 +119,7 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_localization.cpp src/mods/mmx4_language_assets.h
     src/compat/native_text.cpp src/compat/native_text.h
     src/compat/json11/json11.cpp src/compat/json11/json11.hpp
-    game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_lifecycle.c
+    game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_frontend.inc src/mods/mmx4_coop_lifecycle.c
     src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c src/mods/mmx4_coop_audio.c
     src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
     src/mods/mmx4_coop_memory.c src/mods/mmx4_coop_memory.h
@@ -201,6 +202,7 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/cue_sheet.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
+    target_compile_definitions(mmx4_localization_assets_test PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
     target_include_directories(mmx4_localization_assets_test PRIVATE
         src/mods "${PSXRECOMP_V4_ROOT}/runtime/include" "${PSXRECOMP_V4_ROOT}/recompiler/include")
     target_link_libraries(mmx4_localization_assets_test PRIVATE chdr-static)
@@ -420,6 +422,7 @@ if(PSX_BUILD_COSIM)
         EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
         COSIM
     )
+    target_compile_definitions(psx-cosim PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
     psxrecomp_add_implementation(psx-cosim
         NAME resident-loading CONTRACT slus00561-arc-callback-v1
         HLE_SOURCES src/mods/mmx4_resident.cpp
