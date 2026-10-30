@@ -1,4 +1,12 @@
-# Mega Man X4 Recompiled - 1.0.18 Stable Public Beta
+# Mega Man X4 Recompiled release notes
+
+## v1.0.19 — shared optimization release
+
+Fresh settings enable Internal Resolution at 4x. The Mods selector offers 1x through 32x; saved choices are preserved, and GPU texture and memory limits still apply. Disabling the mod selects native resolution.
+
+This build includes the combined qualified engine optimizations and uses the shared release pipeline with selective runtime PGO. CD Speed and Fast Loading packages are excluded. Existing memory cards remain supported.
+
+Automated gameplay validation for this release batch is limited to Ape Escape and Tomba 2. The other titles use build and package checks followed by owner visual approval; no per-title performance gain is claimed.
 
 - Add **Complete Story**, an optional mod for local solo and two-player co-op.
 - Play the Memorial Hall Colonel duel in Zero's campaign, then see the original
