@@ -1,14 +1,32 @@
 /* State/ownership checks complement the original-disc two-encounter run. */
 #include "mmx4_coop_internal.h"
+#include "mod_snapshot.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define CHECK(x) do {if(!(x)){fprintf(stderr,"line%d: %s\n",__LINE__,#x);exit(1);}}while(0)
 static uint8_t ram[0x200000];
 static int enabled,projected,local,ready=1,capsule_text;
+static int coop_active=1,complete_active;
 static PSXModFunctionFilterCallback transition;
-static struct {uint32_t address;PSXModFunctionEntryCallback fn;} hooks[20];
+static PSXModFunctionFilterCallback solo_transition,memorial_return;
+static PSXModActivationCallback story_activate;
+static PSXModSnapshotProvider story_provider;
+static struct {const char *id;uint32_t address,word;PSXModFunctionEntryCallback fn;} hooks[64];
 static unsigned count;
+int mod_runtime_snapshot_package_active(const char *id) {
+    return !strcmp(id,"mmx4.coop")?coop_active:!strcmp(id,"mmx4.complete-story")?complete_active:0;
+}
+int psx_mod_register_activation_plugin(const char *id,PSXModActivationCallback fn) {
+    CHECK(!strcmp(id,"mmx4.complete-story"));story_activate=fn;return 1;
+}
+int psx_mod_register_snapshot_provider(const char *id,const PSXModSnapshotProvider *p) {
+    CHECK(!strcmp(id,"mmx4.complete-story"));story_provider=*p;return 1;
+}
+int psx_mod_register_function_entry_plugin(const char *id,uint32_t a,PSXModFunctionEntryCallback fn) {
+    CHECK(count<64);hooks[count].id=id;hooks[count].word=0;
+    hooks[count].address=a;hooks[count++].fn=fn;return 1;
+}
 uint8_t psx_mod_read_byte(uint32_t a){return ram[a&0x1fffff];}
 void psx_mod_write_byte(uint32_t a,uint8_t v){ram[a&0x1fffff]=v;}
 void psx_mod_write_word(uint32_t a,uint32_t v){for(unsigned i=0;i<4;++i)psx_mod_write_byte(a+i,(uint8_t)(v>>(8*i)));}
@@ -22,21 +40,38 @@ int psx_mod_current_option_value(const char *key,char *value,uint32_t cap){
 }
 void psx_mod_counter_add(const char *name,uint32_t v){(void)name;CHECK(v==1);}
 int psx_mod_register_function_filter_plugin(const char *id,uint32_t a,PSXModFunctionFilterCallback fn){
-    (void)id;CHECK(a==0x800200D4u);transition=fn;return 1;
+    if(!strcmp(id,"mmx4.coop")) {CHECK(a==0x800200D4u);transition=fn;}
+    else if(a==0x800200D4u)solo_transition=fn;
+    else {CHECK(a==0x8002044Cu);memorial_return=fn;}
+    return 1;
 }
 int psx_mod_register_instruction_plugin(const char *id,uint32_t a,uint32_t word,PSXModFunctionEntryCallback fn){
-    (void)id;(void)word;CHECK(count<20);hooks[count].address=a;hooks[count++].fn=fn;return 1;
+    CHECK(count<64);hooks[count].id=id;hooks[count].word=word;
+    hooks[count].address=a;hooks[count++].fn=fn;return 1;
 }
 int mmx4_coop_finish(CPUState *cpu,uint32_t result){cpu->gpr[2]=result;return 1;}
 static void hook(CPUState *cpu,uint32_t a){
-    for(unsigned i=0;i<count;++i)if(hooks[i].address==a){hooks[i].fn(cpu,a);return;}
-    CHECK(0);
+    unsigned found=0;
+    for(unsigned i=0;i<count;++i)if(hooks[i].address==a){
+        found=1;if(mod_runtime_snapshot_package_active(hooks[i].id))hooks[i].fn(cpu,a);
+    }
+    CHECK(found);
 }
 static void capture(uint8_t bytes[7]){
     Mmx4SnapshotIO s={bytes,NULL,7,0,MMX4_SNAPSHOT_WRITE,1};
     CHECK(mmx4_coop_bosses_snapshot(&s) && s.pos==7);
 }
-int main(void){
+int main(int argc,char **argv){
+    if(argc==2) {
+        FILE *exe=fopen(argv[1],"rb");CHECK(exe);
+        for(unsigned i=0;i<count;++i)if(hooks[i].word) {
+            uint8_t b[4];CHECK(!fseek(exe,(long)(hooks[i].address-0x80010000u+0x800u),SEEK_SET));
+            CHECK(fread(b,1,4,exe)==4);
+            uint32_t word=b[0]|(uint32_t)b[1]<<8|(uint32_t)b[2]<<16|(uint32_t)b[3]<<24;
+            CHECK(word==hooks[i].word);
+        }
+        fclose(exe);
+    }
     CPUState cpu={0};uint8_t first[7],second[7];
     psx_mod_write_byte(MMX4_PLAY+0xC,11);
     psx_mod_write_byte(MMX4_PLAY+0xF,1);
@@ -105,5 +140,69 @@ int main(void){
     }
     cpu.gpr[3]=1;hook(&cpu,0x8001302Cu);CHECK(cpu.gpr[3]==1);
     capsule_text=0;cpu.gpr[4]=0x5A;hook(&cpu,0x80022554u);CHECK(cpu.gpr[4]==0x5A);
+    /* New package: solo and co-op use the same two native encounter rounds,
+     * with no doubled callback or campaign/save identity change. */
+    for(unsigned coop=0;coop<2;++coop)for(unsigned campaign=0;campaign<2;++campaign) {
+        coop_active=coop;complete_active=1;enabled=0;ready=coop;
+        if(coop)mmx4_coop_bosses_activate();
+        story_activate();
+        memset(ram,0,sizeof ram);
+        psx_mod_write_byte(MMX4_PLAY+0x43,(uint8_t)campaign);
+        psx_mod_write_byte(MMX4_PLAY+0x59,15);psx_mod_write_byte(MMX4_PLAY+0x5F,3);
+        cpu.gpr[2]=campaign;hook(&cpu,0x8002E54Cu);CHECK(cpu.gpr[2]==0);
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==campaign);
+        psx_mod_write_byte(MMX4_PLAY+0xC,9);psx_mod_write_byte(MMX4_PLAY+0x5F,4);
+        cpu.gpr[2]=9;hook(&cpu,0x800201C4u);CHECK(cpu.gpr[2]==10);
+        psx_mod_write_word(MMX4_PLAY,10);cpu.gpr[3]=9;
+        hook(&cpu,0x800203C4u);CHECK(cpu.gpr[3]==11);
+        cpu.gpr[2]=campaign;hook(&cpu,0x800203D4u);CHECK(cpu.gpr[2]==1);
+        cpu.gpr[4]=8;hook(&cpu,0x80018000u);CHECK(cpu.gpr[4]==7);
+        CHECK(memorial_return(&cpu,0x8002044Cu));
+        CHECK(psx_mod_read_byte(MMX4_PLAY)==9 && !psx_mod_read_byte(MMX4_PLAY+0xD));
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x5F)==4 && psx_mod_read_byte(MMX4_PLAY+0x59)==15);
+        psx_mod_write_byte(MMX4_PLAY+0xC,11);psx_mod_write_byte(MMX4_PLAY+0xF,1);
+        hook(&cpu,campaign?0x800810A8u:0x8008D324u);
+        CHECK((coop?transition:solo_transition)(&cpu,0x800200D4u));
+        psx_mod_write_byte(MMX4_PLAY+0x1D,0);
+        if(coop)mmx4_coop_bosses_stage_initialization();else hook(&cpu,0x8001FC20u);
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x1D)==1);
+        cpu.gpr[2]=campaign;hook(&cpu,0x80080714u);CHECK(cpu.gpr[2]==(campaign^1));
+        uint8_t saved[7];CHECK(story_provider.bytes()==7 && story_provider.write(saved,7));
+        CHECK(story_provider.validate(saved,7) && !story_provider.validate(saved,6));
+        saved[4]=2;CHECK(!story_provider.validate(saved,7));saved[4]=1;
+        story_provider.read(saved,7);
+        psx_mod_write_byte(MMX4_PLAY+0xF,1);
+        hook(&cpu,campaign?0x8008D324u:0x800810A8u);
+        CHECK(cpu.gpr[2]==(campaign?0x40u:1u));
+        CHECK(!(coop?transition:solo_transition)(&cpu,0x800200D4u));
+        cpu.gpr[2]=campaign;hook(&cpu,0x800203D4u);CHECK(cpu.gpr[2]==1);
+        psx_mod_write_byte(MMX4_PLAY+0xC,12);cpu.gpr[2]=campaign;
+        hook(&cpu,0x800203FCu);CHECK(cpu.gpr[2]==1);
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==campaign);
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x59)==15);
+        CHECK(!memorial_return(&cpu,0x8002044Cu));
+        /* Presentation replays and other stages do not admit new films. */
+        local=1;cpu.gpr[2]=0;hook(&cpu,0x800203FCu);CHECK(!cpu.gpr[2]);local=0;
+        psx_mod_write_byte(MMX4_PLAY+0xD,1);cpu.gpr[2]=0;
+        hook(&cpu,0x800203FCu);CHECK(!cpu.gpr[2]);
+    }
+    /* Solo cross-story bosses receive the same narrow authored damage-table
+     * admission as co-op. Keep the real attack and unrelated tables intact. */
+    coop_active=0;complete_active=1;
+    psx_mod_write_word(MMX4_PLAY,6);psx_mod_write_byte(MMX4_PLAY+0xC,11);
+    psx_mod_write_byte(MMX4_PLAY+0xD,0);
+    uint32_t actor=0x8013BED0u,table=0x80107E84u;
+    psx_mod_write_byte(actor,1);psx_mod_write_byte(actor+1,66);psx_mod_write_byte(actor+2,1);
+    psx_mod_write_byte(MMX4_PLAYER+2,0);psx_mod_write_byte(table+64,9);
+    cpu.gpr[4]=actor;cpu.gpr[6]=0;cpu.gpr[7]=table;cpu.gpr[2]=255;
+    hook(&cpu,0x8002DE84u);CHECK(cpu.gpr[2]==9 && cpu.gpr[7]==table+64 && !cpu.gpr[6]);
+    table=0x80108204u;psx_mod_write_byte(actor+1,73);
+    psx_mod_write_byte(MMX4_PLAYER+2,1);psx_mod_write_byte(table+26*2+1,2);
+    cpu.gpr[6]=24;cpu.gpr[7]=table;cpu.gpr[2]=255;
+    hook(&cpu,0x8002DE84u);CHECK(!cpu.gpr[2] && cpu.gpr[7]==table+4 && cpu.gpr[6]==24);
+    cpu.gpr[7]=0x80100000u;cpu.gpr[2]=255;
+    hook(&cpu,0x8002DE84u);CHECK(cpu.gpr[2]==255 && cpu.gpr[7]==0x80100000u);
+    complete_active=0;coop_active=0;cpu.gpr[2]=1;
+    hook(&cpu,0x8002E54Cu);CHECK(cpu.gpr[2]==1);
     puts("Story/capsule text selectors preserve campaign ownership.");return 0;
 }

@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx4.complete-story"
+version = "1.0.0"
+name = "Complete Story"
+author = "mstan"
+description = "Play both story-exclusive boss encounters and see additional story movies in one campaign."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "complete-story"
+name = "Complete Story"
+description = "Adds the playable Memorial Hall Colonel duel to Zero's story, followed by the Zero/Colonel movie in either campaign. Fight both Double and Iris. X also sees Iris's aftermath and the Zero/Sigma flashback before Sigma. Uses your selected movie language. For local solo or co-op; requires a fresh boot."
+group = "Gameplay"
+default_enabled = false
+
+[[plugin]]
+feature = "complete-story"
+id = "mmx4.complete-story"

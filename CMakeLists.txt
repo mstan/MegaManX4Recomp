@@ -110,6 +110,7 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_coop_memory.c src/mods/mmx4_coop_memory.h
     src/mods/mmx4_coop_texture_cache.c src/mods/mmx4_coop_texture_cache.h
     src/mods/mmx4_coop_snapshot.h
+    src/mods/mmx4_story_damage.h
     src/mods/mmx4_cheats.c src/mods/mmx4_cheats.h
     src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
     src/mods/mmx4_coop_split.c src/mods/mmx4_coop_web.c src/mods/mmx4_coop_bosses.c
@@ -118,7 +119,8 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_diagnostics.cpp src/mods/mmx4_diagnostics.h src/mods/mmx4_diagnostic_paths.h
     src/mods/mmx4_diagnostic_writer.h src/mods/mmx4_diagnostic_mode.h
     src/mods/mmx4_widescreen_plugin.c
-    mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml)
+    mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml
+    mods/preloaded/packages/mmx4.complete-story/1.0.0/manifest.toml)
 set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
 set(MMX4_COOP_PROFILE_PREFIX "mmx4-coop-delay-v3")
 if(MMX4_COOP_NETPLAY_DEBUG)
@@ -323,6 +325,10 @@ if(BUILD_TESTING)
     add_executable(mmx4_coop_bosses_test tests/test_mmx4_coop_bosses.c src/mods/mmx4_coop_bosses.c)
     target_include_directories(mmx4_coop_bosses_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_bosses_test COMMAND mmx4_coop_bosses_test)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/mmx4/SLUS_005.61")
+        add_test(NAME mmx4_story_native_contract_test COMMAND mmx4_coop_bosses_test
+            "${CMAKE_CURRENT_SOURCE_DIR}/mmx4/SLUS_005.61")
+    endif()
     add_executable(mmx4_coop_balance_test tests/test_mmx4_coop_balance.c src/mods/mmx4_coop_balance.c)
     target_include_directories(mmx4_coop_balance_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_coop_balance_test COMMAND mmx4_coop_balance_test)

@@ -82,6 +82,11 @@ using the game's own font. Supply your Japanese Rockman X4 disc to choose
 Japanese movies, voices and the title screen independently. Translations are
 drafts awaiting native-speaker review. [Language setup and scope →](docs/LOCALIZATION.md)
 
+**Complete Story** is an optional local solo/co-op mod, off by default. Add
+Zero's playable Memorial Hall duel, fight both Double and Iris, and watch the
+additional Colonel, Iris and Zero/Sigma movies in your campaign.
+[Complete Story setup and scope →](docs/COMPLETE_STORY.md)
+
 <details>
 <summary>See the co-op settings</summary>
 <p><img src="docs/images/coop-options.png" width="800" alt="Co-op settings in the shipped launcher"></p>

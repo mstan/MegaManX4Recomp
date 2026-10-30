@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 9) return fail("expected nine package manifests, including one Japanese FMVs mod");
+    if (manifest_count != 10) return fail("expected ten package manifests, including Complete Story");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
              "mmx4.widescreen", "mmx4.coop", "mmx4.diagnostics",
              "mmx4.ultimate_armor", "mmx4.black_zero",
              "mmx4.japanese-media", "mmx4.translation",
-             "mmx4.japanese-fmvs"}) {
+             "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -69,10 +69,19 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 9)
-        return fail("expected nine package families");
+    if (manager.packages().size() != 10)
+        return fail("expected ten package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
+    if(manager.feature_enabled("mmx4.complete-story","complete-story"))
+        return fail("complete story must default off");
+    if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",true,&error))return fail(error);
+    const auto complete=manager.resolve(kGameId,"",kDiscSha256);
+    bool story_plugin=false;
+    for(const auto& plugin:complete.plugins)story_plugin|=plugin.id=="mmx4.complete-story";
+    if(!complete.ok || !story_plugin || complete.fingerprint==default_plan.fingerprint)
+        return fail("complete story must resolve independently and change session identity");
+    if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",false,&error))return fail(error);
     if (!default_plan.ok || !default_plan.writes.empty() ||
         default_plan.plugins.size() != 3) {
         return fail("normal-damage override was not enabled by default");
