@@ -101,3 +101,25 @@ tool's supported `--gcc` argument.
 Human playtesting, online qualification and Linux packaging have not been
 performed for this feature. It remains a local preview, separate from stable
 1.0.17, the X1 sprites and the Four Player branch.
+
+## Prepared owner review
+
+`tools/review_complete_story.py` prepares six current-build paused approaches
+and provides an encounter selector with per-case Pass/Fail/Deferred notes.
+Prepare each campaign with `--prepare 0` / `--prepare 1`; `--verify-states`
+checks that cross-campaign restoration preserves both heroes and the campaign.
+The profile must use the same executable and committed mod choices throughout.
+
+The local handoff is in
+`G:/Temp/Codex/psxrecomp/x4-complete-story/owner-review`; its
+`Try Complete Story.cmd` opens a normal-window, normal-audio preview and the
+checklist. It enables Complete Story, two-player Split, the existing x255 damage
+multiplier and QA player invulnerability. Boss HP and victory flags are not
+patched. Both heroes' native attacks were checked against full-health Colonel:
+one hit changed 48 HP to zero. Iris's authored shield/invulnerable phases remain.
+
+P1 is keyboard and P2 is the owner's DualSense. The panel records physical
+input ownership only after separate real Right presses are observed with both
+debug input overrides cleared. A configured device ID alone is not marked as
+verified. Notes, private cards/states, setup receipts and diagnostics remain
+inside that disposable profile; ordinary saves/settings are untouched.
