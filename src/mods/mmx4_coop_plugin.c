@@ -49,6 +49,13 @@ typedef struct {
 } XArchive;
 typedef struct { uint32_t source; uint16_t id,tile,tiles; uint8_t variant,colors[32]; } SpriteBank;
 typedef struct {uint16_t page,clut,uv,id,colors[16];unsigned character;} UiBank;
+typedef struct {
+    uint8_t *file,*colors;uint16_t *pixels;
+    uint32_t size,assembly;Mmx4Asset poses;unsigned loaded;
+} BoardAssets;
+static BoardAssets board_assets[2];
+static uint32_t board_heroes[2];
+static unsigned board_call;
 static PlayerContext second,first;
 static CharacterAssets assets[2];
 static XArchive ultimate_archive;
@@ -1101,14 +1108,17 @@ static void triangle(uint32_t dst,uint32_t next,const uint32_t *q,unsigned a,uns
     }
 }
 static int define_ui_bank(const UiBank *bank) {
-    if(bank->character>1 || bank->page&0x180 || !assets[bank->character].ui_pixels)return 0;
+    if(bank->character>3 || bank->page&0x180)return 0;
+    const uint16_t *image=bank->character<2?assets[bank->character].ui_pixels:
+        board_assets[bank->character-2].pixels;
+    if(!image)return 0;
     uint16_t pixels[256*256];
     unsigned bx=(bank->page&15)*64,by=(bank->page&16)*16;
     unsigned width=bank->uv==UINT16_MAX?256:16;
     for(unsigned y=0;y<width;++y)for(unsigned x=0;x<width;++x) {
         unsigned u=bank->uv==UINT16_MAX?x:((bank->uv&255)+x)&255;
         unsigned v=bank->uv==UINT16_MAX?y:((bank->uv>>8)+y)&255;
-        uint16_t packed=assets[bank->character].ui_pixels[(by+v)*1024+bx+u/4];
+        uint16_t packed=image[(by+v)*1024+bx+u/4];
         pixels[y*width+x]=bank->colors[(packed>>((u&3)*4))&15];
     }
     return psx_mod_define_texture_bank(bank->id,width,width,pixels);
@@ -1125,12 +1135,16 @@ static int resolve_texture_bank(uint16_t id) {
 static uint16_t ui_tile(unsigned character,uint16_t page,uint16_t clut,uint16_t uv,int private_colors) {
     unsigned *count=psx_mod_local_view_scope()?&view_ui_bank_count:&ui_bank_count;
     UiBank *cache=psx_mod_local_view_scope()?view_ui_banks:ui_banks;
-    if(page&0x180 || !assets[character].ui_pixels)return 0;
+    if(character>3 || page&0x180 || (character<2?!assets[character].ui_pixels:
+       !board_assets[character-2].pixels))return 0;
     uint16_t colors[16];
     unsigned cx=(clut&63)*16,cy=clut>>6;
     const uint16_t *vram=gpu_get_vram();
     int palette_offset=mmx4_coop_character_palette_offset(clut);
-    if(private_colors && palette_offset>=0)
+    if(private_colors && character>=2 && cx<256 && cy>=480 && cy<488) {
+        const uint8_t *p=board_assets[character-2].colors+((cy-480)*256+cx)*2;
+        for(unsigned i=0;i<16;++i)colors[i]=(uint16_t)(p[i*2]|p[i*2+1]<<8);
+    }else if(private_colors && character<2 && palette_offset>=0)
         character_palette_colors(character,(unsigned)palette_offset,colors);
     else for(unsigned i=0;i<16;++i)colors[i]=vram[cy*1024+cx+i];
     for(unsigned i=0;i<*count;++i) {
@@ -1149,6 +1163,7 @@ static uint16_t ui_tile(unsigned character,uint16_t page,uint16_t clut,uint16_t 
     if(slot==*count)++*count;else psx_mod_counter_add("mmx4.coop.ui-cache-reuses",1);
     return id;
 }
+#include "mmx4_coop_frontend.inc"
 static int world_draw_visible(void) {
     /* Room setup commits mode6 before initializing the primary body. The
      * still-retained partner belongs to the old world until that boundary. */
@@ -1347,6 +1362,7 @@ static int render(CPUState *cpu,uint32_t address) {
     return mmx4_coop_finish(cpu,result);
 }
 static int render_owned_effect(CPUState *cpu,uint32_t address) {
+    if(render_board_hero(cpu,address))return 1;
     uint32_t stock_actor=cpu->gpr[4];
     int stock_owner=mmx4_coop_stored_charge_owner(stock_actor);
     if(!rendering && !projected && mmx4_coop_ready() && world_draw_visible() && stock_owner>=0) {
@@ -1488,6 +1504,7 @@ static uint32_t state_digest(void) {
     hash=hash_word(hash,ultimate_armor_x);hash=hash_word(hash,black_zero);
     hash=hash_word(hash,mmx4_cheats_character_enabled(0));hash=hash_word(hash,mmx4_cheats_character_enabled(1));
     hash=hash_word(hash,x_variant);
+    hash=hash_word(hash,board_heroes[0]);hash=hash_word(hash,board_heroes[1]);
     hash=hash_word(hash,enrolled);hash=hash_word(hash,failed);hash=hash_word(hash,projected);
     hash=hash_word(hash,counterpart);hash=hash_word(hash,previous_input);hash=hash_word(hash,frames);
 #ifdef MMX4_COOP_NETPLAY_DEBUG
@@ -1532,7 +1549,8 @@ static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
     uint32_t buffer=*(uint32_t *)user;
     uint8_t camera[0xFC];
     int menu=mmx4_coop_lifecycle_personal_menus();
-    if(!menu) {
+    int board=board_active();
+    if(!menu && !board) {
         if(!mmx4_coop_split_camera_copy(local_view_seat,camera))return 0;
         mmx4_coop_split_local_explosion_palette(cpu,camera);
         mmx4_coop_split_project_intro_boss();
@@ -1547,7 +1565,7 @@ static int draw_local_view(CPUState *cpu,void *user,uint32_t alpha) {
     guest(cpu,0x800EA714u,buffer+0x70u,12);
     if(menu) {
         if(!mmx4_coop_lifecycle_draw_menu(cpu,local_view_seat))return 0;
-    }else guest(cpu,0x80023D68u,0,0);
+    }else guest(cpu,board?0x80023DB8u:0x80023D68u,0,0);
     if(failed || projected || rendering || hud_call)return 0;
     guest(cpu,0x800EC228u,buffer+0x9Cu,0);
     unsigned shade=mmx4_coop_lifecycle_menu_fade(buffer);
@@ -1570,7 +1588,7 @@ static int draw_local_pair(CPUState *cpu,void *user,uint32_t seat) {
     LocalViewContext context;
     local_context_save(&context);
     int story=mmx4_coop_lifecycle_script_owner()>=0 && !mmx4_coop_lifecycle_paired_door();
-    local_view_seat=mmx4_coop_lifecycle_personal_menus() || story?seat:mmx4_coop_split_view_seat(seat);
+    local_view_seat=mmx4_coop_lifecycle_personal_menus() || story || board_active()?seat:mmx4_coop_split_view_seat(seat);
     int ok=draw_local_view(cpu,user,0);
     /* Host plugin contexts must return to the common baseline between views,
      * as well as the framework's CPU/RAM/VRAM checkpoint. Neither draw ticks AI. */
@@ -1578,6 +1596,7 @@ static int draw_local_pair(CPUState *cpu,void *user,uint32_t seat) {
     return ok;
 }
 static int present_local_view(CPUState *cpu,uint32_t address) {
+    int board=board_active();
     unsigned paired=mmx4_coop_lifecycle_paired_door();
     int menu=mmx4_coop_lifecycle_personal_menus() &&
         psx_mod_read_byte(PLAY)==6 && psx_mod_read_byte(PLAY+1)==2;
@@ -1610,11 +1629,12 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
      * Story draws use the native scripted camera in both panes, with each
      * player's own HUD. Pause entry/exit likewise keep their private world
      * images until the character menus take over. */
-    if((!split_views && !menu) || local_view_call || projected || inside || !mmx4_coop_ready() ||
-       psx_mod_read_byte(PLAY)!=6 || (!menu && !paused_world && psx_mod_read_byte(PLAY+1)!=0) ||
+    if((!split_views && !menu && !(board && psx_mod_netplay_is_active())) || local_view_call || projected || inside ||
+       (!board && !mmx4_coop_ready()) ||
+       (!board && (psx_mod_read_byte(PLAY)!=6 || (!menu && !paused_world && psx_mod_read_byte(PLAY+1)!=0))) ||
        cpu->gpr[31]!=0x80012080u ||
-       psx_mod_read_byte(PLAY+0x0F) ||
-       (!menu && psx_mod_read_byte(PLAY+0x1C) && !mmx4_coop_lifecycle_initial_arrival() &&
+       (!board && psx_mod_read_byte(PLAY+0x0F)) ||
+       (!board && !menu && psx_mod_read_byte(PLAY+0x1C) && !mmx4_coop_lifecycle_initial_arrival() &&
         !mmx4_coop_lifecycle_nova_active() && !paired && !story)) {
         return 0;
     }
@@ -1625,7 +1645,7 @@ static int present_local_view(CPUState *cpu,uint32_t address) {
     guest(cpu,0x800EA20Cu,0,0);
     int port=psx_netplay_local_port();
     unsigned seat=port>=0 && port<2?(unsigned)port:0;
-    local_view_seat=menu || story?seat:mmx4_coop_split_view_seat(seat);
+    local_view_seat=menu || story || board?seat:mmx4_coop_split_view_seat(seat);
     PSXModRenderPass rectangle={sizeof rectangle,0,
         psx_mod_read_half(buffer+0x14u),psx_mod_read_half(buffer+0x16u),
         psx_mod_read_half(buffer+0x18u),psx_mod_read_half(buffer+0x1Au)};
@@ -1656,7 +1676,7 @@ static int snapshot_ready(void) {
 #endif
     return assets[0].loaded && assets[1].loaded && ultimate_archive.loaded && diagnostic && arena && hud_arena &&
         !(inside || rendering || projected || camera_call || camera_update_call || hud_call ||
-          upload_guard || local_view_call || saved_cheat || psx_mod_local_view_scope()) &&
+          upload_guard || local_view_call || saved_cheat || board_call || psx_mod_local_view_scope()) &&
         mmx4_coop_lifecycle_snapshot_ready() && mmx4_coop_combat_snapshot_ready() &&
         mmx4_coop_web_snapshot_ready() && mmx4_coop_audio_snapshot_ready() &&
         mmx4_coop_split_snapshot_ready() && mmx4_widescreen_snapshot_ready() &&
@@ -1705,7 +1725,7 @@ static void snapshot_ui_banks(Mmx4SnapshotIO *s,UiBank *cache,unsigned *live_cou
         bank.id=(uint16_t)mmx4_snapshot_integer(s,bank.id,2,UINT16_MAX);
         for(unsigned color=0;color<16;++color)
             bank.colors[color]=(uint16_t)mmx4_snapshot_integer(s,bank.colors[color],2,UINT16_MAX);
-        bank.character=mmx4_snapshot_integer(s,bank.character,1,1);
+        bank.character=mmx4_snapshot_integer(s,bank.character,1,3);
         if(bank.id!=base+i || bank.page&0x180)s->ok=0;
         if(s->mode==MMX4_SNAPSHOT_READ)cache[i]=bank;
     }
@@ -1721,6 +1741,12 @@ static int snapshot_walk(Mmx4SnapshotIO *s) {
     mmx4_snapshot_preference(s,mmx4_cheats_character_enabled(0));
     mmx4_snapshot_preference(s,mmx4_cheats_character_enabled(1));
     MMX4_SNAPSHOT_BOOL(s,x_variant);
+    for(unsigned i=0;i<2;++i) {
+        mmx4_snapshot_fixed(s,board_assets[i].assembly);
+        MMX4_SNAPSHOT_U32(s,board_heroes[i]);
+        if(board_heroes[i] && (board_heroes[i]<0x80173CA0u || board_heroes[i]>=0x801754A0u ||
+           (board_heroes[i]-0x80173CA0u)%0x60u))s->ok=0;
+    }
     if(!ultimate_archive.loaded)s->ok=0;
     mmx4_snapshot_fixed(s,ultimate_archive.size);
     mmx4_snapshot_fixed(s,arena);mmx4_snapshot_fixed(s,hud_arena);mmx4_snapshot_fixed(s,diagnostic);
@@ -1860,6 +1886,7 @@ static void activate(void) {
      * Guest character arrays are initialized only by normal native enrollment. */
     if(!failed && (!prepare_character(0,0) || !prepare_character(1,0) || !prepare_ultimate_archive()))
         psx_mod_counter_add("mmx4.coop.snapshot-assets-not-ready",1);
+    if(!failed && !board_activate())psx_mod_counter_add("mmx4.coop.board-assets-unavailable",1);
     psx_mod_set_texture_bank_resolver(resolve_texture_bank);
     /* The provider captures both native contexts and persistent ownership.
      * Online user state jumps remain outside the lockstep match protocol. */
@@ -1898,4 +1925,8 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x80024334,render_owned_effect);
     psx_mod_register_function_filter_plugin(ID,0x800EA4D0,retained_upload);
     psx_mod_register_function_filter_plugin(ID,0x800EA80Cu,present_local_view);
+    psx_mod_register_function_filter_plugin(ID,0x8002E698u,board_initialize);
+    psx_mod_register_function_filter_plugin(ID,0x800C9EACu,board_character);
+    psx_mod_register_function_entry_plugin(ID,0x80023DB8u,board_draw_begin);
+    psx_mod_register_function_entry_plugin(ID,0x80024260u,board_link);
 }

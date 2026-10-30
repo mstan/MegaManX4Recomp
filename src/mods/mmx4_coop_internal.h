@@ -130,6 +130,8 @@ void mmx4_coop_lifecycle_follow_progress(uint8_t *body,unsigned character);
 void mmx4_coop_lifecycle_restore(void);
 void mmx4_coop_lifecycle_reset(void);
 void mmx4_coop_lifecycle_activate(void);
+/* Accepted lethal contact on the native, currently displayed boss. */
+void mmx4_coop_lifecycle_boss_finisher(uint32_t actor,unsigned character);
 void mmx4_coop_lifecycle_enrolled(CPUState *cpu);
 int mmx4_coop_lifecycle_can_enroll(void);
 void mmx4_coop_lifecycle_tick(CPUState *cpu);

@@ -89,7 +89,8 @@ int psx_mod_register_instruction_plugin(const char *id,uint32_t address,uint32_t
            (address==0x800BEEF4u && expected==0x00041100u) ||
            (address==0x800D0580u && expected==0x14620006u) ||
            (address==0x80081250u && expected==0x14620005u) ||
-           (address==0x80020018u && expected==0x14620007u));return 1;
+           (address==0x80020018u && expected==0x14620007u) ||
+           (address==0x80034FE8u && expected==0x0C00598Fu));return 1;
 }
 uint8_t psx_mod_read_byte(uint32_t a) {return ram[a&0x1FFFFFu];}
 void psx_mod_write_byte(uint32_t a,uint8_t v) {ram[a&0x1FFFFFu]=v;}
@@ -1347,7 +1348,26 @@ static int marine_chaser_transport(void) {
     return 0;
 }
 
+static int finishing_theme(void) {
+    CPUState cpu={0};const uint32_t boss=0x8013BED0u;
+    for(unsigned character=0;character<2;++character) {
+        reset();psx_mod_write_word(PLAY+0x20,boss);
+        mmx4_coop_lifecycle_boss_finisher(boss,character);
+        CHECK(victory_character==character+1 && victory_actor==boss);
+        cpu.gpr[4]=17;cpu.gpr[5]=19;
+        victory_music(&cpu,0x80034FE8u);CHECK(cpu.gpr[4]==17 && cpu.gpr[5]==19);
+        psx_mod_write_byte(PLAY+0x0F,0x10);
+        victory_music(&cpu,0x80034FE8u);
+        CHECK(cpu.gpr[4]==(character?0x21u:0x22u) && cpu.gpr[5]==(character?0x72u:0x75u));
+        /* An unrelated actor cannot steal the final hit's music. */
+        mmx4_coop_lifecycle_boss_finisher(boss+0x9C,character^1u);
+        CHECK(victory_character==character+1);
+        full_stage(&cpu,0);CHECK(!victory_actor && !victory_character);
+    }
+    return 0;
+}
 int main(void) {
+    CHECK(!finishing_theme());
     CHECK(!marine_chaser_transport());
     CHECK(!simultaneous_menu_exit());
     CHECK(!simultaneous_menu_ownership());

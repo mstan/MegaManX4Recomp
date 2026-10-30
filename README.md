@@ -25,6 +25,8 @@ Bring a friend through X's or Zero's campaign, on one computer or over netplay.
 Play X and Zero simultaneously, with their own attacks, voices and effects.
 Player 1 owns the story, boss clears and permanent progress; Player 2 joins
 as the other hero. Arrive together, tackle bosses together, and share team retries.
+Both heroes appear and animate on stage select alongside the story's companion.
+The hero who lands a boss's final hit gets their victory theme.
 
 | Make it your co-op run | Choices |
 | --- | --- |
