@@ -2,8 +2,7 @@
 // See docs/LOCALIZATION.md for verified donor identity and native contracts.
 #include "mod_plugins.h"
 #include "mod_media.h"
-#include "../compat/mode2_disc.h"
-#include "../compat/native_text.h"
+#include "native_text.h"
 #include "mod_resident.h"
 #include "psx_sha256.h"
 #include "crash_trace.h"
@@ -18,8 +17,6 @@
 
 namespace {
 using namespace PSXRecompV4;
-using Mmx4Media::ModMode2Disc;
-using namespace Mmx4NativeText;
 using namespace Mmx4Language;
 constexpr const char* Package="mmx4.localization";
 constexpr const char* Media="mmx4.japanese-media";

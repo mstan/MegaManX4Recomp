@@ -64,15 +64,6 @@ file(GLOB MMX4_MOD_PLUGIN_SOURCES CONFIGURE_DEPENDS
 list(REMOVE_ITEM MMX4_MOD_PLUGIN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx4_resident.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mods/mmx4_resident_reference.c")
-# Retain the original pure native-glyph authoring helper independently of the
-# selected framework; text_xlate is a different guest-string hook interface.
-set(MMX4_NATIVE_TEXT_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/compat/native_text.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/compat/json11/json11.cpp")
-# The donor snapshot is verified/owned by the framework. Its small original
-# immutable ISO reader remains title-local with the original bounds contract.
-set(MMX4_MODE2_DISC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/compat/mode2_disc.cpp")
-list(APPEND MMX4_MOD_PLUGIN_SOURCES ${MMX4_NATIVE_TEXT_SOURCES} ${MMX4_MODE2_DISC_SOURCES})
 
 # X4's game-owned mod catalog. Package manifests contain metadata
 # and guarded writes only; the trusted plugin implementations are compiled in
@@ -108,7 +99,9 @@ psxrecomp_v4_add_runtime_target(psx-runtime
         psx.enhancement.fast-loading
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
-target_compile_definitions(psx-runtime PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
+# X4 recreates its guest arenas and texture registrations on session activation.
+# Preserve the original framework reset contract for offline restarts/rematches.
+set_property(TARGET psx-runtime PROPERTY PSX_MOD_SESSION_RESOURCES TRUE)
 psxrecomp_add_implementation(psx-runtime
     NAME resident-loading CONTRACT slus00561-arc-callback-v1
     HLE_SOURCES src/mods/mmx4_resident.cpp
@@ -120,9 +113,6 @@ psxrecomp_add_implementation(psx-runtime
 # cannot join under the same fixed development version.
 set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_localization.cpp src/mods/mmx4_language_assets.h
-    src/compat/native_text.cpp src/compat/native_text.h
-    src/compat/mode2_disc.cpp src/compat/mode2_disc.h
-    src/compat/json11/json11.cpp src/compat/json11/json11.hpp
     game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_frontend.inc src/mods/mmx4_coop_lifecycle.c
     src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c src/mods/mmx4_coop_audio.c
     src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
@@ -201,20 +191,16 @@ if(BUILD_TESTING)
     endif()
     add_executable(mmx4_localization_assets_test
         tests/test_localization_assets.cpp src/mods/mmx4_localization.cpp
-        ${MMX4_NATIVE_TEXT_SOURCES}
-        ${MMX4_MODE2_DISC_SOURCES}
+        "${PSXRECOMP_V4_ROOT}/runtime/src/native_text.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/third_party/json11/json11.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/cue_sheet.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
-    target_compile_definitions(mmx4_localization_assets_test PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
     target_include_directories(mmx4_localization_assets_test PRIVATE
         src/mods "${PSXRECOMP_V4_ROOT}/runtime/include" "${PSXRECOMP_V4_ROOT}/recompiler/include")
     target_link_libraries(mmx4_localization_assets_test PRIVATE chdr-static)
     add_test(NAME mmx4_localization_assets_test COMMAND mmx4_localization_assets_test)
-    add_executable(mmx4_native_text_test
-        tests/test_native_text.cpp ${MMX4_NATIVE_TEXT_SOURCES})
-    add_test(NAME mmx4_native_text_test COMMAND mmx4_native_text_test)
     add_executable(mmx4_startup_log_test tests/test_mmx4_startup_log.cpp src/mods/mmx4_startup_log.cpp)
     target_compile_definitions(mmx4_startup_log_test PRIVATE MMX4_STARTUP_LOG_TEST=1)
     target_include_directories(mmx4_startup_log_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
@@ -399,7 +385,6 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/src/crc32.c"
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c"
     )
-    target_compile_definitions(mmx4_preloaded_mods_test PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
     target_include_directories(mmx4_preloaded_mods_test PRIVATE
         "${PSXRECOMP_V4_ROOT}/runtime/include"
         "${PSXRECOMP_V4_ROOT}/recompiler/include"
@@ -428,7 +413,7 @@ if(PSX_BUILD_COSIM)
         EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
         COSIM
     )
-    target_compile_definitions(psx-cosim PRIVATE PSX_MOD_DERIVED_DISC_FILES=1)
+    set_property(TARGET psx-cosim PROPERTY PSX_MOD_SESSION_RESOURCES TRUE)
     psxrecomp_add_implementation(psx-cosim
         NAME resident-loading CONTRACT slus00561-arc-callback-v1
         HLE_SOURCES src/mods/mmx4_resident.cpp

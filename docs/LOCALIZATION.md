@@ -64,13 +64,9 @@ spaces or an unrelated host font.
 
 ## Native implementation
 
-X4 retains the original native-text catalog, Unicode, glyph mapping, word
-wrapping and indexed-font composition helper with its original JSON parser in
-`src/compat`. It comes from the title's original framework revision; its API is
-separate from the shared `text_xlate` guest-string hooks. See
-[source provenance and focused checks](../src/compat/README.md). Shared
-psxrecomp still owns verified Mode-2 media and derived file mounting.
-The font composition
+Shared psxrecomp owns JSON parsing, Unicode validation, glyph mapping, word
+wrapping, indexed-font composition, verified Mode-2 media, and derived file
+mounting. This extends the shared Tsumu translation work. The font composition
 follows the Gundam Wing Endless Duel approach: copy the original indexed glyph
 and add marks using its own palette. The game renders the result itself.
 
