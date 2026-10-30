@@ -34,6 +34,7 @@ files = [
   "LICENSE",
   "RELEASE_NOTES.md",
   "THIRD_PARTY_NOTICES.md",
+  {from = "src/compat/json11/LICENSE.txt", to = "licenses/json11-LICENSE.txt"},
   "DISC.md",
   "tools/import_fmv_subtitles.py",
   "docs/COMPLETE_STORY.md",
