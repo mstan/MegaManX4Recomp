@@ -183,6 +183,7 @@ static int accepted_hit_canonical(CPUState *cpu, uint32_t address) {
     if (combat_call || !world_ready()) return 0;
     combat_call=1;
     uint32_t actor=cpu->gpr[4], arg=cpu->gpr[5];
+    unsigned hp_before=address==ENEMY_HIT?psx_mod_read_byte(actor+0x5C):0;
     uint32_t result=0;
     unsigned attacker=0;
     if(address==ENEMY_HIT)reaction_actor=reaction_character=0;
@@ -217,6 +218,10 @@ static int accepted_hit_canonical(CPUState *cpu, uint32_t address) {
         if (result) psx_mod_counter_add(address==CONTACT?
             "mmx4.coop.p2-contact":"mmx4.coop.p2-enemy-hit",1);
     }
+    if(address==ENEMY_HIT && attacker && result && hp_before && hp_before<127 &&
+       !psx_mod_read_byte(actor+0x5C))
+        mmx4_coop_lifecycle_boss_finisher(actor,attacker==1?
+            psx_mod_read_byte(MMX4_PLAYER+2):mmx4_coop_second_body()[2]);
     if(address==ENEMY_HIT && actor_call && attacker && result && result<0x7Fu) {
         reaction_actor=actor;
         reaction_character=attacker==1?psx_mod_read_byte(MMX4_PLAYER+2)+1u:

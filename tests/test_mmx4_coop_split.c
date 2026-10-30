@@ -880,6 +880,7 @@ static void storm_backgrounds(CPUState *cpu) {
     split=ready=1;local_scope=projected=0;script_owner=-1;
     psx_mod_write_byte(MMX4_PLAY,6);psx_mod_write_byte(MMX4_PLAY+12,7);
     psx_mod_write_byte(MMX4_PLAYER,1);psx_mod_write_byte(MMX4_PLAYER+4,1);second[0]=second[4]=1;
+    for(unsigned layer=1;layer<3;++layer)psx_mod_write_byte(CAMERA+layer*0x54+4,0);
     CHECK(mmx4_coop_split_activate());
     mmx4_coop_split_reset();mmx4_coop_split_camera_prepare(0);
     psx_mod_write_byte(actor,1);psx_mod_write_byte(actor+1,5);psx_mod_write_byte(actor+4,1);
@@ -905,6 +906,36 @@ static void storm_backgrounds(CPUState *cpu) {
     projected=1;invoke(cpu,0x800DA298u);projected=0;
     psx_mod_write_byte(actor+4,2);invoke(cpu,0x800DA298u);
     CHECK(mmx4_coop_split_digest(2166136261u)==digest);
+
+    /* Storm Owl's native renderer wraps the near plane rightwards and the
+     * far plane leftwards. A private render rolls those writes back; retain
+     * the same wrap in both saved cameras before the next frame. This is not
+     * a second scenery tick and must preserve fractional scroll and history. */
+    for(unsigned owner=0;owner<2;++owner) {
+        psx_mod_write_byte(actor+4,1);
+        psx_mod_write_byte(0x80172224u,30);
+        for(unsigned layer=0;layer<3;++layer)
+            for(unsigned offset=0;offset<0x54;++offset)psx_mod_write_byte(CAMERA+layer*0x54+offset,0);
+        for(unsigned layer=1;layer<3;++layer) {
+            uint32_t plane=CAMERA+layer*0x54;
+            psx_mod_write_byte(plane+4,5);
+            psx_mod_write_byte(plane+0x4D,2);
+            psx_mod_write_byte(plane+0x4E,layer==1?7:8);
+            psx_mod_write_word(plane+8,layer==1?0x07FFC000u:0x01002000u);
+            psx_mod_write_word(plane+20,layer==1?0x07FF4000u:0x01006000u);
+        }
+        mmx4_coop_split_reset();mmx4_coop_split_camera_prepare(owner);
+        calls=train_calls;cpu->gpr[4]=actor;invoke(cpu,0x800DA298u);
+        CHECK(train_calls==calls+1);
+        for(unsigned seat=0;seat<2;++seat) {
+            CHECK(psx_mod_read_word(saved_camera(seat,1)+8)==0x02004000u);
+            CHECK(psx_mod_read_word(saved_camera(seat,2)+8)==0x0800E000u);
+            CHECK(psx_mod_read_word(saved_camera(seat,1)+20)==0x07FF4000u);
+            CHECK(psx_mod_read_word(saved_camera(seat,2)+20)==0x01006000u);
+        }
+        CHECK(psx_mod_read_word(CAMERA+0x54+8)==0x08004000u);
+        CHECK(psx_mod_read_word(CAMERA+0xA8+8)==0x00FFE000u);
+    }
 }
 static void sigma_drop_release(CPUState *cpu) {
     (void)cpu;

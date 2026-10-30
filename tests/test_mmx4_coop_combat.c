@@ -64,6 +64,11 @@ static uint8_t second_vehicle[0xB0], first_vehicle[0xB0];
 static uint8_t second_double[0xE4], first_double[0xE4];
 static uint8_t second_shots[16*0x9C],first_shots[16*0x9C];
 static unsigned projected, ready, alive[2],split;
+static unsigned finishes,finishing_character;
+static uint32_t finishing_actor;
+void mmx4_coop_lifecycle_boss_finisher(uint32_t actor,unsigned character) {
+    ++finishes;finishing_actor=actor;finishing_character=character;
+}
 static int script_owner=-1;
 static uint32_t deferred_portal;
 static unsigned arriving;
@@ -1584,6 +1589,15 @@ static void aiming_beam_owner(void) {
     cpu.gpr[4]=0x801441B0u;CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
 }
 int main(void) {
+    for(unsigned campaign=0;campaign<2;++campaign)for(unsigned seat=0;seat<2;++seat) {
+        setup();finishes=0;psx_mod_write_byte(MMX4_PLAYER+2,(uint8_t)campaign);
+        second[2]=(uint8_t)(campaign^1u);psx_mod_write_byte(ACTOR+0x5C,1);
+        hit_result[seat]=UINT32_MAX;
+        CHECK(invoke(HIT)==UINT32_MAX);
+        CHECK(finishes==1 && finishing_actor==ACTOR && finishing_character==(campaign^seat));
+        setup();finishes=0;psx_mod_write_byte(ACTOR+0x5C,2);hit_result[seat]=1;
+        CHECK(invoke(HIT)==1 && !finishes);
+    }
     stored_charge_hud_ownership();
     aiming_beam_owner();
     accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();armor_forced_dismount();independent_hit_tokens();

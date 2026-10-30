@@ -104,7 +104,7 @@ psxrecomp_add_implementation(psx-runtime
 # cannot join under the same fixed development version.
 set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_localization.cpp src/mods/mmx4_language_assets.h
-    game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_lifecycle.c
+    game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_frontend.inc src/mods/mmx4_coop_lifecycle.c
     src/mods/mmx4_coop_combat.c src/mods/mmx4_coop_assets.c src/mods/mmx4_coop_audio.c
     src/mods/mmx4_coop_internal.h src/mods/mmx4_coop_assets.h
     src/mods/mmx4_coop_memory.c src/mods/mmx4_coop_memory.h

@@ -541,7 +541,7 @@ static uint32_t signed_half(uint32_t value) {
     /* Retail sra retains the sign bit, including negative odd fixed units. */
     return (value>>1)|(value&0x80000000u);
 }
-static void train_panorama_wrap(uint32_t camera) {
+static void panorama_wrap(uint32_t camera) {
     unsigned first=psx_mod_read_byte(camera+0x4Du);
     unsigned last=psx_mod_read_byte(camera+0x4Eu);
     unsigned width=psx_mod_read_byte(0x80172224u);
@@ -552,7 +552,8 @@ static void train_panorama_wrap(uint32_t camera) {
      * private draws roll it back, so an ever-increasing saved origin would
      * reset to the same screen on every subsequent draw and appear frozen.
      * Retain the same wrap in the simulation's saved plane. Fractional X,
-     * previous origins, foreground geometry and the train clock stay native. */
+     * previous origins, foreground geometry and the shared clock stay native.
+     * Storm Owl uses these same mode5 planes for its moving aircraft. */
     if(x>=(int)(last+1u)*256)
         psx_mod_write_half(camera+10,(uint16_t)(first*256u));
     else if(first && x<=(int)(first-1u)*256)
@@ -854,14 +855,14 @@ static int moving_background(CPUState *cpu,uint32_t address) {
                 }
                 psx_mod_write_word(shadow+base+axis,value);
             }
-            if(!storm)train_panorama_wrap(shadow+base);
+            panorama_wrap(shadow+base);
         }
     }
     /* A P2 scene transaction saves its installed camera once more on exit.
      * Retain the same completed wrap there, or that save would replace P2's
      * corrected shadow with the unwrapped native controller result again. */
     if(!storm && train_view)for(unsigned layer=1;layer<3;++layer)
-        train_panorama_wrap(CAMERA+layer*0x54u);
+        panorama_wrap(CAMERA+layer*0x54u);
     background_call=background_parallax=0;background_actor=background_dx=0;
     psx_mod_counter_add(storm?"mmx4.coop.split-storm-background-ticks":
                                "mmx4.coop.split-train-background-ticks",1);
