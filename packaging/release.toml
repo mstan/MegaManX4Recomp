@@ -1,0 +1,116 @@
+schema = 1
+
+[product]
+name = "MegaManX4Recomp"
+display_name = "Mega Man X4 Recompiled"
+exe_name = "MegaManX4Recomp"
+version_file = "packaging/release/VERSION"
+player_game_toml = "packaging/release/game.toml"
+launcher_boxart = "recomp/launcher/boxart.tga"
+
+[build]
+regenerate = true
+cmake_args = ["-DPSX_RECOMP_UI=ON", "-DPSX_ENABLE_VULKAN=OFF", "-DPSX_PGXP_VARIANT=OFF", "-DPSX_NETPLAY=ON", "-DMMX4_COOP_NETPLAY_DEBUG=OFF"]
+
+[aot]
+# Original-disc inventory found no separate executable overlay.
+# The resident boot program is generated; runtime-discovered native
+# code uses the bundled toolchain. No private cache is shipped.
+mode = "none"
+cps = false
+
+[overlay_toolchain]
+ship = true
+
+[diagnostics]
+game_id = "SLUS-00561"
+package_id = "mmx4.diagnostics"
+replay_helper = false
+
+[payload]
+start_here = "packaging/release/START_HERE.txt"
+files = [
+  "README.md",
+  "LICENSE",
+  "RELEASE_NOTES.md",
+  "THIRD_PARTY_NOTICES.md",
+  "DISC.md",
+  "tools/import_fmv_subtitles.py",
+  "docs/COMPLETE_STORY.md",
+  "docs/COOP_102_STAGE_FOLLOWUP.md",
+  "docs/COOP_103_SIGMA_MAGMA_FOLLOWUP.md",
+  "docs/COOP_103_STAGE_FOLLOWUP.md",
+  "docs/COOP_105_STAGE_FOLLOWUP.md",
+  "docs/COOP_106_SLOPE_RUMBLE.md",
+  "docs/COOP_107_INTEGRATION.md",
+  "docs/COOP_AUDIO_EVIDENCE.md",
+  "docs/COOP_CAMERA_HITREG39.md",
+  "docs/COOP_COMBAT_VEHICLE_EVIDENCE.md",
+  "docs/COOP_DOOR_ANIMATION.md",
+  "docs/COOP_FEEDBACK34_FOLLOWUP.md",
+  "docs/COOP_FEEDBACK35_FROST.md",
+  "docs/COOP_FEEDBACK36_REVIEW.md",
+  "docs/COOP_FEEDBACK41.md",
+  "docs/COOP_FEEDBACK42.md",
+  "docs/COOP_FEEDBACK_20261012.md",
+  "docs/COOP_GITHUB_REVIEW38.md",
+  "docs/COOP_HITREG_FEEDBACK_20261017.md",
+  "docs/COOP_INITIAL_HUD.md",
+  "docs/COOP_LIFECYCLE_MENU_EVIDENCE.md",
+  "docs/COOP_LOCAL_SPLIT38.md",
+  "docs/COOP_LOCAL_SPLIT39.md",
+  "docs/COOP_MARINE_MUSHROOM_RELEASE_GATE.md",
+  "docs/COOP_NETPLAY_EVIDENCE.md",
+  "docs/COOP_PERSONAL_MENUS40.md",
+  "docs/COOP_PLAYTEST32_DISPOSITIONS.md",
+  "docs/COOP_PLAYTEST33_DISPOSITIONS.md",
+  "docs/COOP_PLAYTEST34_DISPOSITIONS.md",
+  "docs/COOP_PLAYTEST34_INVESTIGATION.md",
+  "docs/COOP_PLAYTEST37_INVESTIGATION.md",
+  "docs/COOP_PLAYTEST_FEEDBACK_20261010.md",
+  "docs/COOP_PLAYTEST_REGRESSIONS.md",
+  "docs/COOP_PLAYTEST_RELEASE.md",
+  "docs/COOP_PLAYTHROUGH_115_FOLLOWUP.md",
+  "docs/COOP_SIGMA_SURVIVOR_ENTRANCE.md",
+  "docs/COOP_SIMULTANEOUS_MENUS.md",
+  "docs/COOP_SPIKE.md",
+  "docs/COOP_STABLE_PRESENTATION_117.md",
+  "docs/COOP_STAGE_CONTROLLERS40.md",
+  "docs/COOP_STAGE_INTERACTIONS_EVIDENCE.md",
+  "docs/COOP_STORED_CHARGE_HUD.md",
+  "docs/COOP_WEB_SPIDER_LADDER_106.md",
+  "docs/DEVELOPMENT.md",
+  "docs/DISC_INVENTORY.md",
+  "docs/FMV_105_MATRIX.md",
+  "docs/FMV_SUBTITLES.md",
+  "docs/LOCALIZATION.md",
+  "docs/NATIVE_FRAME_WAIT.md",
+  "docs/ORIGINAL_DISC_RELEASE_GATE.md",
+  "docs/PARITY_QUALIFICATION.md",
+  "docs/PLAYTESTING.md",
+  "docs/SERIAL_REVIEW.md",
+  "docs/X4_WIDE_ENEMY_FOLLOWUP.md",
+  "docs/fmv-subtitles/CREDITS.md",
+  "docs/fmv-subtitles/El-Retro-Dan-Final-LEEME.txt",
+  "docs/fmv-subtitles/acediez-Undub-v1.13-Readme.txt",
+  "docs/framework_pin_history.md",
+  "docs/images/README.md",
+  "docs/images/coop-jungle.png",
+  "docs/images/coop-menu-x.png",
+  "docs/images/coop-menu-zero.png",
+  "docs/images/coop-options.png",
+  "docs/images/double.png",
+  "docs/images/iris.png",
+  "docs/images/netplay.png",
+  "docs/images/split-x.png",
+  "docs/images/split-zero.png",
+  "docs/qa/stable-performance.json",
+  {from = "packaging/release/input.ini", to = "input.ini"},
+]
+
+[linux]
+app_run = "packaging/linux/AppRun"
+desktop_file = "packaging/linux/io.github.mstan.MegaManX4Recomp.desktop"
+icon = "recomp/launcher/boxart.tga"
+payload_dir = "megamanx4recomp"
+env_prefix = "MMX4_RECOMP"

@@ -8,8 +8,14 @@ file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/release/VERSION" MMX4_RELEAS
 string(REGEX REPLACE "^v" "" MMX4_RELEASE_VERSION "${MMX4_RELEASE_VERSION}")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS packaging/release/VERSION)
 
-set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
-    "Path to psxrecomp-v4")
+# The maintained shared builder selects the same framework for codegen,
+# runtime and selective PGO. Retain the legacy path for direct title builds.
+if(DEFINED PSXRECOMP_ROOT)
+    set(PSXRECOMP_V4_ROOT "${PSXRECOMP_ROOT}")
+else()
+    set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
+        "Path to psxrecomp-v4")
+endif()
 
 # This title ships a co-op netplay profile on both platforms. The framework's
 # generic runtime defaults netplay off; select it before including that runtime.

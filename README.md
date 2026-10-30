@@ -116,3 +116,30 @@ Built with [PSXRecomp](https://github.com/mstan/psxrecomp) and
 Original project code is [MIT licensed](LICENSE). Dependencies retain their
 own [licenses and notices](THIRD_PARTY_NOTICES.md). Mega Man X4 and the game
 imagery belong to Capcom. You supply the game disc; this is an unofficial project.
+
+## Building player releases
+
+Run the maintained shared command from this repository root:
+
+```powershell
+psxrecomp-v4/tools/package_title_release.ps1 --channel public --platform windows --jobs 2
+```
+
+Use `--channel playtest` for diagnostics enabled by default, and `--platform linux`
+for an AppImage (WSL on Windows). `--platform all` prepares both platforms. The
+version comes from `packaging/release/VERSION`; artifacts and checksums go to
+`dist/`. `--work-dir` and `--out-dir` select owned build and artifact staging.
+The title wrappers accept these shared GNU-style arguments; old title-specific
+build/version/cache switches are replaced by the shared interface.
+
+`packaging/release.toml` carries this title's payload. The shared builder owns
+regeneration, the fresh per-title selective PGO build/training phases, native
+OpenBIOS, launcher assets, notices, channel defaults and final archive checks.
+No old profile or private cache is reused. The original-disc inventory found no
+separate executable overlay. The resident boot program is regenerated; eligible
+uncovered code uses the bundled overlay toolchain. No private or unqualified
+cache is shipped.
+
+The command does not publish or upload. Build/package success does not replace
+the release's gameplay or owner acceptance checks. See the framework's
+`docs/RELEASING_A_TITLE.md` for the shared command and verification contract.
