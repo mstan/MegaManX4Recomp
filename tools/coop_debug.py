@@ -23,12 +23,13 @@ def capture_pair(runtime, path):
 
 
 class Runtime:
-    def __init__(self, port=14525, *, isolated_inputs=False):
+    def __init__(self, port=14525, *, isolated_inputs=False, timeout=15):
         self.port = port
         self.isolated_inputs = isolated_inputs
+        self.timeout = timeout
 
     def request(self, cmd, **fields):
-        with socket.create_connection(('127.0.0.1', self.port), timeout=15) as conn:
+        with socket.create_connection(('127.0.0.1', self.port), timeout=self.timeout) as conn:
             conn.sendall((json.dumps(dict(id=1, cmd=cmd, **fields)) + '\n').encode())
             result = json.loads(conn.makefile().readline())
         if not result.get('ok'):

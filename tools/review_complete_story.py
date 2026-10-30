@@ -6,6 +6,7 @@ Uses the existing damage-multiplier package, not enemy-HP writes.
 import argparse
 import hashlib
 import json
+import queue
 from pathlib import Path
 import threading
 import time
@@ -177,7 +178,7 @@ def verify_damage(r, profile):
     return results
 
 
-def panel(r, profile):
+def panel(r, profile, *, harness=None):
     import tkinter as tk
     from tkinter import ttk
     identity = hashlib.sha256((profile / 'MegaManX4Recomp.exe').read_bytes()).hexdigest()
@@ -185,6 +186,8 @@ def panel(r, profile):
     records = json.loads(path.read_text()) if path.exists() else {}
     current = records.setdefault(identity, {})
     root = tk.Tk()
+    if harness is not None:
+        root.withdraw()
     root.title('Mega Man X4 - Complete Story QA')
     root.geometry('730x650')
     frame = ttk.Frame(root, padding=14)
@@ -240,6 +243,29 @@ def panel(r, profile):
         status.set(case['title'] + ': ' + result + ' saved locally.')
 
     busy = False
+    requests = queue.Queue()
+    events = queue.Queue()
+    stopped = threading.Event()
+
+    # A single worker owns every socket operation, including live pad polling.
+    # Tk must keep processing events even if the game stops answering TCP.
+    def connection_worker():
+        while not stopped.is_set():
+            try:
+                case = requests.get(timeout=.3)
+            except queue.Empty:
+                case = None
+            try:
+                if case is not None:
+                    state(r, 'load', case['slot'])
+                    r.release()
+                    events.put(('loaded', case['id']))
+                else:
+                    events.put(('pads', (r.request('pad_status'), r.read(PLAY, 2))))
+            except Exception as error:
+                events.put(('load-error' if case is not None else 'connection-error', str(error)))
+    threading.Thread(target=connection_worker, daemon=True).start()
+
     def restart():
         nonlocal busy
         if busy:
@@ -247,31 +273,34 @@ def panel(r, profile):
         busy = True
         case = choice()
         status.set('Restoring ' + case['title'] + '...')
-        def worker():
-            try:
-                state(r, 'load', case['slot'])
-                r.release()
-                message = 'Approach restored and paused. Click the game, then Enter / Options.'
-            except Exception as error:
-                message = str(error)
-            def done():
-                nonlocal busy, loaded_case
-                busy = False
-                if message.startswith('Approach restored'):
-                    loaded_case = case['id']
-                status.set(message)
-            root.after(0, done)
-        threading.Thread(target=worker, daemon=True).start()
+        requests.put(case)
 
     seen = set()
     samples = []
     def poll():
-        try:
-            pad = r.request('pad_status')
+        nonlocal busy, loaded_case
+        while True:
+            try:
+                event, data = events.get_nowait()
+            except queue.Empty:
+                break
+            if event == 'loaded':
+                busy = False
+                loaded_case = data
+                status.set('Approach restored and paused. Click the game, then Enter / Options.')
+                continue
+            if event == 'load-error':
+                busy = False
+                status.set('Restore failed; the panel remains available. ' + data)
+                continue
+            if event == 'connection-error':
+                pads.set('Game is not answering yet. The selector and notes remain available.')
+                continue
+            pad, mode = data
             values = tuple(int(pad['slot' + str(i)]['buttons'], 16) for i in (0, 1))
             pads.set(f'Live pads: P1 {values[0]:04X} | P2 {values[1]:04X} | '
                      f'DualSense port {"connected" if pad["slot1"]["connected"] else "DISCONNECTED"}')
-            if pad['override'] == -1 and pad['override_p2'] == -1 and r.read(PLAY, 2) == bytes([6, 2]):
+            if pad['override'] == -1 and pad['override_p2'] == -1 and mode == bytes([6, 2]):
                 if values in ((0xffdf, 0xffff), (0xffff, 0xffdf)):
                     seen.add(0 if values[0] == 0xffdf else 1)
                     samples.append(dict(buttons=list(values), overrides=[-1, -1], time_utc=time.time()))
@@ -281,9 +310,7 @@ def panel(r, profile):
                         save()
             if not pad['slot1']['connected']:
                 controls.set('Connect the DualSense for P2, then verify separate Right presses while paused.')
-        except Exception:
-            status.set('Game is unavailable. Close this panel when finished, or relaunch the QA shortcut.')
-        root.after(500, poll)
+        root.after(50, poll)
 
     row = ttk.Frame(frame)
     row.pack(fill='x', pady=8)
@@ -297,11 +324,14 @@ def panel(r, profile):
     selected.trace_add('write', refresh)
     steps.set(CASES[0]['steps'])
     def close():
+        stopped.set()
         current.setdefault(active_note, dict(result='Unrated'))['notes'] = note.get('1.0', 'end').strip()
         save()
         root.destroy()
     root.protocol('WM_DELETE_WINDOW', close)
-    root.after(500, poll)
+    if harness is not None:
+        harness(root, dict(restart=restart, selected=selected, status=status, close=close))
+    root.after(50, poll)
     root.mainloop()
 
 
@@ -312,7 +342,8 @@ def main():
     parser.add_argument('--prepare', type=int, choices=(0, 1))
     parser.add_argument('--verify-states', action='store_true')
     args = parser.parse_args()
-    r = Runtime(args.port, isolated_inputs=args.prepare is not None)
+    r = Runtime(args.port, isolated_inputs=args.prepare is not None,
+                timeout=15 if args.prepare is not None or args.verify_states else 1.5)
     if args.prepare is not None:
         prepare(r, args.profile, args.prepare)
     elif args.verify_states:

@@ -14,6 +14,16 @@ static PSXModActivationCallback story_activate;
 static PSXModSnapshotProvider story_provider;
 static struct {const char *id;uint32_t address,word;PSXModFunctionEntryCallback fn;} hooks[64];
 static unsigned count;
+uint32_t psx_mod_alloc_guest_memory(uint32_t bytes,uint32_t align) {
+    CHECK(bytes==0xA000u && align==16);return 0x9f080000u;
+}
+int psx_mod_read_disc_file(const char *name,void *out,uint32_t capacity,uint32_t *size) {
+    CHECK(!strcmp(name,"ARC/PL00_U.ARC"));*size=4096;
+    if(!out)return 1;
+    CHECK(capacity>=4096);memset(out,0,4096);
+    uint8_t *p=out;p[0]=16;p[5]=16;p[8+15*8+4]=16;
+    memcpy(p+2048,"Colonel fixture",16);return 1;
+}
 int mod_runtime_snapshot_package_active(const char *id) {
     return !strcmp(id,"mmx4.coop")?coop_active:!strcmp(id,"mmx4.complete-story")?complete_active:0;
 }
@@ -157,6 +167,17 @@ int main(int argc,char **argv){
         hook(&cpu,0x800203C4u);CHECK(cpu.gpr[3]==11);
         cpu.gpr[2]=campaign;hook(&cpu,0x800203D4u);CHECK(cpu.gpr[2]==1);
         cpu.gpr[4]=8;hook(&cpu,0x80018000u);CHECK(cpu.gpr[4]==7);
+        /* Memorial uses Colonel's authored encounter dialogue/portraits.
+         * Zero's same numeric entry is an unrelated Sigma conversation. */
+        if(campaign) {
+            cpu.gpr[4]=1;hook(&cpu,0x800224D4u);CHECK(!cpu.gpr[4]);
+            cpu.gpr[4]=0x1234;hook(&cpu,0x80022554u);
+            CHECK(cpu.gpr[4]==(coop?0x9f046000u:0x9f080000u));
+            if(!coop)CHECK(psx_mod_read_byte(cpu.gpr[4])=='C');
+            cpu.gpr[2]=1;hook(&cpu,0x80022684u);CHECK(!cpu.gpr[2]);
+            CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==1);
+            local=1;cpu.gpr[4]=0x1234;hook(&cpu,0x80022554u);CHECK(cpu.gpr[4]==0x1234);local=0;
+        }
         CHECK(memorial_return(&cpu,0x8002044Cu));
         CHECK(psx_mod_read_byte(MMX4_PLAY)==9 && !psx_mod_read_byte(MMX4_PLAY+0xD));
         CHECK(psx_mod_read_byte(MMX4_PLAY+0x5F)==4 && psx_mod_read_byte(MMX4_PLAY+0x59)==15);

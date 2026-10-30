@@ -123,3 +123,26 @@ input ownership only after separate real Right presses are observed with both
 debug input overrides cleared. A configured device ID alone is not marked as
 verified. Notes, private cards/states, setup receipts and diagnostics remain
 inside that disposable profile; ordinary saves/settings are untouched.
+
+### Memorial dialogue correction and selector responsiveness
+
+The new Zero Memorial fight uses the original X/Colonel encounter dialogue and
+portraits. The same numeric script in Zero's bank is an unrelated Sigma
+conversation whose portrait graphics are absent from this room. The correction
+selects the encounter's text, portraits and voice together, preserving Zero's
+body and canonical campaign. Co-op reuses X's resident text bank; solo reads
+member15 of the verified original `PL00_U.ARC` into private enhancement memory.
+That immutable bank is refilled at dialogue admission so a host cache cannot
+assume guest bytes survived an execution-state restore. The subsequent Colonel
+movie and native board/save continuation remain intact.
+
+The QA panel now performs all game socket operations on one worker, with bounded
+timeouts, and delivers results to Tk through queues. Live pad polling can no
+longer block the UI thread. A fault-injection check held requests unresponsive
+while the hidden real Tk panel continued processing selection/restart events;
+the largest observed heartbeat gap was 47ms. A separate native check switched
+from the reported post-Colonel dialogue to X's fortress approach through that
+same panel, returning paused with the correct campaign and roster. All44
+Windows CTests passed, and both solo and Split dialogue captures were inspected.
+These checks do not replace the owner's review; their original failed report
+and per-case notes are retained.

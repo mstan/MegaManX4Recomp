@@ -5,19 +5,46 @@
 #include "mod_runtime.h"
 #include "mod_snapshot.h"
 #include "mmx4_story_damage.h"
+#include "mmx4_coop_assets.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define ID "mmx4.coop"
 #define STORY_ID "mmx4.complete-story"
 #define PLAY MMX4_PLAY
 static unsigned both_stories,second_round,defeated,reloading;
+static uint32_t memorial_text;
+static uint8_t *memorial_text_data;
+static size_t memorial_text_size;
 
 static int complete_story(void) {return mod_runtime_snapshot_package_active(STORY_ID);}
 static int coop_active(void) {return mod_runtime_snapshot_package_active(ID);}
 static int both_encounters(void) {return both_stories || complete_story();}
 static int projected(void) {return coop_active() && mmx4_coop_projected();}
 static int encounter_ready(void) {return !coop_active() || mmx4_coop_ready();}
+static uint32_t memorial_story_text(void) {
+    if(coop_active())return mmx4_coop_counterpart_story_text();
+    if(!memorial_text)return 0;
+    if(!memorial_text_data) {
+        uint32_t bytes=0;
+        if(!psx_mod_read_disc_file("ARC/PL00_U.ARC",NULL,0,&bytes) || !bytes || bytes>0x200000u)return 0;
+        uint8_t *file=malloc(bytes);
+        Mmx4Asset text;
+        int valid=file && psx_mod_read_disc_file("ARC/PL00_U.ARC",file,bytes,&bytes) &&
+            mmx4_coop_arc_asset(file,bytes,15,&text) && text.size>=2 && text.size<=0xA000u;
+        if(valid) {
+            memorial_text_data=malloc(text.size);
+            if(memorial_text_data) {memcpy(memorial_text_data,text.data,text.size);memorial_text_size=text.size;}
+        }
+        free(file);
+        if(!memorial_text_data)return 0;
+    }
+    /* A loaded state may precede the first dialogue. Refill its immutable
+     * text bank here; no host cache flag may assume restored guest bytes. */
+    for(size_t i=0;i<memorial_text_size;++i)psx_mod_write_byte(memorial_text+(uint32_t)i,memorial_text_data[i]);
+    return memorial_text;
+}
 static int story_room(void) {
     return psx_mod_read_byte(PLAY+0x0C)==11 && !psx_mod_read_byte(PLAY+0x0D);
 }
@@ -58,18 +85,20 @@ static void select_story(CPUState *cpu,uint32_t address) {
     if(psx_mod_local_view_scope())return;
     unsigned capsule=coop_active() && address>=0x800224D4u && address<=0x80022928u &&
         mmx4_coop_lifecycle_x_capsule_text();
-    if(!capsule && (!both_encounters() || !second_round || !story_room()))return;
+    unsigned memorial=complete_story() && psx_mod_read_byte(PLAY+0x0C)==9 &&
+        psx_mod_read_byte(PLAY+0x43)==1 && address>=0x800224D4u && address<=0x80022928u;
+    if(!capsule && !memorial && (!both_encounters() || !second_round || !story_room()))return;
     /* The shared textbox keeps the campaign's palette, but X's capsule
      * supplies X's text/portraits/voice selectors even in Zero's story.
      * This correctness path is independent of the optional second boss. */
     if(address==0x80022554u) {
-        uint32_t text=coop_active()?mmx4_coop_counterpart_story_text():0;
+        uint32_t text=memorial?memorial_story_text():coop_active()?mmx4_coop_counterpart_story_text():0;
         if(text)cpu->gpr[4]=text;
     }else {
         unsigned reg=2;
         if(address==0x800224D4u || address==0x80022928u)reg=4;
         if(address==0x8001302Cu || address==0x80022880u || address==0x800228B4u)reg=3;
-        cpu->gpr[reg]=capsule?0u:story_character();
+        cpu->gpr[reg]=(capsule || memorial)?0u:story_character();
     }
 }
 static void story_defeated(CPUState *cpu,uint32_t address) {
@@ -103,6 +132,8 @@ static int story_transition(CPUState *cpu,uint32_t address) {
  * already own their encounter state when both packages are active; the solo
  * wrappers must not count a defeat or reset a reload for a second time. */
 static void solo_activate(void) {
+    free(memorial_text_data);memorial_text_data=NULL;memorial_text_size=0;
+    memorial_text=coop_active()?0:psx_mod_alloc_guest_memory(0xA000u,16);
     if(!coop_active())both_stories=second_round=defeated=reloading=0;
 }
 static void solo_stage(CPUState *cpu,uint32_t address) {
