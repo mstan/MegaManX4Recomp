@@ -17,6 +17,7 @@
 #include "mod_netplay.h"
 #include "psx_netplay.h"
 #include "mod_snapshot.h"
+#include "mod_runtime.h"
 #include "gpu.h"
 #include "gpu_render.h"
 #include <stdlib.h>
@@ -56,7 +57,8 @@ typedef struct {
 static BoardAssets board_assets[2];
 static uint32_t board_heroes[2];
 static uint32_t board_companions[2];
-static unsigned board_call;
+static unsigned board_call,board_enabled;
+#define BOARD_ID "mmx4.coop-stage-select"
 static PlayerContext second,first;
 static CharacterAssets assets[2];
 static XArchive ultimate_archive;
@@ -1507,6 +1509,7 @@ static uint32_t state_digest(void) {
     hash=hash_word(hash,x_variant);
     hash=hash_word(hash,board_heroes[0]);hash=hash_word(hash,board_heroes[1]);
     hash=hash_word(hash,board_companions[0]);hash=hash_word(hash,board_companions[1]);
+    hash=hash_word(hash,board_enabled);
     hash=hash_word(hash,enrolled);hash=hash_word(hash,failed);hash=hash_word(hash,projected);
     hash=hash_word(hash,counterpart);hash=hash_word(hash,previous_input);hash=hash_word(hash,frames);
 #ifdef MMX4_COOP_NETPLAY_DEBUG
@@ -1746,6 +1749,7 @@ static int snapshot_walk(Mmx4SnapshotIO *s) {
     mmx4_coop_balance_snapshot(s);
     mmx4_snapshot_fixed(s,split_views);mmx4_snapshot_preference(s,hud_side_by_side);
     mmx4_snapshot_fixed(s,boss_door_both);
+    mmx4_snapshot_fixed(s,board_enabled);
     mmx4_snapshot_preference(s,ultimate_armor_x);mmx4_snapshot_preference(s,black_zero);
     mmx4_snapshot_preference(s,mmx4_cheats_character_enabled(0));
     mmx4_snapshot_preference(s,mmx4_cheats_character_enabled(1));
@@ -1915,7 +1919,7 @@ static void activate(void) {
     }
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
-    static const PSXModSnapshotProvider snapshot={6,snapshot_bytes,snapshot_write,
+    static const PSXModSnapshotProvider snapshot={7,snapshot_bytes,snapshot_write,
         snapshot_validate,snapshot_read,snapshot_ready};
     psx_mod_register_snapshot_provider(ID,&snapshot);
     psx_mod_register_savestate_plugin(ID,snapshot_resources_restored);
@@ -1923,6 +1927,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
         "mmx4.widescreen",state_digest,1,ID,"coop","cameras","split"};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
+    psx_mod_register_activation_plugin(BOARD_ID,board_package_activate);
     psx_mod_register_function_entry_plugin(ID,0x80035240,reset_player);
     psx_mod_register_function_entry_plugin(ID,0x80021340,second_tick);
     psx_mod_register_function_filter_plugin(ID,0x800241E8,render);
@@ -1937,7 +1942,9 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x80024334,render_owned_effect);
     psx_mod_register_function_filter_plugin(ID,0x800EA4D0,retained_upload);
     psx_mod_register_function_filter_plugin(ID,0x800EA80Cu,present_local_view);
-    psx_mod_register_function_filter_plugin(ID,0x8002E698u,board_initialize);
+    psx_mod_register_function_entry_plugin(ID,0x8002E698u,board_initialize);
+    psx_mod_register_function_entry_plugin(ID,0x8002E994u,board_admit);
+    psx_mod_register_function_entry_plugin(ID,0x8002F4C4u,board_story);
     psx_mod_register_function_filter_plugin(ID,0x800C9EACu,board_character);
     psx_mod_register_function_entry_plugin(ID,0x80023DB8u,board_draw_begin);
 }

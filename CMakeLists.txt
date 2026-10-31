@@ -129,6 +129,7 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_diagnostic_writer.h src/mods/mmx4_diagnostic_mode.h
     src/mods/mmx4_widescreen_plugin.c
     mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml
+    mods/preloaded/packages/mmx4.coop-stage-select/0.1.0/manifest.toml
     mods/preloaded/packages/mmx4.complete-story/1.0.0/manifest.toml)
 set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
 set(MMX4_COOP_PROFILE_PREFIX "mmx4-coop-delay-v3")
@@ -259,6 +260,7 @@ if(BUILD_TESTING)
                         "${MMX4_GL_TEST_SRC}/render_thread.c"
                         "${MMX4_GL_TEST_SRC}/present_thread.c"
                         "${MMX4_GL_TEST_SRC}/gpu_render.c"
+                        "${MMX4_GL_TEST_SRC}/host_overlay.c"
                         "${MMX4_GL_TEST_SRC}/frame_gen.c")
                     target_include_directories(${MMX4_GL_TARGET} PRIVATE
                         "${PSXRECOMP_V4_ROOT}/runtime/include" "${MMX4_GL_TEST_SRC}"

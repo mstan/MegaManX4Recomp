@@ -34,6 +34,14 @@ label = "Split"
 
 [[option]]
 feature = "coop"
+id = "stage_select_cast"
+label = "Netplay stage select cast (Experimental)"
+description = "Show both heroes and story companions on the stage menu. Off keeps the original screen. The host chooses for both peers. For local play, enable the separate Co-op Stage Select Cast mod instead. Requires a fresh boot."
+type = "boolean"
+default = false
+
+[[option]]
+feature = "coop"
 id = "diagnostic_recording"
 label = "Netplay diagnostic recording"
 description = "Off by default. The host can enable input display and diagnostic traces on both peers for a bug report. Includes starting game saves; recordings are stored locally under saves/diagnostics. For local play, use Playtest Diagnostics. Requires a fresh boot."

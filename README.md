@@ -25,7 +25,6 @@ Bring a friend through X's or Zero's campaign, on one computer or over netplay.
 Play X and Zero simultaneously, with their own attacks, voices and effects.
 Player 1 owns the story, boss clears and permanent progress; Player 2 joins
 as the other hero. Arrive together, tackle bosses together, and share team retries.
-Both heroes appear and animate on stage select alongside Iris and Double while the story permits.
 The hero who lands a boss's final hit gets their victory theme.
 
 | Make it your co-op run | Choices |
@@ -33,6 +32,7 @@ The hero who lands a boss's final hit gets their victory theme.
 | Play together | Local co-op with two controllers or separate keyboard bindings; two-player netplay from the launcher. |
 | Pick your view | **Unified** camera by default. **Split** gives each netplay player an independent screen. Local co-op also offers **side by side 8:3**, with two 4:3 views in one window. |
 | Arrange your HUD | Stacked lifebars by default, or side by side. Independent screens show their own player's meter. |
+| Expand stage select | The experimental **Co-op Stage Select Cast** mod adds both heroes and their story companions. Off by default; P1's characters stay in front on both screens. |
 | Manage your supplies | Either player opens both heroes' own pause menus. Choose weapons and manage supplies independently; either player resumes both. E-tank energy is separate while independent menus are enabled, and healing blocks unpause while your partner can keep navigating. |
 | Set the door rule | Either player opens boss doors by default. Optionally wait for both living, present players. |
 | Fight both story bosses | Opt into Double **and** Iris in sequence; return to the inner door for the second fight. |
