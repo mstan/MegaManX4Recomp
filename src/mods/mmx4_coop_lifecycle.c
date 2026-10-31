@@ -1428,7 +1428,10 @@ int mmx4_coop_lifecycle_shared_menu(void) {
         major==1 && (minor==5 || (minor==6 && quit==2));
 }
 int mmx4_coop_lifecycle_personal_menus(void) {
-    return personal_active && personal_initialized && menu_active &&
+    /* Quit/Continue can enter the board before the next gameplay dispatcher
+     * retires its menu context. A board redraw must never reuse that menu. */
+    return psx_mod_read_byte(PLAY)==6 && psx_mod_read_byte(PLAY+1)==2 &&
+        personal_active && personal_initialized && menu_active &&
         !mmx4_coop_lifecycle_shared_menu() &&
         !mmx4_coop_lifecycle_resuming_world();
 }

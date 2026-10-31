@@ -1195,6 +1195,22 @@ static int simultaneous_menu_ownership(void) {
         CHECK(mmx4_coop_lifecycle_personal_menus()==(phase!=2));
         CHECK(mmx4_coop_lifecycle_shared_menu()==(phase==2));
     }
+    /* Quit/Continue may leave the old context allocated while the frontend
+     * initializes. Only an actual gameplay pause may draw its character UI. */
+    {
+        static const uint8_t screens[][2]={{0,0},{1,6},{3,3},{3,4},{3,9},{3,11},{4,0},{6,0},{6,2}};
+        for(unsigned i=0;i<sizeof screens/sizeof screens[0];++i) {
+            psx_mod_write_byte(PLAY,screens[i][0]);psx_mod_write_byte(PLAY+1,screens[i][1]);
+            unsigned paused=screens[i][0]==6 && screens[i][1]==2;
+            CHECK(mmx4_coop_lifecycle_personal_menus()==(int)paused);
+            if(!paused) {
+                unsigned calls=menu_asset_calls[0]+menu_asset_calls[1];
+                CHECK(!mmx4_coop_lifecycle_draw_menu(&cpu,0));
+                CHECK(!mmx4_coop_lifecycle_draw_menu(&cpu,1));
+                CHECK(calls==menu_asset_calls[0]+menu_asset_calls[1]);
+            }
+        }
+    }
     personal_menu[0].native[6]=1;personal_menu_write(&personal_menu[0]);
     psx_mod_write_byte(MENU+6,2);personal_pass=1;personal_seat=0;
     CHECK(!mmx4_coop_lifecycle_personal_menus());

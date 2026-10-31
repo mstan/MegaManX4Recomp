@@ -17,6 +17,7 @@ def stage_select(s):
                      x=struct.unpack_from('<i', pool, i + 8)[0] / 65536,
                      table=struct.unpack_from('<I', pool, i + 0x30)[0],
                      sequence=pool[i + 0x17],
+                     duration=pool[i + 0x44],
                      animation=struct.unpack_from('<I', pool, i + 0x34)[0])
                 for i in range(0, len(pool), 0x60)
                 if pool[i:i + 2] == bytes((0x41, 10))]
@@ -90,13 +91,17 @@ def stage_select(s):
                 if now and now['animation'] != hero['animation']:
                     advanced.add(hero['address'])
             iris_selected |= any(v['subtype'] == 1 and v['table'] == 0x8010e55c
-                                 and v['sequence'] == 1 for v in current.values())
+                                 and v['sequence'] in (0, 1) and any(
+                                     old['address'] == v['address'] and
+                                     (old['duration'] != v['duration'] or old['animation'] != v['animation'])
+                                     for old in initial)
+                                 for v in current.values())
             time.sleep(.02)
         pictures.append(picture('stage-select-animation'))
     finally:
         r.release()
     assert len(advanced) == 2, (heroes, advanced)
-    assert iris_selected, 'Iris did not start her native selection animation'
+    assert iris_selected, 'Iris native animation clock stopped during selection'
     intro = None
     spawn = []
     deadline = time.monotonic() + 60

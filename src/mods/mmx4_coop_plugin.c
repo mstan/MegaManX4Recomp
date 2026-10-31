@@ -1919,7 +1919,7 @@ static void activate(void) {
     }
 }
 PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
-    static const PSXModSnapshotProvider snapshot={7,snapshot_bytes,snapshot_write,
+    static const PSXModSnapshotProvider snapshot={8,snapshot_bytes,snapshot_write,
         snapshot_validate,snapshot_read,snapshot_ready};
     psx_mod_register_snapshot_provider(ID,&snapshot);
     psx_mod_register_savestate_plugin(ID,snapshot_resources_restored);
@@ -1942,9 +1942,8 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
     psx_mod_register_function_filter_plugin(ID,0x80024334,render_owned_effect);
     psx_mod_register_function_filter_plugin(ID,0x800EA4D0,retained_upload);
     psx_mod_register_function_filter_plugin(ID,0x800EA80Cu,present_local_view);
-    psx_mod_register_function_entry_plugin(ID,0x8002E698u,board_initialize);
+    psx_mod_register_function_filter_plugin(ID,0x8002E698u,board_initialize);
     psx_mod_register_function_entry_plugin(ID,0x8002E994u,board_admit);
-    psx_mod_register_function_entry_plugin(ID,0x8002F4C4u,board_story);
     psx_mod_register_function_filter_plugin(ID,0x800C9EACu,board_character);
     psx_mod_register_function_entry_plugin(ID,0x80023DB8u,board_draw_begin);
 }
