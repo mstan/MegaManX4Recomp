@@ -1,0 +1,28 @@
+format_version = 7
+id = "mmx4.coop-stage-select"
+version = "0.1.0"
+name = "Co-op Stage Select Cast (Experimental)"
+author = "mstan"
+description = "Show X, Zero and their story companions together on the stage selection screen. Optional experimental presentation; ordinary co-op keeps the original screen."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "cast"
+name = "Co-op Stage Select Cast"
+description = "P1's hero and companion appear in front on both screens, with P2's behind. Story conversations keep their original cast and voice. Requires a fresh boot. Online hosts use the equivalent experimental setting in the co-op lobby."
+group = "Experimental"
+default_enabled = false
+
+[[plugin]]
+feature = "cast"
+id = "mmx4.coop-stage-select"
+
+[[requirement]]
+feature = "cast"
+package = "mmx4.coop"
+requires_feature = "coop"

@@ -1,12 +1,12 @@
 /* Original stage-board actors, native animation tables and immutable donor
  * graphics. Included beside the co-op plugin's existing UI texture banks. */
+static void board_package_activate(void) { /* Hooks use the co-op snapshot/profile. */ }
 static int board_active(void) {
     unsigned phase=psx_mod_read_byte(PLAY+1);
-    /* PLAY+0C changes to the selected stage before its selection animation.
-     * Minors1..7 and9 (board dialogue) own it. Minor7 clears particles before
-     * movie/stage transitions; minor11 is the separate boss introduction. */
-    return !failed && board_assets[0].loaded && board_assets[1].loaded &&
-        psx_mod_read_byte(PLAY)==3 && ((phase>=1 && phase<=7) || phase==9);
+    /* Story conversations (minor9) broadcast commands to every board actor.
+     * Only the interactive menu and its selection fade own the extra cast. */
+    return board_enabled && !failed && board_assets[0].loaded && board_assets[1].loaded &&
+        psx_mod_read_byte(PLAY)==3 && phase>=4 && phase<=7;
 }
 static int board_activate(void) {
     memset(board_heroes,0,sizeof board_heroes);board_call=0;
@@ -14,6 +14,15 @@ static int board_activate(void) {
     for(unsigned character=0;character<2;++character) {
         BoardAssets *a=&board_assets[character];
         free(a->file);free(a->colors);free(a->pixels);memset(a,0,sizeof *a);
+    }
+    /* Netplay uses a host-synchronized profile, not personal offline mods. */
+    char option[8];
+    board_enabled=psx_mod_netplay_is_active()?
+        (psx_mod_current_option_value("stage_select_cast",option,sizeof option) && !strcmp(option,"true")):
+        mod_runtime_snapshot_package_active(BOARD_ID);
+    if(!board_enabled)return 1;
+    for(unsigned character=0;character<2;++character) {
+        BoardAssets *a=&board_assets[character];
         const char *name=character?"ARC/ST0D_0Z.ARC":"ARC/ST0D_0X.ARC";
         if(!psx_mod_read_disc_file(name,NULL,0,&a->size) || a->size>0x50000u ||
            !(a->file=malloc(a->size)) ||
@@ -42,12 +51,16 @@ static int board_activate(void) {
     }
     return 1;
 }
-static int board_initialize(CPUState *cpu,uint32_t address) {
-    if(board_call || !board_active() || psx_mod_local_view_scope())return 0;
-    board_call=1;
+static void board_initialize(CPUState *cpu,uint32_t address) {
+    (void)cpu;(void)address;
+    if(psx_mod_local_view_scope())return;
     memset(board_heroes,0,sizeof board_heroes);
     memset(board_companions,0,sizeof board_companions);
-    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+}
+static void board_admit(CPUState *cpu,uint32_t address) {
+    (void)address;
+    if(board_call || !board_active() || board_heroes[0] || psx_mod_local_view_scope())return;
+    board_call=1;
     unsigned campaign=psx_mod_read_byte(PLAY+0x43);
     /* Native companion admission owns the shared campaign's story boundary.
      * Both companions leave at that same authored point, with no P2 story. */
@@ -71,7 +84,20 @@ static int board_initialize(CPUState *cpu,uint32_t address) {
             psx_mod_counter_add("mmx4.coop.board-companion-created",1);
         }
     }
-    board_call=0;return mmx4_coop_finish(cpu,result);
+    board_call=0;
+}
+static void board_story(CPUState *cpu,uint32_t address) {
+    (void)address;
+    if(!board_enabled || board_call || psx_mod_local_view_scope())return;
+    unsigned campaign=psx_mod_read_byte(PLAY+0x43);
+    if(campaign>1)return;
+    uint32_t extra[2]={board_heroes[1],board_companions[campaign^1u]};
+    board_call=1;
+    for(unsigned i=0;i<2;++i)if(extra[i] && psx_mod_read_byte(extra[i])==0x41 &&
+        psx_mod_read_byte(extra[i]+1)==10)guest(cpu,0x8002B13Cu,extra[i],0);
+    board_call=0;
+    memset(board_heroes,0,sizeof board_heroes);
+    memset(board_companions,0,sizeof board_companions);
 }
 static void board_companion_position(uint32_t actor,unsigned character,unsigned viewer) {
     unsigned primary=character==viewer;
@@ -134,15 +160,9 @@ static int render_board_actor(CPUState *cpu,uint32_t address) {
     uint32_t x=psx_mod_read_word(actor+8);
     uint32_t y=psx_mod_read_word(actor+12);
     uint8_t priority=psx_mod_read_byte(actor+0x16);
-    unsigned viewer=campaign^(psx_mod_local_view_scope()?local_view_seat:0u);
-    /* Each screen puts its hero's companion in front. Keep both companions
-     * close together below the upper portraits, using retail actor depth. */
-    psx_mod_write_byte(actor+0x16,npc && character!=viewer?4:3);
-    if(npc)board_companion_position(actor,character,viewer);
-    /* Only a private draw swaps placement. Native campaign, board choice,
-     * cursor and both animation clocks remain one authoritative simulation. */
-    if(!npc && psx_mod_local_view_scope() && local_view_seat)
-        psx_mod_write_word(actor+8,(partner?24u:54u)<<16);
+    /* Both views use campaign/P1 first, with P2 and their support behind. */
+    psx_mod_write_byte(actor+0x16,character!=campaign?4:3);
+    if(npc)board_companion_position(actor,character,campaign);
     rendering=1;
     if(character==campaign) {
         uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);

@@ -1,5 +1,15 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.21 — stage-select cast repair
+
+- Move the extra stage-select cast into **Co-op Stage Select Cast (Experimental)**, a separate mod that is off by default. Netplay hosts have an equivalent default-off setting.
+- Keep scripted stage-menu conversations on their original cast, fixing corrupted character graphics and both heroes using the talking animation.
+- Keep Player 1's hero and support character in front of Player 2's on both screens.
+- Preserve finishing-hit victory music, the Storm Owl background fix, and1.0.20's shared optimizations in ordinary co-op.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
 ## v1.0.20 — shared optimization release
 
 Fresh settings enable Internal Resolution at 4x. The Mods selector offers 1x through 32x; saved choices are preserved, and GPU texture and memory limits still apply. Disabling the mod selects native resolution.

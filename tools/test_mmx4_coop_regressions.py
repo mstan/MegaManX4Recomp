@@ -2454,6 +2454,9 @@ def main():
         'boss_cooldowns = "'+args.boss_cooldowns+'"\n\n[[feature]]\n'
         'package_id = "mmx4.enhancement.widescreen"\nid = "widescreen"\nenabled = '+str(args.custom_renderer).lower()+'\n\n[[feature]]\n'
         'package_id = "mmx4.diagnostics"\nid = "inputs"\nenabled = true\n')
+    if 'stage_select' in args.cases:
+        with (args.output/'mods/state.toml').open('a',encoding='utf-8') as state:
+            state.write('\n[[feature]]\npackage_id = "mmx4.coop-stage-select"\nid = "cast"\nenabled = true\n')
     if args.fmv_media:
         resource={'none':'japanese-disc','en':'english-movies','es':'spanish-movies'}[args.fmv_language]
         with (args.output/'mods/state.toml').open('a',encoding='utf-8') as state:

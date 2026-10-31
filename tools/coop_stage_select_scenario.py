@@ -49,7 +49,7 @@ def stage_select(s):
                 left = image.crop(bounds)
                 right = image.crop((bounds[0] + pane, bounds[1], width, bounds[3]))
                 companion_views_distinct = ImageChops.difference(left, right).getbbox() is not None
-                assert companion_views_distinct, 'Companion positions did not swap between screens'
+                assert not companion_views_distinct, 'P1/P2 companion order differs between screens'
     for operation in ('save', 'load'):
         generation = r.request('savestate_status')['generation']
         r.request('savestate', op=operation, slot=0)
