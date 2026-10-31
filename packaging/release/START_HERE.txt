@@ -1,6 +1,6 @@
 MegaManX4Recomp - Mega Man X4, recompiled
 ==========================================
-1.0.19 Stable Public Beta
+@VERSION@ Stable Public Beta
 
 WHAT YOU NEED
   Your own original, unmodified Mega Man X4 (USA, SLUS-00561) disc image.
@@ -20,7 +20,7 @@ FIRST RUN
   1. Run MegaManX4Recomp.exe on Windows, or the .AppImage on Linux.
   2. Set the Disc row to your Mega Man X4 image.
   3. Custom Renderer / Adaptive and Resident Asset Loading default on.
-     Internal resolution defaults to 1080p. Interpolation is unavailable;
+     Internal Resolution defaults to 4x with fresh settings. Interpolation is unavailable;
      generic CD speed and host timing controls are retired. Optional Damage
      Multiplier defaults to normal 1x damage.
   4. Press Play. Your choices are remembered for next time.
@@ -126,3 +126,5 @@ PUBLIC BETA
   Reported co-op regressions and a two-boss native memory-card save/cold-load
   loop have passed bounded checks. Complete campaign coverage is still being
   expanded. Please report an unknown-dispatch halt with where it occurred.
+
+Internal Resolution is enabled at 4x for fresh settings. Choose 1x to 32x in Mods; hardware and GPU-memory limits may clamp larger choices. Your saved choices are retained.

@@ -8,8 +8,14 @@ file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/packaging/release/VERSION" MMX4_RELEAS
 string(REGEX REPLACE "^v" "" MMX4_RELEASE_VERSION "${MMX4_RELEASE_VERSION}")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS packaging/release/VERSION)
 
-set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
-    "Path to psxrecomp-v4")
+# The maintained shared builder selects the same framework for codegen,
+# runtime and selective PGO. Retain the legacy path for direct title builds.
+if(DEFINED PSXRECOMP_ROOT)
+    set(PSXRECOMP_V4_ROOT "${PSXRECOMP_ROOT}")
+else()
+    set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
+        "Path to psxrecomp-v4")
+endif()
 
 # This title ships a co-op netplay profile on both platforms. The framework's
 # generic runtime defaults netplay off; select it before including that runtime.
@@ -93,6 +99,9 @@ psxrecomp_v4_add_runtime_target(psx-runtime
         psx.enhancement.fast-loading
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
+# X4 recreates its guest arenas and texture registrations on session activation.
+# Preserve the original framework reset contract for offline restarts/rematches.
+set_property(TARGET psx-runtime PROPERTY PSX_MOD_SESSION_RESOURCES TRUE)
 psxrecomp_add_implementation(psx-runtime
     NAME resident-loading CONTRACT slus00561-arc-callback-v1
     HLE_SOURCES src/mods/mmx4_resident.cpp
@@ -404,6 +413,7 @@ if(PSX_BUILD_COSIM)
         EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
         COSIM
     )
+    set_property(TARGET psx-cosim PROPERTY PSX_MOD_SESSION_RESOURCES TRUE)
     psxrecomp_add_implementation(psx-cosim
         NAME resident-loading CONTRACT slus00561-arc-callback-v1
         HLE_SOURCES src/mods/mmx4_resident.cpp
