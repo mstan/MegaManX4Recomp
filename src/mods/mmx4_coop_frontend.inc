@@ -3,10 +3,10 @@
 static void board_package_activate(void) { /* Hooks use the co-op snapshot/profile. */ }
 static int board_active(void) {
     unsigned phase=psx_mod_read_byte(PLAY+1);
-    /* Story conversations (minor9) broadcast commands to every board actor.
-     * Only the interactive menu and its selection fade own the extra cast. */
+    /* Conversation actors share this backdrop. The partner's update below
+     * accepts only idle/selection commands, never the campaign's dialogue. */
     return board_enabled && !failed && board_assets[0].loaded && board_assets[1].loaded &&
-        psx_mod_read_byte(PLAY)==3 && phase>=4 && phase<=7;
+        psx_mod_read_byte(PLAY)==3 && ((phase>=1 && phase<=7) || phase==9);
 }
 static int board_activate(void) {
     memset(board_heroes,0,sizeof board_heroes);board_call=0;
@@ -51,11 +51,16 @@ static int board_activate(void) {
     }
     return 1;
 }
-static void board_initialize(CPUState *cpu,uint32_t address) {
-    (void)cpu;(void)address;
-    if(psx_mod_local_view_scope())return;
+static void board_admit(CPUState *cpu,uint32_t address);
+static int board_initialize(CPUState *cpu,uint32_t address) {
+    if(board_call || !board_enabled || psx_mod_local_view_scope())return 0;
+    board_call=1;
     memset(board_heroes,0,sizeof board_heroes);
     memset(board_companions,0,sizeof board_companions);
+    uint32_t result=guest(cpu,address,cpu->gpr[4],cpu->gpr[5]);
+    board_call=0;
+    board_admit(cpu,address);
+    return mmx4_coop_finish(cpu,result);
 }
 static void board_admit(CPUState *cpu,uint32_t address) {
     (void)address;
@@ -86,19 +91,6 @@ static void board_admit(CPUState *cpu,uint32_t address) {
     }
     board_call=0;
 }
-static void board_story(CPUState *cpu,uint32_t address) {
-    (void)address;
-    if(!board_enabled || board_call || psx_mod_local_view_scope())return;
-    unsigned campaign=psx_mod_read_byte(PLAY+0x43);
-    if(campaign>1)return;
-    uint32_t extra[2]={board_heroes[1],board_companions[campaign^1u]};
-    board_call=1;
-    for(unsigned i=0;i<2;++i)if(extra[i] && psx_mod_read_byte(extra[i])==0x41 &&
-        psx_mod_read_byte(extra[i]+1)==10)guest(cpu,0x8002B13Cu,extra[i],0);
-    board_call=0;
-    memset(board_heroes,0,sizeof board_heroes);
-    memset(board_companions,0,sizeof board_companions);
-}
 static void board_companion_position(uint32_t actor,unsigned character,unsigned viewer) {
     unsigned primary=character==viewer;
     psx_mod_write_word(actor+8,(primary?288u:302u)<<16);
@@ -113,34 +105,42 @@ static int board_character(CPUState *cpu,uint32_t address) {
         npc=1;character=actor==board_companions[1];
     }else if(actor==board_heroes[0])character=campaign;
     else if(actor!=board_heroes[1])return 0;
-    unsigned donor=character!=campaign;
+    if(character==campaign)return 0; /* Original actors keep their native update. */
     uint32_t assembly=psx_mod_read_word(SCRATCH+0x20);
     uint8_t control=psx_mod_read_byte(PLAY+0x40);
     board_call=1;
     unsigned initialize=!psx_mod_read_byte(actor+4);
-    if(initialize && donor) {
+    uint32_t result=0;
+    if(initialize) {
         /* Raw donor assembly is immutable but lives in snapshotted guest
          * storage. Refill it before native initialization after any restore. */
         project(board_assets[character].assembly,board_assets[character].poses.data,
             (uint32_t)board_assets[character].poses.size);
         psx_mod_write_word(SCRATCH+0x20,board_assets[character].assembly);
+        result=guest(cpu,address,actor,cpu->gpr[5]);
+        psx_mod_write_word(SCRATCH+0x20,assembly);
+        /* Native initialization chooses a table from the campaign. Replace
+         * only this added actor's table, without projecting PLAY+43 even
+         * briefly: frontend/save observers always see P1's campaign. */
+        psx_mod_write_word(actor+0x30,npc?(character?0x8010E55Cu:0x8010E4ECu):
+            (character?0x8010E538u:0x8010E514u));
+        psx_mod_write_half(actor+0x40,board_assets[character].origin[npc]);
+        guest(cpu,0x80015D60u,actor,0);
+    }else {
+        /* The added cast uses retail animation/visibility helpers directly.
+         * Do not alter the shared dialogue control byte. Sequence8 is a talk
+         * command outside Iris's table; only stage-confirm sequence1 can
+         * interrupt the added characters' idle animations. */
+        unsigned phase=psx_mod_read_byte(PLAY+1);
+        if(phase>=4 && phase<=7 && (control&0x10u) && (control&15u)==1u)
+            guest(cpu,0x80015D60u,actor,1);
+        else if((phase<4 || phase==9) && psx_mod_read_byte(actor+0x17))
+            guest(cpu,0x80015D60u,actor,0);
+        else guest(cpu,0x80015DC8u,actor,0);
+        guest(cpu,0x8002B288u,actor,0);
     }
-    psx_mod_write_byte(PLAY+0x43,(uint8_t)character);
-    if(npc) {
-        /* X's selector sets only the hero bit. Give Iris the same companion
-         * selection signal she receives in the native Zero campaign.
-         * Double keeps his original idle/donut sequence in either roster. */
-        uint8_t signal=(uint8_t)(control&~0x20u);
-        if(character && (control&0x30u))signal|=0x20u;
-        psx_mod_write_byte(PLAY+0x40,signal);
-    }
-    uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);
-    psx_mod_write_byte(PLAY+0x43,(uint8_t)campaign);
-    if(npc)psx_mod_write_byte(PLAY+0x40,control);
-    psx_mod_write_word(SCRATCH+0x20,assembly);
-    if(initialize && donor)psx_mod_write_half(actor+0x40,board_assets[character].origin[npc]);
     if(npc)board_companion_position(actor,character,campaign);
-    else psx_mod_write_word(actor+8,(actor==board_heroes[0]?24u:54u)<<16);
+    else psx_mod_write_word(actor+8,54u<<16);
     board_call=0;return mmx4_coop_finish(cpu,result);
 }
 static void board_draw_begin(CPUState *cpu,uint32_t address) {
@@ -163,6 +163,7 @@ static int render_board_actor(CPUState *cpu,uint32_t address) {
     /* Both views use campaign/P1 first, with P2 and their support behind. */
     psx_mod_write_byte(actor+0x16,character!=campaign?4:3);
     if(npc)board_companion_position(actor,character,campaign);
+    else psx_mod_write_word(actor+8,(partner?54u:24u)<<16);
     rendering=1;
     if(character==campaign) {
         uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);

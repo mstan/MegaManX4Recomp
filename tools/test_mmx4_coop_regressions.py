@@ -14,7 +14,7 @@ import struct
 import subprocess
 import time
 import tomllib
-from coop_debug import Runtime
+from coop_debug import Runtime, capture_pair
 from test_mmx4_coop_doors import body_state
 
 
@@ -278,7 +278,11 @@ class Scenarios:
             self.first_boss=next((p for p in self.enemies() if p['type']==self.watch_type and
                                   p['state'][0]!=0 and p['hp']>1),None)
         if capture:
-            self.r.screenshot(self.output / (label + '.png'))
+            path = self.output / (label + '.png')
+            if getattr(self, 'capture_composed', False):
+                capture_pair(self.r, path)
+            else:
+                self.r.screenshot(path)
         return row
 
     def enemies(self):
@@ -2247,7 +2251,8 @@ class Scenarios:
         self.wait('portrait-exit-pause',lambda s:s['mode'][:2]==[6,2] and s['menu'][0]==1 and s['menu'][1]<3,5)
         pulse(0xfffe)
         self.wait('portrait-exit-quit-dialogue',lambda s:s['menu'][1]==6,5)
-        time.sleep(.7)
+        self.wait('portrait-exit-quit-ready',lambda s:s['menu_detail'][4:8]==[1,6,2,1]
+                  and not s['warning'],20)
         self.sample('portrait-exit-quit-choice',True)
         pulse(0xffbf)
         pulse(0xbfff)
@@ -2259,7 +2264,7 @@ class Scenarios:
         deadline=time.monotonic()+15
         while time.monotonic()<deadline:
             front=self.r.read(0x80173c70,0x20)
-            if front[:2]==bytes([6,1]):break
+            if front[:2]==bytes([6,1]) and not self.r.read(0x80141bdc,1)[0]:break
             if front[0]<6:pulse(0xfff7)
             else:time.sleep(.05)
         else:raise TimeoutError(('Native Quit did not reach main menu',self.sample('portrait-exit-quit-stuck')))
@@ -2269,6 +2274,7 @@ class Scenarios:
         # Main menu defaults to New Game; Continue defaults to current data
         # when this same process still has an active campaign.
         pulse(0xffbf)
+        assert self.r.read(0x80173c72,1)[0]==1, 'Continue not selected after title fade'
         pulse(0xbfff)
         deadline=time.monotonic()+12
         while time.monotonic()<deadline:
@@ -2278,14 +2284,20 @@ class Scenarios:
         else:raise TimeoutError('Native Continue choice did not open')
         self.sample('portrait-exit-current-data-choice',True)
         routes=[]
-        deadline=time.monotonic()+20
+        deadline=time.monotonic()+60
         while time.monotonic()<deadline:
             row=self.sample('portrait-exit-current-data')
             if not routes or routes[-1]!=row['mode'][:2]:routes.append(row['mode'][:2])
             if row['mode'][:2]==[3,4]:break
             if row['mode'][0]==0 and row['mode'][1]!=0:
                 raise AssertionError(('Entered card load instead of current data',routes))
-            pulse(0xbfff)
+            # The frontend header can remain stale after loading starts.
+            # Further confirms would immediately select a stage on return.
+            front=self.r.read(0x80173c70,2)
+            if not self.r.read(0x80141bdc,1)[0] and ((row['mode'][0]==0 and front[0]==7)
+                  or row['mode'][:2]==[3,9]):
+                pulse(0xbfff)
+            else:time.sleep(.03)
         else:raise TimeoutError('Continue current data did not reach stage selection')
         self.sample('portrait-exit-returned-board',True)
         actual=self.r.read(0x801721c0+0x59,1)[0]
