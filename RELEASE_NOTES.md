@@ -1,5 +1,13 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.24 - normal gameplay speed
+
+- Fix accelerated gameplay in single-player and co-op introduced in 1.0.20, where the game could update twice while video and audio stayed at 60 Hz.
+- Restore normal native frame waits while retaining the shared engine optimizations.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
 ## v1.0.23 ? independent weapon awards
 
 - In local side by side 8:3 and Split netplay, X and Zero each see their own weapon or technique award, with the original character artwork, title and instructions.
