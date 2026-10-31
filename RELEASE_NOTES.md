@@ -1,5 +1,15 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.22 — stage-select dialogue and return repair
+
+- With **Co-op Stage Select Cast (Experimental)** enabled, keep X, Zero, Iris and Double visible during stage-menu conversations while the story permits. The added characters stay idle; the original speakers keep their dialogue animations.
+- Prevent a retired pause menu from covering stage select after Quit → Continue.
+- Keep Player 1's campaign identity unchanged while the extra cast animates.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default.
+
 ## v1.0.21 — stage-select cast repair
 
 - Move the extra stage-select cast into **Co-op Stage Select Cast (Experimental)**, a separate mod that is off by default. Netplay hosts have an equivalent default-off setting.
