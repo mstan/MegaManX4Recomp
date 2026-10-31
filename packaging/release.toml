@@ -22,10 +22,8 @@ cps = false
 [overlay_toolchain]
 ship = true
 
-[diagnostics]
-game_id = "SLUS-00561"
-package_id = "mmx4.diagnostics"
-replay_helper = false
+# X4's existing mmx4.diagnostics has its own optional "inputs" feature.
+# It is staged from the built catalog, not the shared recording/osd package.
 
 [payload]
 start_here = "packaging/release/START_HERE.txt"
