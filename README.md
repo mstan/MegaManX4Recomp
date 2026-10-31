@@ -67,6 +67,11 @@ original disc.
 
 Co-op requires OpenGL and takes effect on a fresh game boot. Single-player remains available.
 
+With side by side 8:3 or Split netplay, each player sees their own character's
+weapon or technique award, including its artwork and instructions. P1 advances
+the shared award and Save/Continue flow; both heroes share the campaign's
+unlocks. Unified uses P1's award screen.
+
 Fast loading is built in. The old **CD Speed** and **Fast Loading** mods are
 retired; the game now keeps verified disc data in memory and feeds it through
 the original loading routines. Music and cutscenes retain their normal timing.

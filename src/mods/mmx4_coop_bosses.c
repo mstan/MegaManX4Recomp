@@ -82,6 +82,7 @@ void mmx4_coop_bosses_stage_initialization(void) {
     reloading=0;
 }
 static void select_story(CPUState *cpu,uint32_t address) {
+    if(mmx4_coop_award_story_instruction(cpu,address))return;
     if(psx_mod_local_view_scope())return;
     unsigned capsule=coop_active() && address>=0x800224D4u && address<=0x80022928u &&
         mmx4_coop_lifecycle_x_capsule_text();
