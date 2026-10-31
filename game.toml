@@ -110,6 +110,7 @@ vaddr_base  = "0x80010000"
 kseg_mask = "0x1FFFFFFF"
 
 [timing]
-# Double guest CPU budget during gameplay; device/VBlank/audio time stays authentic.
-guest_cycle_scale = 2
+# Keep the stock CPU budget with native spans: 2x shortens the PsyQ VSync
+# timeout below one NTSC frame and doubles gameplay while audio stays normal.
+guest_cycle_scale = 1
 guest_cycle_scale_gate = [{ addr = 0x801721C0, size = 1, value = 6 }]
