@@ -1,5 +1,14 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.23 ? independent weapon awards
+
+- In local side by side 8:3 and Split netplay, X and Zero each see their own weapon or technique award, with the original character artwork, title and instructions.
+- Keep one Player 1 campaign, one shared reward and the original Save/Continue flow. Unified retains Player 1's award screen.
+- Restore both independent award presentations correctly with current-build save states.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
 ## v1.0.22 — stage-select dialogue and return repair
 
 - With **Co-op Stage Select Cast (Experimental)** enabled, keep X, Zero, Iris and Double visible during stage-menu conversations while the story permits. The added characters stay idle; the original speakers keep their dialogue animations.
