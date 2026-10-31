@@ -1245,6 +1245,7 @@ static int personal_tank_request(unsigned seat,uint16_t edge) {
 /* The secondary menu must not start a second fade/music transition. */
 static int personal_shared_effect(CPUState *cpu,uint32_t address) {
     (void)address;
+    if(mmx4_coop_award_projected())return mmx4_coop_finish(cpu,0);
     return personal_pass && personal_seat==1?mmx4_coop_finish(cpu,0):0;
 }
 static int personal_menu_draw(CPUState *cpu,uint32_t address) {
@@ -1642,6 +1643,7 @@ static int pickup_update(CPUState *cpu,uint32_t address) {
     return mmx4_coop_combat_canonical_call(cpu,address,pickup_update_canonical);
 }
 static int reward_canonical(CPUState *cpu,uint32_t address) {
+    if(mmx4_coop_award_projected())return mmx4_coop_finish(cpu,0);
     if(reward_guard || !mmx4_coop_ready())return 0;
     unsigned projected=mmx4_coop_projected();
     if(projected)mmx4_coop_leave_second();
@@ -1666,6 +1668,7 @@ static int reward(CPUState *cpu,uint32_t address) {
     return mmx4_coop_combat_canonical_call(cpu,address,reward_canonical);
 }
 static int campaign_save(CPUState *cpu,uint32_t address) {
+    if(mmx4_coop_award_projected())return mmx4_coop_finish(cpu,0);
     if(save_guard || !mmx4_coop_ready() || !mmx4_coop_projected())return 0;
     /* Both native record writers must observe the campaign owner, never
      * the temporary character selection used for P2 attacks or menus. */

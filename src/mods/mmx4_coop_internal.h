@@ -41,6 +41,9 @@ int mmx4_coop_bosses_snapshot_ready(void);
 int mmx4_coop_bosses_snapshot(Mmx4SnapshotIO *s);
 uint32_t mmx4_coop_bosses_digest(uint32_t seed);
 uint32_t mmx4_coop_counterpart_story_text(void);
+/* Private native weapon-award UI, excluding the campaign identity/reward. */
+int mmx4_coop_award_projected(void);
+int mmx4_coop_award_story_instruction(CPUState *cpu,uint32_t address);
 void mmx4_coop_balance_activate(void);
 void mmx4_coop_balance_reset(void);
 /* Development fixture only; production always refuses. Resets host balance

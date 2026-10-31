@@ -2107,6 +2107,58 @@ class Scenarios:
         return dict(p2_drop_opens_secret_camera=True,p2_room_entry_updates_camera=True,
                     camera_bounds=row['bounds'])
 
+    def award_presentations(self):
+        before=self.r.read(0x801721c0+0x59,1)[0]
+        boss=next(i for i in range(1,9) if not before&(1<<(i-1)))
+        # The explicitly approved setup bypasses the encounter only. Native
+        # mode7 still initializes, presents and commits the actual reward.
+        self.r.fixture(6,251,boss)
+        self.wait('native-award-initializer',lambda s:s['mode'][:2]==[7,1],60)
+        award=self.inspect_award_screen()
+        self.wait('native-award-reward',lambda s:s['mode'][0]==9,120,True)
+        cleared=self.r.read(0x801721c0+0x59,1)[0]
+        cache=list(self.r.read(0x800f1d90,8))
+        assert cleared==before|(1<<(boss-1)),(before,cleared,boss)
+        assert cache[0]==self.campaign and cache[4]==cleared,cache
+        return self.finish_save(dict(encounter_bypassed=True,award=award,
+            clears_before=before,clears_after=cleared,continue_cache=cache),cleared)
+
+    def inspect_award_screen(self):
+        """Capture the native award, restore it, and retain P1's authority."""
+        before=self.r.read(0x801721c0,0x64)
+        assert before[0]==7 and before[0x43]==self.campaign
+        # Let the original title/weapon entrance and description run with
+        # neutral input. These are captures for inspection, not pixel oracles.
+        for label,delay in (('award-entrance',.25),('award-title',.65),('award-description',5)):
+            if label=='award-description':
+                self.wait('native-description-page-ready',lambda s:
+                    s['mode'][:3]==[7,1,5] and self.r.read(0x8013bc35,1)[0]==3,120)
+            time.sleep(delay)
+            self.sample(label,not hasattr(self,'award_capture'))
+            if hasattr(self,'award_capture'):self.award_capture(label)
+        online=getattr(self,'award_online',False)
+        for operation in (() if online else ('save','load')):
+            generation=self.r.request('savestate_status')['generation']
+            self.r.request('savestate',op=operation,slot=0)
+            deadline=time.monotonic()+20
+            while time.monotonic()<deadline:
+                state=self.r.request('savestate_status')
+                if state['generation']>generation and not state['pending']:
+                    assert state['last_ok'],state
+                    break
+                time.sleep(.03)
+            else:raise TimeoutError((operation,state))
+        if not online:self.sample('award-restored-description',True)
+        self.r.input(0xbfff,1);time.sleep(.15);self.r.release();time.sleep(.15)
+        after=self.r.read(0x801721c0,0x64)
+        assert after[0]==7 and after[0x43]==self.campaign,after.hex()
+        assert after[0x59]==before[0x59] and after[0x26]==before[0x26],(before.hex(),after.hex())
+        stats=self.r.request('render_pass_stats')
+        independent=getattr(self,'award_independent',True)
+        assert (not independent or stats['verify_checks']>0) and stats['verify_mismatch']==0,stats
+        return dict(current_build_award_save_load=not online,p2_cannot_commit_reward=True,
+                    campaign=self.campaign,boss=before[0x26],independent=independent,render=stats)
+
     def dragoon_survivor_reward(self):
         """A dead campaign owner still controls the post-victory reward/save UI."""
         self.watch_enemy=65
@@ -2354,6 +2406,12 @@ class Scenarios:
             while time.monotonic()<deadline:
                 row=self.sample('native-save-to-stage-select')
                 if row['mode'][:2]==[3,4]:break
+                if row['mode'][:2]==[3,8]:
+                    # The first Maverick clear can play a story movie before
+                    # the board. Use its native P1 Start skip, rather than
+                    # waiting out the movie under the ordinary menu deadline.
+                    self.r.input(0xfff7,0);time.sleep(.06)
+                    self.r.release();time.sleep(.06);continue
                 if row['mode'][0]==3 and row['mode'][1]!=9:
                     # Let the board finish building with neutral controls.
                     # Rapid headless execution can otherwise confirm a stage
@@ -2371,7 +2429,7 @@ class Scenarios:
             colors=struct.unpack('<16H',self.r.read(palette+indices[boss]*32,32))
             assert all((c&31)==((c>>5)&31)==((c>>10)&31) for c in colors),('Cleared portrait not grey',boss,colors)
         cards=[]
-        for path in (self.output/'saves').glob('card*.mcd'):
+        for path in getattr(self,'save_root',self.output/'saves').glob('card*.mcd'):
             data=path.read_bytes()
             for block in range(1,16):
                 if data[block*128]==0x51 and data[block*128+10:block*128+22]==b'BASLUS-00561':
@@ -2434,7 +2492,7 @@ def main():
     parser.add_argument('--individual-pausing',action='store_true',help='Use the legacy one-owner menu instead of independent simultaneous menus')
     parser.add_argument('--boss-cooldowns',choices=('per_player','shared'),default='per_player')
     parser.add_argument('--cases', nargs='+', choices=('stage_select','outdoor_swarm','spider_air_door','spider_door_scenery','sigma_survivor_victory','magma_entry_camera','cyber_air_door','door_animation','sigma_story_corridor','sigma_lower_route','sigma_phase3_survivor','double_standing','magma_armor_entry','jet_door','jet_dash','chaser_independence','intro_near_entry','stock_charge_hud','spider_ladder_pair','spider_ladder_survivor','magma_slope_rumble','magma_pillars','magma_quake','sigma_ladder_survivor','intro_bees','magma_giga_death','fmv_transitions','magma_distant_entry','sigma1_doors','sigma2_lasers','fortress_probe','intro_dragon_snapshot','magma_idle_resolution','mushroom_lift_crush','magma_effects_field','magma_effects','intro_dragon_views','intro_effect_corridor','intro_distant_entry','intro_structure_shake','intro_closing_shake','p2_pause_quit','p2_pause_escape','slash_midboss_entry','slash_cannon_origins','owl_cannon_origins','mushroom_midboss_exit','personal_menus','local_pair','local_canvas','jet','jet_intro','bike_probe', 'cyber','handoff_dash','section_health','weapon_cycle','dash_effects','zero_elemental','fire_weakness','initial_arrivals','stationary_arrivals','intro_arrivals','web_walljump','train_background','dialogue_native','cyber_flip_probe','cyber_flip','snow_base_survivor','frost_late_path', 'intro','intro_entry','trail_probe','post_victory_trails','open_airdash','train_visual','door_death','train_return','train_deaths','train_boss','arrival_death','combat','jet_boss',
-                        'mushroom_lift_high_jump','intro_first_drop','mushroom_survivor_colors','marine_dismount','sigma_entry','spider_balance','boss_balance','story_bosses','boss_door_policy','spider_visual','cyber_missiles','spider_hole','victory','dragoon_survivor_reward','diagnostics','audio',
+                        'mushroom_lift_high_jump','intro_first_drop','mushroom_survivor_colors','marine_dismount','sigma_entry','spider_balance','boss_balance','story_bosses','boss_door_policy','spider_visual','cyber_missiles','spider_hole','victory','dragoon_survivor_reward','award_presentations','diagnostics','audio',
                         'cyber_orb','cyber_course','cyber_course_leader','cyber_indicator','cyber_moving','volcano_probe','ride_armor','volcano_entry','save_loop','second_save_loop','stage_reentry','portrait_exit','portrait_escape','reload_save','enemy_activation','x_armor','spider_capture','storm_survivor_exit','storm_team_exit','storm_exit_race','storm_midboss_exit','intro_platform_leader','teleport_fall','balance_saved_control','balance_saved_slashes','frost_shaft'), default=['jet', 'cyber', 'intro'])
     args = parser.parse_args()
     for name in ('exe', 'bios', 'disc', 'game', 'output'):
@@ -2494,7 +2552,7 @@ def main():
     env['SDL_AUDIODRIVER']='dummy'
     if args.diagnostic_watchdog_seconds:
         env['PSX_STARVATION_TIMEOUT_US']=str(args.diagnostic_watchdog_seconds*1000000)
-    if any(case in args.cases for case in ('stage_select','local_pair','local_canvas','personal_menus','stock_charge_hud','door_animation')):
+    if any(case in args.cases for case in ('stage_select','local_pair','local_canvas','personal_menus','stock_charge_hud','door_animation','award_presentations')):
         env['PSX_RENDER_PASS_VERIFY']='1'
     argv = [str(executable), '--hidden-window' if args.hidden_window else '--headless-opengl', '--no-launcher', '--debug-port', str(args.port),
             '--game', str(args.output / 'game.toml'), '--bios', str(args.bios), '--disc', str(args.disc),
@@ -2508,6 +2566,7 @@ def main():
             raise RuntimeError(f'QA debug port {args.port} is already in use') from exc
     runtime = Runtime(args.port, isolated_inputs=True)
     scenarios = Scenarios(runtime, args.output, args.campaign,args.victory_seat,args.clears)
+    scenarios.award_independent=args.local_cameras=='split'
     scenarios.capture_composed=args.hidden_window
     scenarios.boss_doors=args.boss_doors
     scenarios.both_story_bosses=args.both_story_bosses

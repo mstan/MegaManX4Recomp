@@ -195,6 +195,7 @@ class Runtime:
                 if predicate(front,play) and not self.read(0x80141bdc,1)[0]:return play
                 if intro and front[0]!=6:pulse(0xfff7)
                 elif label=='loaded stage selection' and play[:2]==bytes([3,9]):pulse(0xbfff)
+                elif label=='loaded stage selection' and play[:2]==bytes([3,8]):pulse(0xfff7)
                 else:time.sleep(.06)
             raise TimeoutError(label)
         try:

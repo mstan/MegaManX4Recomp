@@ -1,5 +1,8 @@
 /* State/ownership checks complement the original-disc two-encounter run. */
 #include "mmx4_coop_internal.h"
+int mmx4_coop_award_story_instruction(CPUState *cpu,uint32_t address) {
+    (void)cpu;(void)address;return 0;
+}
 #include "mod_snapshot.h"
 #include <stdio.h>
 #include <stdlib.h>

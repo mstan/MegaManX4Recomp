@@ -54,6 +54,7 @@ def main():
     parser.add_argument('--doors', action='store_true', help='Also traverse the P2-led Cyber door')
     parser.add_argument('--jet-only',action='store_true',help='Check both native Jet rider entrance animations and composed frames')
     parser.add_argument('--personal-menus-only',action='store_true',help='Check character menus, tank healing and native weapon selection')
+    parser.add_argument('--weapon-awards-only',action='store_true',help='Native award initializer, personal awards and shared P1 save flow')
     parser.add_argument('--separate-etanks',action='store_true',help='Enable private E-tank contents in both test peers')
     parser.add_argument('--individual-pausing',action='store_true',help='Use legacy one-owner pausing')
     parser.add_argument('--boss-return-only',action='store_true',help='Check partner arrival during boss-fight movement, jump and Nova')
@@ -108,6 +109,32 @@ def main():
         exercise = Exercise(args, peers, report)
         exercise.boot(args.campaign)
         debug = NetplayDevelopment(ports[2], ports[3])
+        if args.weapon_awards_only:
+            from mmx4_netplay_runtime import NetplayRuntime
+            from test_mmx4_coop_regressions import Scenarios
+            scenario=Scenarios(NetplayRuntime(debug),args.output,args.campaign,clears=0)
+            scenario.award_online=True
+            scenario.save_root=peers[0].directory/'saves'
+            def capture(label):
+                for peer in peers:
+                    path=args.output/('%s-p%d.png'%(label,peer.seat+1))
+                    sequence=peer.request('present_shot_seq')['seq']
+                    peer.request('present_shot',path=str(path))
+                    deadline=time.monotonic()+12
+                    while peer.request('present_shot_seq')['seq']==sequence:
+                        if time.monotonic()>deadline:raise TimeoutError('Peer award capture pending')
+                        time.sleep(.03)
+            scenario.award_capture=capture
+            try:
+                report['weapon_awards']=scenario.award_presentations()
+                tick=min(peer.status()['tick'] for peer in peers)
+                exercise.checkpoint('Native weapon awards and shared save',tick,min_digests=2)
+                report['render']=[peer.request('render_pass_stats') for peer in peers]
+                assert all(v['verify_checks']>0 and not v['verify_mismatch'] for v in report['render']),report['render']
+                report['status']='passed'
+            finally:
+                (args.output/'scenario-events.json').write_text(json.dumps(scenario.events,indent=2))
+            return
         if args.personal_menus_only:
             from mmx4_netplay_runtime import NetplayRuntime
             from test_mmx4_coop_regressions import Scenarios
