@@ -96,6 +96,12 @@ static void board_companion_position(uint32_t actor,unsigned character,unsigned 
     psx_mod_write_word(actor+8,(primary?288u:302u)<<16);
     psx_mod_write_word(actor+12,(primary?432u:412u)<<16);
 }
+static void board_hero_position(uint32_t actor,unsigned partner) {
+    /* Mirror the companion pair: P1 is lower/front and P2 is upper/left.
+     * The matching native priority buckets below put P1 over P2. */
+    psx_mod_write_word(actor+8,(partner?28u:42u)<<16);
+    psx_mod_write_word(actor+12,(partner?412u:432u)<<16);
+}
 static int board_character(CPUState *cpu,uint32_t address) {
     uint32_t actor=cpu->gpr[4];
     if(board_call || !board_active() || psx_mod_local_view_scope())return 0;
@@ -140,7 +146,7 @@ static int board_character(CPUState *cpu,uint32_t address) {
         guest(cpu,0x8002B288u,actor,0);
     }
     if(npc)board_companion_position(actor,character,campaign);
-    else psx_mod_write_word(actor+8,54u<<16);
+    else board_hero_position(actor,1);
     board_call=0;return mmx4_coop_finish(cpu,result);
 }
 static void board_draw_begin(CPUState *cpu,uint32_t address) {
@@ -163,7 +169,7 @@ static int render_board_actor(CPUState *cpu,uint32_t address) {
     /* Both views use campaign/P1 first, with P2 and their support behind. */
     psx_mod_write_byte(actor+0x16,character!=campaign?4:3);
     if(npc)board_companion_position(actor,character,campaign);
-    else psx_mod_write_word(actor+8,(partner?54u:24u)<<16);
+    else board_hero_position(actor,partner);
     rendering=1;
     if(character==campaign) {
         uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);

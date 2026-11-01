@@ -80,7 +80,10 @@ def stage_select(s):
         r.release()
         time.sleep(.12)
     advanced = set()
-    iris_selected = not expected
+    companion_selected = not expected
+    # The added companion is Iris in X's campaign and Double in Zero's.
+    # The native campaign companion can still be finishing its dialogue pose.
+    companion_table = 0x8010e4ec if s.campaign else 0x8010e55c
     r.input(0xbfff, 0)
     try:
         deadline = time.monotonic() + .45
@@ -90,7 +93,7 @@ def stage_select(s):
                 now = current.get(hero['address'])
                 if now and now['animation'] != hero['animation']:
                     advanced.add(hero['address'])
-            iris_selected |= any(v['subtype'] == 1 and v['table'] == 0x8010e55c
+            companion_selected |= any(v['subtype'] == 1 and v['table'] == companion_table
                                  and v['sequence'] in (0, 1) and any(
                                      old['address'] == v['address'] and
                                      (old['duration'] != v['duration'] or old['animation'] != v['animation'])
@@ -101,7 +104,7 @@ def stage_select(s):
     finally:
         r.release()
     assert len(advanced) == 2, (heroes, advanced)
-    assert iris_selected, 'Iris native animation clock stopped during selection'
+    assert companion_selected, 'Added companion native animation clock stopped during selection'
     intro = None
     spawn = []
     deadline = time.monotonic() + 60
@@ -139,7 +142,7 @@ def stage_select(s):
     pictures.append(picture('stage-spawn'))
     assert r.read(0x80172203, 1)[0] == s.campaign
     (s.output / 'spawn-frames.json').write_text(json.dumps(spawn))
-    return dict(actors=initial, both_native_animations=True, iris_selection_animation=iris_selected,
+    return dict(actors=initial, both_native_animations=True, partner_companion_selection_animation=companion_selected,
                 companion_views_distinct=companion_views_distinct, p1_stage_choice=True,
                 native_companion_admission=bool(expected), intro_panes_equal=True,
                 spawn_board_pose_leak=False, spawn_samples=len(spawn), pictures=pictures)

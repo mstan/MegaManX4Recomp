@@ -1,5 +1,18 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.25 - co-op stage-select cast layout
+
+- With **Co-op Stage Select Cast (Experimental)** enabled, place Player 1 in front and Player 2 diagonally behind, mirroring the Double/Iris pair.
+- Draw Player 1 over Player 2 in both views and keep both campaign orders animated.
+- Retain the normal gameplay speed restored in 1.0.24.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default.
+
+The reported Maverick splash corruption and pre-boss-door camera difference
+remain under investigation; this release does not claim fixes for them.
+
 ## v1.0.24 - normal gameplay speed
 
 - Fix accelerated gameplay in single-player and co-op introduced in 1.0.20, where the game could update twice while video and audio stayed at 60 Hz.
