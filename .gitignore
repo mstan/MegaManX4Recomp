@@ -33,6 +33,9 @@
 *.mcr
 *.chd
 
+# No-music package assets are generated digital silence, not disc images.
+!mods/preloaded/packages/mmx4.nomusic/**/assets/*.bin
+
 # Ghidra: keep instructions.txt + scripts/ + annotations/, drop the live DB + dumps
 /ghidra/projects/
 *.gpr

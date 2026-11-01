@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
             return fail("manifest parse failed: " + error);
         }
     }
-    if (manifest_count != 11) return fail("expected eleven package manifests, including optional stage-select cast");
+    if (manifest_count != 12) return fail("expected twelve package manifests, including optional stage-select cast");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 11)
-        return fail("expected eleven package families");
+    if (manager.packages().size() != 12)
+        return fail("expected twelve package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if(manager.feature_enabled("mmx4.coop-stage-select","cast") ||
@@ -99,6 +99,16 @@ int main(int argc, char** argv) {
         default_plan.plugins.size() != 3) {
         return fail("normal-damage override was not enabled by default");
     }
+    if (manager.feature_enabled("mmx4.nomusic", "no-music"))
+        return fail("no-music must default off");
+    if (!manager.set_feature_enabled("mmx4.nomusic", "no-music", true, &error))
+        return fail(error);
+    const auto no_music = manager.resolve(kGameId, "", kDiscSha256);
+    if (!no_music.ok || no_music.overlays.size() != 5 ||
+        !no_music.writes.empty() || !no_music.plugins.empty())
+        return fail("no-music package did not resolve five overlays");
+    if (!manager.set_feature_enabled("mmx4.nomusic", "no-music", false, &error))
+        return fail(error);
     bool diagnostics_default=false;
     for(const auto& plugin:default_plan.plugins)diagnostics_default|=plugin.id=="mmx4.diagnostics";
     if(diagnostics_default || manager.feature_enabled("mmx4.diagnostics","inputs"))

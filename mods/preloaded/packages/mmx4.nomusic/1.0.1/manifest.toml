@@ -1,0 +1,60 @@
+format_version = 11
+id = "mmx4.nomusic"
+version = "1.0.1"
+name = "Mega Man X4 - No Music"
+author = "Yossef Khalil (https://github.com/YossefKhalil)"
+description = "Silences the five streamed CD-XA music files, including title, menu, stage and boss music. Voices, cutscene audio and SFX are unchanged. The stock disc is never modified. Built with OpenCode (DeepSeek V4.1 Flash)."
+license = "MIT"
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "no-music"
+name = "Mute All Music (Menus + Gameplay)"
+description = "Replaces every XA/BGM*.XA sector stream with digital silence, covering title, menu, stage and boss music while the game keeps running its normal music player. Voices, cutscene audio and SFX still play. Requires a fresh boot."
+group = "Audio"
+default_enabled = false
+
+[[overlay]]
+feature = "no-music"
+target = "disc_raw"
+offset = 350885472
+file = "assets/bgm1_u.bin"
+sha256 = "39f03e2b0923def47e2b7b7e090a09edb73b073dcd493420278741f44771f541"
+expected_sha256 = "89bb183ca47cad3756064d957b1dbb66a43423152f668150ef45cdf5451a22f2"
+
+[[overlay]]
+feature = "no-music"
+target = "disc_raw"
+offset = 411962208
+file = "assets/bgm2.bin"
+sha256 = "3c97cd1d89e93e4bd1fddcacd031ec7d2196a449d1cbce54f2da66d5a30447d4"
+expected_sha256 = "d60b09da4a923145e04df1f04a164ddc78d5c9f5a5d08034fb77c83f882d036b"
+
+[[overlay]]
+feature = "no-music"
+target = "disc_raw"
+offset = 466961376
+file = "assets/bgm3.bin"
+sha256 = "9cefbcb260c203cf3dd9389935735623082bc6e3aa0590700e4524830ef7183d"
+expected_sha256 = "86fcd5c5ce52f1b35350a163b3691546d3647c1dc828701e5feb365259372346"
+
+[[overlay]]
+feature = "no-music"
+target = "disc_raw"
+offset = 508620000
+file = "assets/bgm4.bin"
+sha256 = "cbba2c2c7dae5794e37d22217d0dcb3821834d10665ca879d65bd2434f603eb9"
+expected_sha256 = "3309ca2fc4ee1fd55d08565c06fbadce8e1273300d0cfa148616ba1460692ae9"
+
+[[overlay]]
+feature = "no-music"
+target = "disc_raw"
+offset = 532892640
+file = "assets/bgm5_u.bin"
+sha256 = "d9830479070259cb53b46ae337e85d6ab1cc86701a3d50274093dc1da38a8d86"
+expected_sha256 = "211dc5c48422ddc288586898a2f5e5dfc28b3a18c0ee9626c4ebd4cd0d9ec455"
