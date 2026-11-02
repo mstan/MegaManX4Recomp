@@ -185,6 +185,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True, help='New isolated directory')
     parser.add_argument('--timeout', type=float, default=120)
     parser.add_argument('--debug-port', type=int, help='Developer build TCP inspection port')
+    parser.add_argument('--hidden-window', action='store_true',
+                        help='Hidden drawable for composed Split-view inspection')
     args = parser.parse_args()
     bios, disc = args.bios.resolve(strict=True), args.disc.resolve(strict=True)
     output, target, trace = prepare(args)
@@ -192,7 +194,8 @@ def main():
     baseline = output / 'diagnostic-baseline.pst'
     if baseline.is_file():
         env['MMX4_DIAGNOSTIC_BASELINE'] = str(baseline)
-    argv = [str(target), '--headless-opengl', '--no-launcher', '--game', str(output / 'game.toml'),
+    argv = [str(target), '--hidden-window' if args.hidden_window else '--headless-opengl',
+            '--no-launcher', '--game', str(output / 'game.toml'),
             '--bios', str(bios), '--disc', str(disc), '--memcard-dir', str(output / 'saves')]
     if args.debug_port:
         argv += ['--debug-port', str(args.debug_port)]
