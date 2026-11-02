@@ -6,6 +6,51 @@ import json
 from coop_debug import capture_pair
 
 
+class OpeningDeparture:
+    """Check both heroes during the original new-game briefing and departure."""
+    def __init__(self, scenario):
+        self.s = scenario
+        self.saved = False
+        self.samples = []
+        self.before = False
+        self.picture = None
+
+    def observe(self, play):
+        if play[:2] != bytes((3, 9)):
+            return
+        r = self.s.r
+        pool = r.read(0x80173ca0, 0x1800)
+        heroes = [(0x80173ca0+i, pool[i+0x17])
+                  for i in range(0, len(pool), 0x60)
+                  if pool[i:i+3] == bytes((0x41, 10, 0))]
+        if len(heroes) != 2:
+            return
+        # The native actor precedes the partner allocated by board_admit.
+        primary, partner = heroes
+        if primary[1] != 1:
+            assert partner[1] == 0, ('Partner consumed a dialogue animation', heroes)
+            self.before = True
+            if not self.saved and play[2] == 3:
+                r.request('savestate', op='save', slot=0)
+                self.saved = True
+            return
+        self.samples.append(dict(mode=list(play[:4]), heroes=heroes))
+        assert partner[1] == 1, ('Partner missed the native departure pose', heroes)
+        if self.picture is None:
+            self.picture = str(self.s.output/'opening-departure.png')
+            if self.s.capture_composed:
+                capture_pair(r, self.picture)
+            else:
+                r.screenshot(self.picture)
+
+    def finish(self):
+        assert self.before and self.saved and len(self.samples) >= 3, (
+            'Opening departure was not observed long enough', self.samples)
+        return dict(partner_idle_during_dialogue=True, both_departure_poses=True,
+                    samples=self.samples, picture=self.picture, review_slot=0,
+                    native_gameplay_entry=True)
+
+
 class FirstEntryRollCall:
     """Observe the original first-entry scene while Continue drives its dialogue."""
     def __init__(self, scenario):
@@ -185,7 +230,11 @@ def stage_select(s):
     assert intro is not None, 'No native boss-introduction screen observed'
     r.wait_playable(20, advance_dialogue=True)
     pictures.append(picture('stage-spawn'))
-    assert r.read(0x80172203, 1)[0] == s.campaign
+    # Live PLAY temporarily contains P2's projected inventory during gameplay.
+    # Use the completed canonical mirror, as the other gameplay checks do.
+    entered = s.sample('stage-select-gameplay')
+    assert entered['campaign'] == s.campaign, entered
+    assert [p['character'] for p in entered['players']] == [s.campaign, s.campaign ^ 1], entered
     (s.output / 'spawn-frames.json').write_text(json.dumps(spawn))
     return dict(actors=initial, both_native_animations=True, partner_companion_selection_animation=companion_selected,
                 companion_views_distinct=companion_views_distinct, p1_stage_choice=True,
