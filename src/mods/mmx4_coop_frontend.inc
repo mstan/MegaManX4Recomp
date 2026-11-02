@@ -134,12 +134,15 @@ static int board_character(CPUState *cpu,uint32_t address) {
         psx_mod_write_half(actor+0x40,board_assets[character].origin[npc]);
         guest(cpu,0x80015D60u,actor,0);
     }else {
-        /* The added cast uses retail animation/visibility helpers directly.
-         * Do not alter the shared dialogue control byte. Sequence8 is a talk
-         * command outside Iris's table; only stage-confirm sequence1 can
-         * interrupt the added characters' idle animations. */
+        /* Keep dialogue commands away from the added cast. The opening
+         * briefing's native hero script enters departure sequence1 without
+         * another control command; let only the partner hero follow it. */
         unsigned phase=psx_mod_read_byte(PLAY+1);
-        if(phase>=4 && phase<=7 && (control&0x10u) && (control&15u)==1u)
+        if(!npc && phase==9 && board_heroes[0] &&
+           psx_mod_read_byte(board_heroes[0]+0x17)==1u) {
+            if(psx_mod_read_byte(actor+0x17)!=1u)guest(cpu,0x80015D60u,actor,1);
+            else guest(cpu,0x80015DC8u,actor,0);
+        }else if(phase>=4 && phase<=7 && (control&0x10u) && (control&15u)==1u)
             guest(cpu,0x80015D60u,actor,1);
         else if((phase<4 || phase==9 || phase==10) && psx_mod_read_byte(actor+0x17))
             guest(cpu,0x80015D60u,actor,0);

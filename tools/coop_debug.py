@@ -144,8 +144,16 @@ class Runtime:
             time.sleep(.1)
         raise TimeoutError(f'Native stage did not become playable: {mode.hex()}')
 
-    def boot(self, timeout=90, campaign=0, wait_for_coop=True):
+    def boot(self, timeout=90, campaign=0, wait_for_coop=True, observe=None):
         deadline = time.monotonic() + timeout
+        def pause(seconds):
+            if observe is None:
+                time.sleep(seconds)
+                return
+            until = time.monotonic() + seconds
+            while time.monotonic() < until:
+                observe(self.read(0x801721c0, 0x64))
+                time.sleep(.03)
         previous = None
         iteration = 0
         try:
@@ -161,7 +169,7 @@ class Runtime:
                         # after the stage becomes active. Resume before waiting
                         # for gameplay rather than treating that menu as ready.
                         self.input(0xfff7)
-                        time.sleep(.15)
+                        pause(.15)
                         self.release()
                     if not wait_for_coop:
                         return
@@ -173,9 +181,9 @@ class Runtime:
                 # confirmation. Keeping it held also covers short select windows.
                 buttons = 0xfff7 if iteration % 2 == 0 else 0xbfff
                 self.input(buttons & (0xffdf if campaign else 0xffff))
-                time.sleep(.6)
+                pause(.6)
                 self.release()
-                time.sleep(.3)
+                pause(.3)
                 iteration += 1
             raise TimeoutError('Input-only navigation did not reach gameplay')
         finally:
