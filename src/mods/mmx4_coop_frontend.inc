@@ -3,10 +3,11 @@
 static void board_package_activate(void) { /* Hooks use the co-op snapshot/profile. */ }
 static int board_active(void) {
     unsigned phase=psx_mod_read_byte(PLAY+1);
-    /* Conversation actors share this backdrop. The partner's update below
-     * accepts only idle/selection commands, never the campaign's dialogue. */
+    /* Conversations (9) and the first-entry Maverick roll call (10) share
+     * this backdrop. Added actors still need their donor graphics there;
+     * the later boss-name splash (11) owns a different scene and particle pool. */
     return board_enabled && !failed && board_assets[0].loaded && board_assets[1].loaded &&
-        psx_mod_read_byte(PLAY)==3 && ((phase>=1 && phase<=7) || phase==9);
+        psx_mod_read_byte(PLAY)==3 && ((phase>=1 && phase<=7) || phase==9 || phase==10);
 }
 static int board_activate(void) {
     memset(board_heroes,0,sizeof board_heroes);board_call=0;
@@ -140,7 +141,7 @@ static int board_character(CPUState *cpu,uint32_t address) {
         unsigned phase=psx_mod_read_byte(PLAY+1);
         if(phase>=4 && phase<=7 && (control&0x10u) && (control&15u)==1u)
             guest(cpu,0x80015D60u,actor,1);
-        else if((phase<4 || phase==9) && psx_mod_read_byte(actor+0x17))
+        else if((phase<4 || phase==9 || phase==10) && psx_mod_read_byte(actor+0x17))
             guest(cpu,0x80015D60u,actor,0);
         else guest(cpu,0x80015DC8u,actor,0);
         guest(cpu,0x8002B288u,actor,0);

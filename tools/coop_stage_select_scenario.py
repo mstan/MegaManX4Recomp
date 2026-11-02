@@ -6,6 +6,51 @@ import json
 from coop_debug import capture_pair
 
 
+class FirstEntryRollCall:
+    """Observe the original first-entry scene while Continue drives its dialogue."""
+    def __init__(self, scenario):
+        self.s = scenario
+        self.frames = {}
+        self.saved = False
+
+    def observe(self, front, play):
+        del front
+        if play[:2] != bytes((3, 10)):
+            return
+        r = self.s.r
+        if not self.saved:
+            r.request('savestate', op='save', slot=1)
+            self.saved = True
+        index = play[3]
+        if play[2] != 3 or index in self.frames:
+            return
+        pool = r.read(0x80173ca0, 0x1800)
+        actors = [dict(address=0x80173ca0+i, subtype=pool[i+2],
+                       table=struct.unpack_from('<I', pool, i+0x30)[0],
+                       sequence=pool[i+0x17])
+                  for i in range(0, len(pool), 0x60)
+                  if pool[i:i+2] == bytes((0x41, 10))]
+        tables = {0x8010e514, 0x8010e538, 0x8010e4ec, 0x8010e55c}
+        assert len(actors) == 4 and {a['table'] for a in actors} == tables, actors
+        partner_tables = ({0x8010e514, 0x8010e4ec} if self.s.campaign else
+                          {0x8010e538, 0x8010e55c})
+        assert all(a['sequence'] == 0 for a in actors if a['table'] in partner_tables), (
+            'Added cast consumed the roll-call dialogue command', actors)
+        path = self.s.output / f'rollcall-{index}.png'
+        if self.s.capture_composed:
+            capture_pair(r, path)
+        else:
+            r.screenshot(path)
+        self.frames[index] = dict(mode=list(play[:4]), actors=actors, picture=str(path))
+        (self.s.output/'rollcall.json').write_text(json.dumps(self.frames, indent=2))
+
+    def finish(self):
+        assert set(self.frames) == set(range(8)), (
+            'Use an early native card before the first Maverick introduction', sorted(self.frames))
+        return dict(all_eight_introductions=True, added_cast_idle=True,
+                    frames=self.frames, review_slot=1, visual_review_required=True)
+
+
 def stage_select(s):
     r = s.r
     assert r.read(0x801721c0, 2) == bytes((3, 4)), 'Use --card-seed to reach the native board'

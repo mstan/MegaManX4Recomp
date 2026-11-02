@@ -1,5 +1,16 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.26 - Maverick introduction graphics
+
+- Fix scrambled character graphics during the first-entry Maverick introductions on the stage-select board when **Co-op Stage Select Cast (Experimental)** is enabled.
+- Keep the added cast intact in both campaign orders and in Unified and Split views.
+- Retain the Player 1 cast layout and normal gameplay speed from the previous releases.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default. The pre-boss-door camera report remains under
+investigation.
+
 ## v1.0.25 - co-op stage-select cast layout
 
 - With **Co-op Stage Select Cast (Experimental)** enabled, place Player 1 in front and Player 2 diagonally behind, mirroring the Double/Iris pair.

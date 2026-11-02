@@ -181,7 +181,7 @@ class Runtime:
         finally:
             self.release()
 
-    def boot_continue(self,campaign,clears=16,timeout=100):
+    def boot_continue(self,campaign,clears=16,timeout=100,observe=None):
         """Load data1 from a cloned native card, stopping at stage selection."""
         deadline=time.monotonic()+timeout
         def pulse(buttons):
@@ -190,11 +190,12 @@ class Runtime:
             previous=None
             while time.monotonic()<deadline:
                 front=self.read(0x80173c70,0x20);play=self.read(0x801721c0,0x64)
+                if observe is not None:observe(front,play)
                 key=list(front[:3])+list(play[:2])
                 if key!=previous:print(label,key,flush=True);previous=key
                 if predicate(front,play) and not self.read(0x80141bdc,1)[0]:return play
                 if intro and front[0]!=6:pulse(0xfff7)
-                elif label=='loaded stage selection' and play[:2]==bytes([3,9]):pulse(0xbfff)
+                elif label=='loaded stage selection' and play[0]==3 and play[1] in (9,10):pulse(0xbfff)
                 elif label=='loaded stage selection' and play[:2]==bytes([3,8]):pulse(0xfff7)
                 else:time.sleep(.06)
             raise TimeoutError(label)

@@ -1,5 +1,10 @@
 # Co-op cast and splash-screen feedback, 2026-11-01
 
+Follow-up correction, 2026-11-02: the new supplied recording reproduces the
+corruption during the first-entry stage-select roll call (phase10), which the
+phase11 splash checks below did not cover. See
+[the roll-call follow-up](COOP_MAVERICK_ROLLCALL_2026-11-02.md).
+
 Branch: `fix/coop-feedback124`, based on `bae367af9fbfb769e0bd0ba9a4cac0162a3b9cb5`
 (v1.0.24). Owning cast issue: `beads-eio.9.288`.
 

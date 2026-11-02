@@ -19,6 +19,9 @@ from test_mmx4_coop_doors import body_state
 
 
 class Scenarios:
+    def stage_select_rollcall(self):
+        return self.rollcall.finish()
+
     def stage_select(self):
         from coop_stage_select_scenario import stage_select
         return stage_select(self)
@@ -2476,6 +2479,7 @@ def main():
     parser.add_argument('--custom-renderer',action='store_true')
     parser.add_argument('--boss-doors',choices=('either','both'),default='either')
     parser.add_argument('--both-story-bosses',action='store_true')
+    parser.add_argument('--complete-story',action='store_true')
     parser.add_argument('--boss-scaling',action='store_true')
     parser.add_argument('--separate-etanks',action='store_true')
     parser.add_argument('--ultimate-armor',action='store_true',help='Enable the original X code for Nova checks')
@@ -2491,7 +2495,7 @@ def main():
                         default=['p2-survivor', 'p1-survivor', 'both', 'both-p2'])
     parser.add_argument('--individual-pausing',action='store_true',help='Use the legacy one-owner menu instead of independent simultaneous menus')
     parser.add_argument('--boss-cooldowns',choices=('per_player','shared'),default='per_player')
-    parser.add_argument('--cases', nargs='+', choices=('stage_select','outdoor_swarm','spider_air_door','spider_door_scenery','sigma_survivor_victory','magma_entry_camera','cyber_air_door','door_animation','sigma_story_corridor','sigma_lower_route','sigma_phase3_survivor','double_standing','magma_armor_entry','jet_door','jet_dash','chaser_independence','intro_near_entry','stock_charge_hud','spider_ladder_pair','spider_ladder_survivor','magma_slope_rumble','magma_pillars','magma_quake','sigma_ladder_survivor','intro_bees','magma_giga_death','fmv_transitions','magma_distant_entry','sigma1_doors','sigma2_lasers','fortress_probe','intro_dragon_snapshot','magma_idle_resolution','mushroom_lift_crush','magma_effects_field','magma_effects','intro_dragon_views','intro_effect_corridor','intro_distant_entry','intro_structure_shake','intro_closing_shake','p2_pause_quit','p2_pause_escape','slash_midboss_entry','slash_cannon_origins','owl_cannon_origins','mushroom_midboss_exit','personal_menus','local_pair','local_canvas','jet','jet_intro','bike_probe', 'cyber','handoff_dash','section_health','weapon_cycle','dash_effects','zero_elemental','fire_weakness','initial_arrivals','stationary_arrivals','intro_arrivals','web_walljump','train_background','dialogue_native','cyber_flip_probe','cyber_flip','snow_base_survivor','frost_late_path', 'intro','intro_entry','trail_probe','post_victory_trails','open_airdash','train_visual','door_death','train_return','train_deaths','train_boss','arrival_death','combat','jet_boss',
+    parser.add_argument('--cases', nargs='+', choices=('stage_select','stage_select_rollcall','outdoor_swarm','spider_air_door','spider_door_scenery','sigma_survivor_victory','magma_entry_camera','cyber_air_door','door_animation','sigma_story_corridor','sigma_lower_route','sigma_phase3_survivor','double_standing','magma_armor_entry','jet_door','jet_dash','chaser_independence','intro_near_entry','stock_charge_hud','spider_ladder_pair','spider_ladder_survivor','magma_slope_rumble','magma_pillars','magma_quake','sigma_ladder_survivor','intro_bees','magma_giga_death','fmv_transitions','magma_distant_entry','sigma1_doors','sigma2_lasers','fortress_probe','intro_dragon_snapshot','magma_idle_resolution','mushroom_lift_crush','magma_effects_field','magma_effects','intro_dragon_views','intro_effect_corridor','intro_distant_entry','intro_structure_shake','intro_closing_shake','p2_pause_quit','p2_pause_escape','slash_midboss_entry','slash_cannon_origins','owl_cannon_origins','mushroom_midboss_exit','personal_menus','local_pair','local_canvas','jet','jet_intro','bike_probe', 'cyber','handoff_dash','section_health','weapon_cycle','dash_effects','zero_elemental','fire_weakness','initial_arrivals','stationary_arrivals','intro_arrivals','web_walljump','train_background','dialogue_native','cyber_flip_probe','cyber_flip','snow_base_survivor','frost_late_path', 'intro','intro_entry','trail_probe','post_victory_trails','open_airdash','train_visual','door_death','train_return','train_deaths','train_boss','arrival_death','combat','jet_boss',
                         'mushroom_lift_high_jump','intro_first_drop','mushroom_survivor_colors','marine_dismount','sigma_entry','spider_balance','boss_balance','story_bosses','boss_door_policy','spider_visual','cyber_missiles','spider_hole','victory','dragoon_survivor_reward','award_presentations','diagnostics','audio',
                         'cyber_orb','cyber_course','cyber_course_leader','cyber_indicator','cyber_moving','volcano_probe','ride_armor','volcano_entry','save_loop','second_save_loop','stage_reentry','portrait_exit','portrait_escape','reload_save','enemy_activation','x_armor','spider_capture','storm_survivor_exit','storm_team_exit','storm_exit_race','storm_midboss_exit','intro_platform_leader','teleport_fall','balance_saved_control','balance_saved_slashes','frost_shaft'), default=['jet', 'cyber', 'intro'])
     args = parser.parse_args()
@@ -2524,9 +2528,12 @@ def main():
         'boss_cooldowns = "'+args.boss_cooldowns+'"\n\n[[feature]]\n'
         'package_id = "mmx4.enhancement.widescreen"\nid = "widescreen"\nenabled = '+str(args.custom_renderer).lower()+'\n\n[[feature]]\n'
         'package_id = "mmx4.diagnostics"\nid = "inputs"\nenabled = true\n')
-    if 'stage_select' in args.cases:
+    if any(case in args.cases for case in ('stage_select','stage_select_rollcall')):
         with (args.output/'mods/state.toml').open('a',encoding='utf-8') as state:
             state.write('\n[[feature]]\npackage_id = "mmx4.coop-stage-select"\nid = "cast"\nenabled = true\n')
+    if args.complete_story:
+        with (args.output/'mods/state.toml').open('a',encoding='utf-8') as state:
+            state.write('\n[[feature]]\npackage_id = "mmx4.complete-story"\nid = "complete-story"\nenabled = true\n')
     if args.fmv_media:
         resource={'none':'japanese-disc','en':'english-movies','es':'spanish-movies'}[args.fmv_language]
         with (args.output/'mods/state.toml').open('a',encoding='utf-8') as state:
@@ -2552,7 +2559,7 @@ def main():
     env['SDL_AUDIODRIVER']='dummy'
     if args.diagnostic_watchdog_seconds:
         env['PSX_STARVATION_TIMEOUT_US']=str(args.diagnostic_watchdog_seconds*1000000)
-    if any(case in args.cases for case in ('stage_select','local_pair','local_canvas','personal_menus','stock_charge_hud','door_animation','award_presentations')):
+    if any(case in args.cases for case in ('stage_select','stage_select_rollcall','local_pair','local_canvas','personal_menus','stock_charge_hud','door_animation','award_presentations')):
         env['PSX_RENDER_PASS_VERIFY']='1'
     argv = [str(executable), '--hidden-window' if args.hidden_window else '--headless-opengl', '--no-launcher', '--debug-port', str(args.port),
             '--game', str(args.output / 'game.toml'), '--bios', str(args.bios), '--disc', str(args.disc),
@@ -2599,7 +2606,13 @@ def main():
             if args.fmv_opening:
                 from coop_fmv_transition_scenario import opening_transition
                 report['opening']=opening_transition(runtime,args.output,args.fmv_turbo)
-            if args.card_seed:runtime.boot_continue(args.campaign,args.clears)
+            if 'stage_select_rollcall' in args.cases:
+                assert args.card_seed, 'Roll call requires a private early native card'
+                from coop_stage_select_scenario import FirstEntryRollCall
+                scenarios.rollcall=FirstEntryRollCall(scenarios)
+                runtime.boot_continue(args.campaign,args.clears,timeout=180,
+                                      observe=scenarios.rollcall.observe)
+            elif args.card_seed:runtime.boot_continue(args.campaign,args.clears)
             else:
                 if args.quick_boot:
                     runtime.request('turbo',enabled=1)
