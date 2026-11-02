@@ -1,5 +1,15 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.27 - opening departure pose
+
+- With **Co-op Stage Select Cast (Experimental)** enabled, have Player 2 perform the departure pose with Player 1 after the opening Hunter Base dialogue.
+- Support either X or Zero as Player 1, while keeping Player 2 idle during the dialogue.
+- Retain the Maverick introduction graphics fix, cast layout and normal gameplay speed.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default.
+
 ## v1.0.26 - Maverick introduction graphics
 
 - Fix scrambled character graphics during the first-entry Maverick introductions on the stage-select board when **Co-op Stage Select Cast (Experimental)** is enabled.
