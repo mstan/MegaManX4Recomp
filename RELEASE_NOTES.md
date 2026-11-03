@@ -1,5 +1,14 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.29 - Story boss music and Japanese disc selection
+
+- Play each boss's own music when fighting both Double and Iris, including the second encounter in either campaign. Applies to co-op and Complete Story while preserving the selected campaign.
+- Fix Japanese Media and Japanese FMVs disc pickers rejecting supported CUE, BIN, CHD and raw ISO files. Original-disc verification remains required.
+- Keep adaptive widescreen enabled for fresh profiles and preserve existing display and control choices.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
 ## v1.0.28 - keyboard and controller input isolation
 
 - Fix local co-op keyboard input controlling both characters when the other player is assigned a controller. Applies with either player assigned to Keyboard.
