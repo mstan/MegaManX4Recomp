@@ -49,6 +49,12 @@ int main(int argc, char** argv) {
                 entry.path(), package, &error)) {
             return fail("manifest parse failed: " + error);
         }
+        for (const auto& resource : package.resources) {
+            if (resource.id == "japanese-disc" &&
+                resource.file_patterns != "*.cue,*.bin,*.chd,*.iso") {
+                return fail("Japanese disc filters must use the launcher's comma-separated patterns");
+            }
+        }
     }
     if (manifest_count != 11) return fail("expected eleven package manifests, including optional stage-select cast");
 
