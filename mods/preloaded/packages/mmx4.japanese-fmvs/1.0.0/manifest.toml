@@ -45,7 +45,7 @@ id = "japanese-disc"
 label = "Original Japanese Rockman X4 disc"
 description = "SLPS-00902, required only for movies without subtitles. Fan-subtitled choices do not need this donor."
 when = { subtitles = "none" }
-file_patterns = "*.cue;*.bin;*.chd;*.iso"
+file_patterns = "*.cue,*.bin,*.chd,*.iso"
 file_description = "Japanese Rockman X4 disc"
 format = "psx-mode2"
 required = true
