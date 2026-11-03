@@ -95,6 +95,7 @@ int main(int argc,char **argv){
         psx_mod_write_byte(MMX4_PLAY+0x43,(uint8_t)campaign);
         psx_mod_write_byte(MMX4_PLAY+0xF,1);
         capture(first);
+        cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==campaign);
         CHECK(!transition(&cpu,0x800200D4u)); /* Death/menu exit is not victory. */
         hook(&cpu,campaign?0x800810A8u:0x8008D324u);
         projected=1;CHECK(!transition(&cpu,0x800200D4u));projected=0;
@@ -108,6 +109,14 @@ int main(int argc,char **argv){
         CHECK(psx_mod_read_byte(MMX4_PLAY)==5 && psx_mod_read_byte(MMX4_PLAY+0x1D)==1);
         CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==campaign);
         capture(second);
+        /* The native branch selects both the encounter's XA track and its
+         * authored volume: Double=0F/75, Iris=0D/7F. Keep PLAY+43 canonical. */
+        cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==(campaign^1u));
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==campaign);
+        local=1;cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==campaign);local=0;
+        psx_mod_write_byte(MMX4_PLAY+0xD,1);
+        cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==campaign);
+        psx_mod_write_byte(MMX4_PLAY+0xD,0);
         for(unsigned i=0;i<4;++i){
             unsigned reg=hooks[i].address==0x8001302Cu?3u:2u;
             cpu.gpr[reg]=campaign;hooks[i].fn(&cpu,hooks[i].address);
@@ -128,9 +137,11 @@ int main(int argc,char **argv){
         CHECK(!transition(&cpu,0x800200D4u)); /* No third battle. */
         Mmx4SnapshotIO s={NULL,first,7,0,MMX4_SNAPSHOT_READ,1};
         CHECK(mmx4_coop_bosses_snapshot(&s));
+        cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==campaign);
         cpu.gpr[2]=campaign;hook(&cpu,0x80013148u);CHECK(cpu.gpr[2]==campaign);
         s=(Mmx4SnapshotIO){NULL,second,7,0,MMX4_SNAPSHOT_READ,1};
         CHECK(mmx4_coop_bosses_snapshot(&s));
+        cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==(campaign^1u));
         mmx4_coop_bosses_new_stage();
         cpu.gpr[2]=campaign;hook(&cpu,0x80013148u);CHECK(cpu.gpr[2]==campaign);
         enabled=0;mmx4_coop_bosses_activate();
@@ -191,6 +202,8 @@ int main(int argc,char **argv){
         if(coop)mmx4_coop_bosses_stage_initialization();else hook(&cpu,0x8001FC20u);
         CHECK(psx_mod_read_byte(MMX4_PLAY+0x1D)==1);
         cpu.gpr[2]=campaign;hook(&cpu,0x80080714u);CHECK(cpu.gpr[2]==(campaign^1));
+        cpu.gpr[2]=campaign;hook(&cpu,0x8001658Cu);CHECK(cpu.gpr[2]==(campaign^1));
+        CHECK(psx_mod_read_byte(MMX4_PLAY+0x43)==campaign);
         uint8_t saved[7];CHECK(story_provider.bytes()==7 && story_provider.write(saved,7));
         CHECK(story_provider.validate(saved,7) && !story_provider.validate(saved,6));
         saved[4]=2;CHECK(!story_provider.validate(saved,7));saved[4]=1;
