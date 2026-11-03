@@ -1,5 +1,16 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.28 - keyboard and controller input isolation
+
+- Fix local co-op keyboard input controlling both characters when the other player is assigned a controller. Applies with either player assigned to Keyboard.
+- Preserve non-conflicting keyboard and mouse bindings alongside a controller.
+- Keep deliberately cleared keyboard bindings cleared after restarting, including alternate-only binding maps.
+- Keep Custom Renderer / Adaptive widescreen enabled by default for fresh profiles, while retaining saved display and control choices.
+
+Native memory-card saves carry forward. All netplay players must update.
+The Storm Owl capsule graphics and premature boss-entry reports remain under
+investigation; this release does not claim fixes for them.
+
 ## v1.0.27 - opening departure pose
 
 - With **Co-op Stage Select Cast (Experimental)** enabled, have Player 2 perform the departure pose with Player 1 after the opening Hunter Base dialogue.
