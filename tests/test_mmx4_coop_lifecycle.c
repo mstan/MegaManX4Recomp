@@ -5,6 +5,8 @@
 void mmx4_coop_bosses_new_stage(void) {}
 void mmx4_coop_bosses_stage_initialization(void) {}
 uint32_t mmx4_coop_counterpart_story_text(void) {return 0x9F046000u;}
+static unsigned award_projection;
+int mmx4_coop_award_projected(void) {return (int)award_projection;}
 void mmx4_coop_balance_reset(void) {}
 void mmx4_cheats_enforce_current(void) {} /* This fixture has no character codes. */
 #include "ws_view_anchor.h"
@@ -2315,6 +2317,15 @@ int main(void) {
         psx_mod_write_byte(PLAYER+2,(uint8_t)campaign);p2[2]=(uint8_t)(campaign^1u);
         psx_mod_write_byte(PLAY+0x59,1);psx_mod_write_byte(PLAYER+0xB9,1);p2[0xB9]=1;
         psx_mod_write_byte(PLAY+0x26,5);
+        /* Presentation callbacks never commit progress or either save writer,
+         * even before the real scene's first reward. */
+        award_projection=1;
+        mmx4_coop_call(&cpu,0x8001FA24u,PLAY,0);
+        mmx4_coop_call(&cpu,0x8001C07Cu,0,0);
+        mmx4_coop_call(&cpu,0x8001C3E8u,0,0);
+        award_projection=0;
+        CHECK(!reward_calls && !save_calls && !reward_committed);
+        CHECK(psx_mod_read_byte(PLAY+0x59)==1 && psx_mod_read_byte(PLAY+0x43)==campaign);
         mmx4_coop_enter_second();mmx4_coop_call(&cpu,0x8001FA24u,PLAY,0);
         CHECK(projected && psx_mod_read_byte(PLAY+0x43)==(campaign^1u));
         mmx4_coop_leave_second();

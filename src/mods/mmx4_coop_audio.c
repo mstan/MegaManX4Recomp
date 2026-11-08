@@ -140,6 +140,7 @@ static int open_bank(CPUState *cpu,AudioBank *bank) {
     return 1;
 }
 static int character_sound(CPUState *cpu,uint32_t address) {
+    if(mmx4_coop_award_projected())return mmx4_coop_finish(cpu,0);
     unsigned group=cpu->gpr[4]&0x7Fu;
     if(sound_call || !mmx4_coop_ready() || !mmx4_coop_projected() ||
        psx_mod_local_view_scope() || psx_mod_read_byte(MMX4_PLAY)!=6 ||

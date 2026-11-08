@@ -11,10 +11,10 @@ from acediez/Hondoori (English) and El Retro Dan (Spanish), with
 
 **X and Zero. Together.**
 
-Mega Man X4 on Windows and Linux. **1.0.21 Stable Public Beta**, with two-player co-op.
+Mega Man X4 on Windows and Linux. **1.0.27 Stable Public Beta**, with two-player co-op.
 Bring a friend through X's or Zero's campaign, on one computer or over netplay.
 
-**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.21](RELEASE_NOTES.md) · [Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
+**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.27](RELEASE_NOTES.md) · [Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
 
 <p align="center">
   <img src="docs/images/coop-jungle.png" width="640" alt="X and Zero together at the Jungle waterfall, with vertically stacked lifebars">
@@ -66,6 +66,11 @@ retranslated disc images are unsupported; use the corresponding mods over the
 original disc.
 
 Co-op requires OpenGL and takes effect on a fresh game boot. Single-player remains available.
+
+With side by side 8:3 or Split netplay, each player sees their own character's
+weapon or technique award, including its artwork and instructions. P1 advances
+the shared award and Save/Continue flow; both heroes share the campaign's
+unlocks. Unified uses P1's award screen.
 
 Fast loading is built in. The old **CD Speed** and **Fast Loading** mods are
 retired; the game now keeps verified disc data in memory and feeds it through

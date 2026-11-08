@@ -3,10 +3,11 @@
 static void board_package_activate(void) { /* Hooks use the co-op snapshot/profile. */ }
 static int board_active(void) {
     unsigned phase=psx_mod_read_byte(PLAY+1);
-    /* Conversation actors share this backdrop. The partner's update below
-     * accepts only idle/selection commands, never the campaign's dialogue. */
+    /* Conversations (9) and the first-entry Maverick roll call (10) share
+     * this backdrop. Added actors still need their donor graphics there;
+     * the later boss-name splash (11) owns a different scene and particle pool. */
     return board_enabled && !failed && board_assets[0].loaded && board_assets[1].loaded &&
-        psx_mod_read_byte(PLAY)==3 && ((phase>=1 && phase<=7) || phase==9);
+        psx_mod_read_byte(PLAY)==3 && ((phase>=1 && phase<=7) || phase==9 || phase==10);
 }
 static int board_activate(void) {
     memset(board_heroes,0,sizeof board_heroes);board_call=0;
@@ -96,6 +97,12 @@ static void board_companion_position(uint32_t actor,unsigned character,unsigned 
     psx_mod_write_word(actor+8,(primary?288u:302u)<<16);
     psx_mod_write_word(actor+12,(primary?432u:412u)<<16);
 }
+static void board_hero_position(uint32_t actor,unsigned partner) {
+    /* Mirror the companion pair: P1 is lower/front and P2 is upper/left.
+     * The matching native priority buckets below put P1 over P2. */
+    psx_mod_write_word(actor+8,(partner?28u:42u)<<16);
+    psx_mod_write_word(actor+12,(partner?412u:432u)<<16);
+}
 static int board_character(CPUState *cpu,uint32_t address) {
     uint32_t actor=cpu->gpr[4];
     if(board_call || !board_active() || psx_mod_local_view_scope())return 0;
@@ -127,20 +134,23 @@ static int board_character(CPUState *cpu,uint32_t address) {
         psx_mod_write_half(actor+0x40,board_assets[character].origin[npc]);
         guest(cpu,0x80015D60u,actor,0);
     }else {
-        /* The added cast uses retail animation/visibility helpers directly.
-         * Do not alter the shared dialogue control byte. Sequence8 is a talk
-         * command outside Iris's table; only stage-confirm sequence1 can
-         * interrupt the added characters' idle animations. */
+        /* Keep dialogue commands away from the added cast. The opening
+         * briefing's native hero script enters departure sequence1 without
+         * another control command; let only the partner hero follow it. */
         unsigned phase=psx_mod_read_byte(PLAY+1);
-        if(phase>=4 && phase<=7 && (control&0x10u) && (control&15u)==1u)
+        if(!npc && phase==9 && board_heroes[0] &&
+           psx_mod_read_byte(board_heroes[0]+0x17)==1u) {
+            if(psx_mod_read_byte(actor+0x17)!=1u)guest(cpu,0x80015D60u,actor,1);
+            else guest(cpu,0x80015DC8u,actor,0);
+        }else if(phase>=4 && phase<=7 && (control&0x10u) && (control&15u)==1u)
             guest(cpu,0x80015D60u,actor,1);
-        else if((phase<4 || phase==9) && psx_mod_read_byte(actor+0x17))
+        else if((phase<4 || phase==9 || phase==10) && psx_mod_read_byte(actor+0x17))
             guest(cpu,0x80015D60u,actor,0);
         else guest(cpu,0x80015DC8u,actor,0);
         guest(cpu,0x8002B288u,actor,0);
     }
     if(npc)board_companion_position(actor,character,campaign);
-    else psx_mod_write_word(actor+8,54u<<16);
+    else board_hero_position(actor,1);
     board_call=0;return mmx4_coop_finish(cpu,result);
 }
 static void board_draw_begin(CPUState *cpu,uint32_t address) {
@@ -163,7 +173,7 @@ static int render_board_actor(CPUState *cpu,uint32_t address) {
     /* Both views use campaign/P1 first, with P2 and their support behind. */
     psx_mod_write_byte(actor+0x16,character!=campaign?4:3);
     if(npc)board_companion_position(actor,character,campaign);
-    else psx_mod_write_word(actor+8,(partner?54u:24u)<<16);
+    else board_hero_position(actor,partner);
     rendering=1;
     if(character==campaign) {
         uint32_t result=guest(cpu,address,actor,cpu->gpr[5]);

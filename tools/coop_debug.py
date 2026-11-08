@@ -144,8 +144,16 @@ class Runtime:
             time.sleep(.1)
         raise TimeoutError(f'Native stage did not become playable: {mode.hex()}')
 
-    def boot(self, timeout=90, campaign=0, wait_for_coop=True):
+    def boot(self, timeout=90, campaign=0, wait_for_coop=True, observe=None):
         deadline = time.monotonic() + timeout
+        def pause(seconds):
+            if observe is None:
+                time.sleep(seconds)
+                return
+            until = time.monotonic() + seconds
+            while time.monotonic() < until:
+                observe(self.read(0x801721c0, 0x64))
+                time.sleep(.03)
         previous = None
         iteration = 0
         try:
@@ -161,7 +169,7 @@ class Runtime:
                         # after the stage becomes active. Resume before waiting
                         # for gameplay rather than treating that menu as ready.
                         self.input(0xfff7)
-                        time.sleep(.15)
+                        pause(.15)
                         self.release()
                     if not wait_for_coop:
                         return
@@ -173,15 +181,15 @@ class Runtime:
                 # confirmation. Keeping it held also covers short select windows.
                 buttons = 0xfff7 if iteration % 2 == 0 else 0xbfff
                 self.input(buttons & (0xffdf if campaign else 0xffff))
-                time.sleep(.6)
+                pause(.6)
                 self.release()
-                time.sleep(.3)
+                pause(.3)
                 iteration += 1
             raise TimeoutError('Input-only navigation did not reach gameplay')
         finally:
             self.release()
 
-    def boot_continue(self,campaign,clears=16,timeout=100):
+    def boot_continue(self,campaign,clears=16,timeout=100,observe=None):
         """Load data1 from a cloned native card, stopping at stage selection."""
         deadline=time.monotonic()+timeout
         def pulse(buttons):
@@ -190,11 +198,13 @@ class Runtime:
             previous=None
             while time.monotonic()<deadline:
                 front=self.read(0x80173c70,0x20);play=self.read(0x801721c0,0x64)
+                if observe is not None:observe(front,play)
                 key=list(front[:3])+list(play[:2])
                 if key!=previous:print(label,key,flush=True);previous=key
                 if predicate(front,play) and not self.read(0x80141bdc,1)[0]:return play
                 if intro and front[0]!=6:pulse(0xfff7)
-                elif label=='loaded stage selection' and play[:2]==bytes([3,9]):pulse(0xbfff)
+                elif label=='loaded stage selection' and play[0]==3 and play[1] in (9,10):pulse(0xbfff)
+                elif label=='loaded stage selection' and play[:2]==bytes([3,8]):pulse(0xfff7)
                 else:time.sleep(.06)
             raise TimeoutError(label)
         try:

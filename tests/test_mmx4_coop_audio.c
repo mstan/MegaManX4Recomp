@@ -1,4 +1,6 @@
 #include "mmx4_coop_internal.h"
+static unsigned award_projection;
+int mmx4_coop_award_projected(void) {return (int)award_projection;}
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -148,6 +150,9 @@ int main(void) {
         local_view=1;CHECK(!sound_filter(&cpu,SOUND));local_view=0;
     }
     CHECK(opened==8 && native_sound==12);
+    CPUState award_cpu={0};award_projection=1;award_cpu.gpr[4]=5;
+    CHECK(sound_filter(&award_cpu,SOUND) && opened==8 && native_sound==12);
+    award_projection=0;
     CHECK(private_plays==12);
     CPUState stop={0};stop.gpr[4]=1;stop.gpr[5]=0;
     CHECK(stop_filter(&stop,0x80015930u) && private_stops==1u<<20);

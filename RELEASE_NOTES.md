@@ -1,5 +1,76 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.29 - Story boss music and Japanese disc selection
+
+- Play each boss's own music when fighting both Double and Iris, including the second encounter in either campaign. Applies to co-op and Complete Story while preserving the selected campaign.
+- Fix Japanese Media and Japanese FMVs disc pickers rejecting supported CUE, BIN, CHD and raw ISO files. Original-disc verification remains required.
+- Keep adaptive widescreen enabled for fresh profiles and preserve existing display and control choices.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
+## v1.0.28 - keyboard and controller input isolation
+
+- Fix local co-op keyboard input controlling both characters when the other player is assigned a controller. Applies with either player assigned to Keyboard.
+- Preserve non-conflicting keyboard and mouse bindings alongside a controller.
+- Keep deliberately cleared keyboard bindings cleared after restarting, including alternate-only binding maps.
+- Keep Custom Renderer / Adaptive widescreen enabled by default for fresh profiles, while retaining saved display and control choices.
+
+Native memory-card saves carry forward. All netplay players must update.
+The Storm Owl capsule graphics and premature boss-entry reports remain under
+investigation; this release does not claim fixes for them.
+
+## v1.0.27 - opening departure pose
+
+- With **Co-op Stage Select Cast (Experimental)** enabled, have Player 2 perform the departure pose with Player 1 after the opening Hunter Base dialogue.
+- Support either X or Zero as Player 1, while keeping Player 2 idle during the dialogue.
+- Retain the Maverick introduction graphics fix, cast layout and normal gameplay speed.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default.
+
+## v1.0.26 - Maverick introduction graphics
+
+- Fix scrambled character graphics during the first-entry Maverick introductions on the stage-select board when **Co-op Stage Select Cast (Experimental)** is enabled.
+- Keep the added cast intact in both campaign orders and in Unified and Split views.
+- Retain the Player 1 cast layout and normal gameplay speed from the previous releases.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default. The pre-boss-door camera report remains under
+investigation.
+
+## v1.0.25 - co-op stage-select cast layout
+
+- With **Co-op Stage Select Cast (Experimental)** enabled, place Player 1 in front and Player 2 diagonally behind, mirroring the Double/Iris pair.
+- Draw Player 1 over Player 2 in both views and keep both campaign orders animated.
+- Retain the normal gameplay speed restored in 1.0.24.
+
+The cast mod remains optional and off by default. Native memory-card saves
+carry forward. All netplay players must update. Diagnostic recording remains
+optional and off by default.
+
+The reported Maverick splash corruption and pre-boss-door camera difference
+remain under investigation; this release does not claim fixes for them.
+
+## v1.0.24 - normal gameplay speed
+
+- Fix accelerated gameplay in single-player and co-op introduced in 1.0.20, where the game could update twice while video and audio stayed at 60 Hz.
+- Restore normal native frame waits while retaining the shared engine optimizations.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
+## v1.0.23 ? independent weapon awards
+
+- In local side by side 8:3 and Split netplay, X and Zero each see their own weapon or technique award, with the original character artwork, title and instructions.
+- Keep one Player 1 campaign, one shared reward and the original Save/Continue flow. Unified retains Player 1's award screen.
+- Restore both independent award presentations correctly with current-build save states.
+
+Native memory-card saves carry forward. All netplay players must update.
+Diagnostic recording remains optional and off by default.
+
 ## v1.0.22 — stage-select dialogue and return repair
 
 - With **Co-op Stage Select Cast (Experimental)** enabled, keep X, Zero, Iris and Double visible during stage-menu conversations while the story permits. The added characters stay idle; the original speakers keep their dialogue animations.

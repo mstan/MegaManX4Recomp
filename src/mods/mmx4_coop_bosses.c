@@ -82,6 +82,7 @@ void mmx4_coop_bosses_stage_initialization(void) {
     reloading=0;
 }
 static void select_story(CPUState *cpu,uint32_t address) {
+    if(mmx4_coop_award_story_instruction(cpu,address))return;
     if(psx_mod_local_view_scope())return;
     unsigned capsule=coop_active() && address>=0x800224D4u && address<=0x80022928u &&
         mmx4_coop_lifecycle_x_capsule_text();
@@ -236,6 +237,9 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_bosses) {
     psx_mod_register_instruction_plugin(ID,0x800228B4u,0x00431021u,select_story);
     psx_mod_register_instruction_plugin(ID,0x800228F4u,0x2442001Au,select_story);
     psx_mod_register_instruction_plugin(ID,0x80022928u,0x0C00A4E3u,select_story);
+    /* Native stage11 music chooses Double (0F/75) or Iris (0D/7F)
+     * here. Use the encounter selector while preserving campaign identity. */
+    psx_mod_register_instruction_plugin(ID,0x8001658Cu,0x14400004u,select_story);
     psx_mod_register_instruction_plugin(ID,0x800810A8u,0xA02221CFu,story_defeated);
     psx_mod_register_instruction_plugin(ID,0x8008D324u,0xA02221CFu,story_defeated);
 
@@ -252,6 +256,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_bosses) {
     psx_mod_register_instruction_plugin(STORY_ID,0x8002DE84u,0xA0820063u,solo_hit);
     const struct {uint32_t address,word;} selectors[]={
         {0x8001302Cu,0x00230821u},{0x80013148u,0x14400005u},
+        {0x8001658Cu,0x14400004u},
         {0x80080714u,0x14400005u},{0x8008BA54u,0x10400005u},
         {0x800224D4u,0x00041880u},{0x80022554u,0x00641821u},
         {0x80022684u,0x14400009u},{0x800227B4u,0x00021080u},

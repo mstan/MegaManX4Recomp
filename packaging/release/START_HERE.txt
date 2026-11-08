@@ -39,6 +39,11 @@ CO-OP PUBLIC BETA
   when both controllers are the same model. Keyboard controls can also be
   assigned separately. Pause uses Start/Options or the assigned keyboard key.
 
+  For keyboard + controller play, assign Keyboard to one player and the
+  controller to the other. Keys bound to the Keyboard player stay with that
+  player; non-conflicting controller-player keyboard/mouse bindings still work.
+  Clearing a keyboard binding now remains effective after restarting.
+
   Shared-view lifebars default to Stacked; Mods -> X + Zero Co-op -> HUD layout
   also offers Side by side. Split shows each local player
   at the original HUD position. A dead player waits for the team's retry;
