@@ -111,10 +111,19 @@ int main(int argc, char** argv) {
         return fail(error);
     const auto no_music = manager.resolve(kGameId, "", kDiscSha256);
     if (!no_music.ok || no_music.overlays.size() != 5 ||
-        !no_music.writes.empty() || !no_music.plugins.empty())
+        !no_music.writes.empty() ||
+        no_music.plugins.size() != default_plan.plugins.size() ||
+        no_music.fingerprint == default_plan.fingerprint)
         return fail("no-music package did not resolve five overlays");
+    for (size_t i = 0; i < default_plan.plugins.size(); ++i)
+        if (no_music.plugins[i].id != default_plan.plugins[i].id)
+            return fail("no-music must preserve the default plugins");
     if (!manager.set_feature_enabled("mmx4.nomusic", "no-music", false, &error))
         return fail(error);
+    const auto music_restored = manager.resolve(kGameId, "", kDiscSha256);
+    if (!music_restored.ok || !music_restored.overlays.empty() ||
+        music_restored.fingerprint != default_plan.fingerprint)
+        return fail("disabling no-music must restore the default plan");
     bool diagnostics_default=false;
     for(const auto& plugin:default_plan.plugins)diagnostics_default|=plugin.id=="mmx4.diagnostics";
     if(diagnostics_default || manager.feature_enabled("mmx4.diagnostics","inputs"))
