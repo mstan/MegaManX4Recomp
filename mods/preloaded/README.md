@@ -33,3 +33,7 @@ Complete Story is a separate optional mod for local solo or co-op. It adds
 Zero's playable Memorial Hall duel, both Double/Iris encounters and the extra
 Colonel, Iris and Zero/Sigma movies described in `docs/COMPLETE_STORY.md`.
 It is disabled by default and retains the selected campaign's save identity.
+
+No Music is an optional audio package, disabled by default. It silences the
+five streamed music tracks while leaving voices, cutscene audio and SFX
+unchanged.
