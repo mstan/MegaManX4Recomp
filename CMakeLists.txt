@@ -201,7 +201,13 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
     target_include_directories(mmx4_localization_assets_test PRIVATE
         src/mods "${PSXRECOMP_V4_ROOT}/runtime/include" "${PSXRECOMP_V4_ROOT}/recompiler/include")
-    target_link_libraries(mmx4_localization_assets_test PRIVATE chdr-static)
+    target_sources(mmx4_localization_assets_test PRIVATE
+        "${PSXRECOMP_V4_ROOT}/runtime/src/mod_str_import.cpp"
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256_file.cpp")
+    target_link_libraries(mmx4_localization_assets_test PRIVATE chdr-static Threads::Threads)
+    if(WIN32)
+        target_link_libraries(mmx4_localization_assets_test PRIVATE bcrypt)
+    endif()
     add_test(NAME mmx4_localization_assets_test COMMAND mmx4_localization_assets_test)
     add_executable(mmx4_startup_log_test tests/test_mmx4_startup_log.cpp src/mods/mmx4_startup_log.cpp)
     target_compile_definitions(mmx4_startup_log_test PRIVATE MMX4_STARTUP_LOG_TEST=1)

@@ -2,6 +2,7 @@
 // See docs/LOCALIZATION.md for verified donor identity and native contracts.
 #include "mod_plugins.h"
 #include "mod_media.h"
+#include "mod_str_import.h"
 #include "native_text.h"
 #include "mod_resident.h"
 #include "psx_sha256.h"
@@ -14,6 +15,7 @@
 #include <iterator>
 #include <string>
 #include <cstring>
+#include <cstdlib>
 
 namespace {
 using namespace PSXRecompV4;
@@ -22,6 +24,7 @@ constexpr const char* Package="mmx4.localization";
 constexpr const char* Media="mmx4.japanese-media";
 constexpr const char* Translation="mmx4.translation";
 constexpr const char* Movies="mmx4.japanese-fmvs";
+constexpr const char* CustomMovies="mmx4.custom-fmvs";
 struct Patch {uint32_t address,original,value;};
 std::vector<Patch> patches;
 std::vector<std::pair<uint32_t,std::vector<uint8_t>>> guest_blobs;
@@ -135,6 +138,56 @@ void stream(const ModMode2Disc& donor,const uint8_t* raw,const Stream& s) {
     patch(s.table,s.lba,mounted);patch(s.table+4,s.size,(size/2048)*2336);
     patch(s.table+8,s.first,u32(raw+uint64_t(lba)*2336));
 }
+// Measured from the verified US original: logo 20 fps, all story clips 15.
+constexpr const char* movie_ids[]={"capcom","opening","x1","x2","x3","x4","z1","z2","z3","z4","z5"};
+static_assert(std::size(movie_ids)==std::size(movies));
+
+bool prepare_custom_movies(const ModPrepareContext& context,
+        std::map<std::string,std::filesystem::path>& outputs,std::string& error,bool cached_only) {
+    auto encoder=context.application_dir/
+#ifdef _WIN32
+        "psxavenc.exe";
+#else
+        "psxavenc";
+#endif
+    if(const auto* override_path=std::getenv("PSXRECOMP_STR_ENCODER"))
+        encoder=std::filesystem::u8path(override_path);
+    for(unsigned i=0;i<std::size(movies);++i) {
+        const auto input=context.inputs.find(movie_ids[i]);
+        if(input==context.inputs.end() || input->second.empty())continue;
+        std::filesystem::path output;
+        std::string reason;
+        if(!mod_import_str(input->second,encoder,context.cache_root/"native-movies",
+                {i==0?20u:15u,movies[i].size/2336},cached_only,context.progress,output,reason)) {
+            if(reason=="Preparation canceled." || cached_only) {error=reason;return false;}
+            std::fprintf(stderr,"mmx4.movies: %s uses the original movie: %s\n",movie_ids[i],reason.c_str());
+            continue;
+        }
+        outputs.emplace(std::string(movie_ids[i])+"-str",std::move(output));
+    }
+    return true;
+}
+
+void custom_movies_activate() {
+    for(unsigned i=0;i<std::size(movies);++i) {
+        const auto resource=std::string(movie_ids[i])+"-str";
+        const auto& movie=movies[i];
+        const uint8_t* bytes=nullptr;
+        uint64_t size=0;
+        if(!psx_mod_current_resource_bytes(resource.c_str(),&bytes,&size))continue;
+        uint32_t lba=0;
+        if(!size || size%2336 || size>movie.size ||
+           !psx_mod_append_disc_extent(resource.c_str(),0,uint32_t(size/2336),&lba))
+            fail(std::string("Cannot mount prepared native movie ")+movie_ids[i]);
+        patch(movie.table,movie.lba,lba);
+        patch(movie.table+4,movie.size,uint32_t(size));
+        patch(movie.table+8,movie.first,u32(bytes));
+        psx_mod_counter_add("mmx4.movies.custom_mounted",1);
+        std::fprintf(stderr,"mmx4.movies: %s mounted at LBA %u (%llu bytes)\n",
+                     movie_ids[i],lba,static_cast<unsigned long long>(size));
+    }
+}
+
 void fan_activate(const char* resource,const char* attribution) {
     try {
         if(fan_movies_active)throw std::runtime_error("Choose one fan subtitle language per session");
@@ -354,7 +407,16 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_languages) {
     psx_mod_register_activation_plugin(Translation,translate_activate);
     psx_mod_register_session_reset_plugin(Movies,reset);
     psx_mod_register_activation_plugin(Movies,movies_activate);
-    for(const char* id:{Media,Translation,Movies}) {
+    psx_mod_register_session_reset_plugin(CustomMovies,reset);
+    psx_mod_register_activation_plugin(CustomMovies,custom_movies_activate);
+    mod_register_media_preparer(CustomMovies,
+        [](const auto& context,auto& outputs,auto& error) {
+            return prepare_custom_movies(context,outputs,error,false);
+        },
+        [](const auto& context,auto& outputs,auto& error) {
+            return prepare_custom_movies(context,outputs,error,true);
+        });
+    for(const char* id:{Media,Translation,Movies,CustomMovies}) {
         psx_mod_register_function_entry_plugin(id,0x800dae8c,entry);
         psx_mod_register_vblank_plugin(id,publish);
         psx_mod_register_savestate_plugin(id,restored);

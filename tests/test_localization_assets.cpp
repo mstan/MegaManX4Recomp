@@ -1,5 +1,6 @@
 #include "mod_plugins.h"
 #include "mod_media.h"
+#include "mod_packages.h"
 #include "iso_reader.h"
 #include "psx_sha256.h"
 #include "mmx4_language_assets.h"
@@ -15,6 +16,7 @@
 using namespace PSXRecompV4;
 using namespace Mmx4Language;
 namespace fs=std::filesystem;
+bool PSXRecompV4::mod_register_media_preparer(const std::string&, ModMediaPreparer, ModMediaPreparer) { return true; }
 using Call=void(*)(void);
 static auto& activation() {static std::map<std::string,Call> c;return c;}
 static auto& resetters() {static std::map<std::string,Call> c;return c;}

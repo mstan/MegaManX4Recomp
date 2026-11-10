@@ -92,6 +92,15 @@ drafts awaiting native-speaker review. [Language setup and scope →](docs/LOCAL
 **Complete Story** is an optional local solo/co-op mod, off by default. Add
 Zero's playable Memorial Hall duel, fight both Double and Iris, and watch the
 additional Colonel, Iris and Zero/Sigma movies in your campaign.
+
+The experimental **Mods → Custom movies** option uses the original 320 × 240
+movie player. Install [psxavenc v0.3.1](https://github.com/WonderfulToolchain/psxavenc/releases/tag/v0.3.1)
+separately: put the executable next to the game, or set
+`PSXRECOMP_STR_ENCODER` to its absolute path before starting the launcher.
+Choose an MP4 with audio for any movie you want to replace, then select
+**Play** to convert and cache it. Clear a selection to use the original.
+If a clip cannot be converted or is longer than the original slot can hold,
+the game plays the original movie and writes the reason to its log.
 [Complete Story setup and scope →](docs/COMPLETE_STORY.md)
 
 <details>

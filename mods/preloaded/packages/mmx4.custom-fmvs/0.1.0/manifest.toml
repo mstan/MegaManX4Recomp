@@ -1,0 +1,213 @@
+format_version = 14
+id = "mmx4.custom-fmvs"
+version = "0.1.0"
+name = "Custom movies"
+description = "Replace selected movies with your MP4s. Uses the original 320 x 240 player and native skip controls. Shorter clips with an audio track work best. Requires a compatible psxavenc helper installed separately."
+resolver = "declarative"
+prepare = "mmx4.custom-fmvs"
+save_compatibility = "isolated"
+conflicts = ["mmx4.japanese-fmvs"]
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "custom-fmvs"
+name = "Custom movies"
+group = "Enhancements"
+channel = "experimental"
+default_enabled = false
+description = "Choose MP4 files with audio. Play prepares and caches them. Clear a file to use the original movie again."
+
+[[plugin]]
+feature = "custom-fmvs"
+id = "mmx4.custom-fmvs"
+order = -110
+
+[[resource]]
+feature = "custom-fmvs"
+id = "capcom"
+label = "Capcom logo"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "capcom-str"
+label = "Prepared Capcom logo"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "opening"
+label = "Opening movie"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "opening-str"
+label = "Prepared Opening movie"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x1"
+label = "X story movie 1"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x1-str"
+label = "Prepared X story movie 1"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x2"
+label = "X story movie 2"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x2-str"
+label = "Prepared X story movie 2"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x3"
+label = "X story movie 3"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x3-str"
+label = "Prepared X story movie 3"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x4"
+label = "X story movie 4"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "x4-str"
+label = "Prepared X story movie 4"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z1"
+label = "Zero story movie 1"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z1-str"
+label = "Prepared Zero story movie 1"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z2"
+label = "Zero story movie 2"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z2-str"
+label = "Prepared Zero story movie 2"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z3"
+label = "Zero story movie 3"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z3-str"
+label = "Prepared Zero story movie 3"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z4"
+label = "Zero story movie 4"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z4-str"
+label = "Prepared Zero story movie 4"
+format = "file"
+prepared_content = true
+hidden = true
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z5"
+label = "Zero story movie 5"
+format = "file"
+input_only = true
+file_patterns = "*.mp4"
+file_description = "MP4 video"
+
+[[resource]]
+feature = "custom-fmvs"
+id = "z5-str"
+label = "Prepared Zero story movie 5"
+format = "file"
+prepared_content = true
+hidden = true

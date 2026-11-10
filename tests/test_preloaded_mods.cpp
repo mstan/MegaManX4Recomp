@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    if (manifest_count != 12) return fail("expected twelve package manifests, including optional stage-select cast");
+    if (manifest_count != 13) return fail("expected thirteen package manifests, including optional custom movies");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
              "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics",
              "mmx4.ultimate_armor", "mmx4.black_zero",
              "mmx4.japanese-media", "mmx4.translation",
-             "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
+             "mmx4.japanese-fmvs", "mmx4.complete-story", "mmx4.custom-fmvs"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -75,10 +75,20 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 12)
-        return fail("expected twelve package families");
+    if (manager.packages().size() != 13)
+        return fail("expected thirteen package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
+    constexpr const char* custom_movies = "mmx4.custom-fmvs";
+    if (manager.feature_enabled(custom_movies, "custom-fmvs"))
+        return fail("custom movies must default off");
+    if (!manager.set_feature_enabled(custom_movies, "custom-fmvs", true, &error))
+        return fail(error);
+    const auto empty_custom_movies = manager.resolve(kGameId, "", kDiscSha256);
+    if (!empty_custom_movies.ok || !empty_custom_movies.resources.empty())
+        return fail("custom movies must work with every picker empty");
+    if (!manager.set_feature_enabled(custom_movies, "custom-fmvs", false, &error))
+        return fail(error);
     if(manager.feature_enabled("mmx4.coop-stage-select","cast") ||
        manager.feature_option_value("mmx4.coop","coop","stage_select_cast")!="false")
         return fail("stage-select cast must default off locally and online");
