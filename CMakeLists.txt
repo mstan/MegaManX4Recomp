@@ -379,7 +379,7 @@ if(BUILD_TESTING)
                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mmx4_netplay_runtime.py")
     endif()
     add_executable(mmx4_preloaded_mods_test
-        tests/test_preloaded_mods.cpp
+        tests/test_preloaded_mods.cpp src/mods/mmx4_no_music.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"

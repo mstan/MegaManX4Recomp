@@ -7,7 +7,8 @@ music streams referenced by the executable, so title, menu, stage and boss
 music are muted.
 
 Voices (XA/VOICE*), boss intros (XA/BOSINT), cutscene audio (STR/*.STR) and
-SPU sound effects are unchanged. The stock BIN/CUE is not modified.
+SPU sound effects are unchanged. The stock disc is not modified. When enabled, the game prepares the mute
+sectors locally from your verified disc and reuses the checked cache.
 
 Music-free play for players who prefer no music. I'm a Muslim and prefer to
 play without music.

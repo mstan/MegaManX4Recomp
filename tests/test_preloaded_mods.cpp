@@ -6,6 +6,7 @@
 #include <vector>
 #include <utility>
 #include <chrono>
+#include <cstdlib>
 
 namespace fs = std::filesystem;
 
@@ -109,12 +110,16 @@ int main(int argc, char** argv) {
         return fail("no-music must default off");
     if (!manager.set_feature_enabled("mmx4.nomusic", "no-music", true, &error))
         return fail(error);
-    const auto no_music = manager.resolve(kGameId, "", kDiscSha256);
-    if (!no_music.ok || no_music.overlays.size() != 5 ||
+    const char* test_disc = std::getenv("MMX4_TEST_DISC");
+    if (test_disc && !manager.prepare_resources(kGameId, fs::u8path(test_disc),
+                                                 root / "cache", &error))
+        return fail(error);
+    const auto no_music = manager.resolve(kGameId, "", kDiscSha256, !test_disc);
+    if (!no_music.ok || no_music.overlays.size() != (test_disc ? 5 : 0) ||
         !no_music.writes.empty() ||
         no_music.plugins.size() != default_plan.plugins.size() ||
         no_music.fingerprint == default_plan.fingerprint)
-        return fail("no-music package did not resolve five overlays");
+        return fail("no-music plan has wrong deferred or prepared overlays");
     for (size_t i = 0; i < default_plan.plugins.size(); ++i)
         if (no_music.plugins[i].id != default_plan.plugins[i].id)
             return fail("no-music must preserve the default plugins");
