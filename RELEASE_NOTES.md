@@ -118,7 +118,7 @@ separate mod or opt-in switch. Complete Story remains its own optional mod.
 Diagnostic recording remains optional and off by default. Native memory-card
 saves carry forward. All netplay players must update.
 
-See [co-op stage select and victory music](docs/COOP_STAGE_SELECT.md) and
+See [source and tests](https://github.com/mstan/MegaManX4Recomp) and
 [Storm Owl background evidence](docs/COOP_STORM_BACKGROUND.md).
 
 ## Previous v1.0.18 Stable Public Beta
@@ -380,7 +380,7 @@ All 38 Windows production checks pass. Original-disc local Split checks cover th
 reported beams, midboss admissions, Mushroom's actual part 2 transition, opening
 camera/effects and native Quit/Escape transitions. Full campaign coverage and
 fresh online/Linux gameplay are not newly qualified. Missing opening-stage bee
-groups remain open. [Evidence and limits](docs/COOP_102_STAGE_FOLLOWUP.md).
+groups remain open. [source and tests](https://github.com/mstan/MegaManX4Recomp).
 [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v1.0.2 Stable Public Beta
