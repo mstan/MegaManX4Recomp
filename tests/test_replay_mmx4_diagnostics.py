@@ -57,6 +57,17 @@ class Preparation(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Netplay'):replay.prepare(self.args)
         self.assertFalse(self.args.output.exists())
 
+    def test_bundled_native_toolchain_is_copied_without_using_the_installation(self):
+        compiler=self.root/'overlay_toolchain/tcc/tcc.exe';compiler.parent.mkdir(parents=True)
+        compiler.write_bytes(b'packaged native compiler')
+        header=self.root/'overlay_toolchain/include/psx_runtime.h';header.parent.mkdir()
+        header.write_bytes(b'packaged ABI')
+        output,_,_=replay.prepare(self.args)
+        self.assertEqual((output/'overlay_toolchain/tcc/tcc.exe').read_bytes(),compiler.read_bytes())
+        self.assertEqual((output/'overlay_toolchain/include/psx_runtime.h').read_bytes(),header.read_bytes())
+        compiler.write_bytes(b'changed installation')
+        self.assertEqual((output/'overlay_toolchain/tcc/tcc.exe').read_bytes(),b'packaged native compiler')
+
     def test_appimage_container_is_rejected_before_any_output_is_created(self):
         self.metadata({'netplay':False})
         # Detect a renamed type-2 AppImage as well as the conventional suffix.

@@ -87,7 +87,17 @@ static void mmx4_bg_begin(CPUState *cpu, uint32_t address) {
             !psx_mod_read_byte(MMX4_PLAY+12) && !psx_mod_read_byte(MMX4_PLAY+13) &&
             psx_mod_read_half(LAYERS+0x1Cu)==2976 &&
             psx_mod_read_half(LAYERS+0x1Eu)==2976;
-        gpu_ws_set_view_bounds_override(first_door,0,2976);
+        /* Native80028A48 applies horizontal quake after camera follow/clamp.
+         * Move the presentation bounds by that same signed phase offset:
+         * the inferred room anchor stays stable while native camera/packet
+         * movement still provides the authored shake. Otherwise crossing a
+         * limit briefly falls back to the centred wide view. */
+        int shake=(psx_mod_read_half(LAYERS+0x34u)&0x10u) &&
+            (int8_t)psx_mod_read_byte(LAYERS+0x3Eu)>=0 ?
+            (int8_t)psx_mod_read_byte(LAYERS+0x45u):0;
+        int minimum=first_door?0:(int16_t)psx_mod_read_half(LAYERS+0x1Eu);
+        int maximum=(int16_t)psx_mod_read_half(LAYERS+0x1Cu);
+        gpu_ws_set_view_bounds_override(first_door || shake,minimum+shake,maximum+shake);
     }
     gpu_ws_bg2d_begin_view_layer(cpu->gpr[4],psx_mod_read_word(0x1f800108u),6u);
 #if PSX_EXECUTION_ENHANCED

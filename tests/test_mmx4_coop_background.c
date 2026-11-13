@@ -10,6 +10,7 @@ static uint8_t memory[32u*1024u*1024u];
 static unsigned split=1,local=1,tiles;
 static int menu_personal,menu_shared;
 static int bounds_enabled,bounds_min,bounds_max;
+static WsViewAnchor sampled_view;
 void gpu_ws_set_view_bounds_override(int on,int minimum,int maximum){bounds_enabled=on;bounds_min=minimum;bounds_max=maximum;}
 int mmx4_coop_lifecycle_personal_menus(void){return menu_personal;}
 int mmx4_coop_lifecycle_shared_menu(void){return menu_shared;}
@@ -30,7 +31,12 @@ int mmx4_coop_split_camera_copy(unsigned seat,uint8_t camera[0xFC]){(void)seat;(
 int psx_mod_local_view_scope(void){return (int)local;}
 int32_t psx_mod_widescreen_x_margin(void){return 0;}
 int gpu_ws_bg2d_get_view(unsigned layer,WsViewAnchor *view){(void)layer;(void)view;return 0;}
-void gpu_ws_bg2d_begin_view_layer(unsigned l,uint32_t p,unsigned m){(void)l;(void)p;(void)m;}
+void gpu_ws_bg2d_begin_view_layer(unsigned l,uint32_t p,unsigned m){
+    (void)p;(void)m;
+    if(!l)sampled_view=ws_view_anchor(53,(int16_t)psx_mod_read_half(0x801419BAu),
+        bounds_enabled?bounds_min:(int16_t)psx_mod_read_half(0x801419CEu),
+        bounds_enabled?bounds_max:(int16_t)psx_mod_read_half(0x801419CCu));
+}
 void gpu_ws_bg2d_end_view_layer(unsigned l,uint32_t p){(void)l;(void)p;}
 void gpu_ws_bg2d_set_host_arena(uint32_t p,uint32_t n){(void)p;(void)n;}
 void gpu_ws_bg2d_set_parent_links(int enabled){(void)enabled;}
@@ -65,12 +71,46 @@ int main(void){
     for(unsigned i=0;i<256;++i){psx_mod_write_half(blocks+512u+i*2,1);psx_mod_write_half(blocks+1024u+i*2,2);}
     psx_mod_write_word(descriptors+4,0x00010000u);psx_mod_write_word(descriptors+8,0x00020000u);
     CPUState cpu={0};cpu.gpr[4]=0;
+    /* Native horizontal quake80028A48 adds signed+45 to camera+0A
+     * after follow/clamp. Its draw phase must not move the wide room anchor
+     * or make a camera just outside its limits fall back to a centred view. */
+    psx_mod_write_byte(MMX4_PLAY+12,1);
+    const int cameras[]={0,20,5100,5120};
+    const int magnitudes[]={-8,-1,0,1,8};
+    for(unsigned i=0;i<sizeof cameras/sizeof cameras[0];++i)
+    for(unsigned j=0;j<sizeof magnitudes/sizeof magnitudes[0];++j)
+    for(int phase=0;phase<2;++phase) {
+        int delta=phase?magnitudes[j]:0;
+        psx_mod_write_half(LAYERS+0x0A,(uint16_t)(cameras[i]+delta));
+        psx_mod_write_half(LAYERS+0x1C,5120);psx_mod_write_half(LAYERS+0x1E,0);
+        psx_mod_write_half(LAYERS+0x34,0x10);psx_mod_write_byte(LAYERS+0x36,5);
+        psx_mod_write_byte(LAYERS+0x3E,phase?0:0x80);
+        psx_mod_write_byte(LAYERS+0x45,(uint8_t)magnitudes[j]);
+        uint8_t guest[0x54];memcpy(guest,&memory[LAYERS&0x1FFFFFFu],sizeof guest);
+        mmx4_bg_begin(&cpu,0x80026AA0u);
+        WsViewAnchor expected=ws_view_anchor(53,cameras[i],0,5120);
+        CHECK(sampled_view.left==expected.left && sampled_view.right==expected.right);
+        CHECK(sampled_view.shift==expected.shift && sampled_view.pad_left==expected.pad_left && sampled_view.pad_right==expected.pad_right);
+        CHECK(!memcmp(guest,&memory[LAYERS&0x1FFFFFFu],sizeof guest));
+    }
+    psx_mod_write_half(LAYERS+0x34,0);psx_mod_write_byte(LAYERS+0x36,0);
+    psx_mod_write_byte(LAYERS+0x3E,0);psx_mod_write_byte(LAYERS+0x45,0);
+    psx_mod_write_half(LAYERS+0x0A,0);
+    psx_mod_write_byte(MMX4_PLAY+12,0);
     psx_mod_write_byte(MMX4_PLAY,6);
     psx_mod_write_half(LAYERS+0x1C,2976);psx_mod_write_half(LAYERS+0x1E,2976);
     uint8_t native_bounds[0x10];memcpy(native_bounds,&memory[(LAYERS+0x1C)&0x1FFFFFFu],sizeof native_bounds);
     mmx4_bg_begin(&cpu,0x80026AA0u);
     CHECK(bounds_enabled && bounds_min==0 && bounds_max==2976);
     CHECK(!memcmp(native_bounds,&memory[(LAYERS+0x1C)&0x1FFFFFFu],sizeof native_bounds));
+    /* Quake composes with the existing continuous-world camera lock. */
+    psx_mod_write_half(LAYERS+0x0A,2980);psx_mod_write_half(LAYERS+0x34,0x10);
+    psx_mod_write_byte(LAYERS+0x3E,0);psx_mod_write_byte(LAYERS+0x45,4);
+    mmx4_bg_begin(&cpu,0x80026AA0u);
+    CHECK(sampled_view.shift==53 && sampled_view.left==106 && sampled_view.right==0);
+    CHECK(!memcmp(native_bounds,&memory[(LAYERS+0x1C)&0x1FFFFFFu],sizeof native_bounds));
+    psx_mod_write_half(LAYERS+0x34,0);psx_mod_write_byte(LAYERS+0x45,0);
+    psx_mod_write_half(LAYERS+0x0A,0);
     psx_mod_write_byte(MMX4_PLAY+12,2);mmx4_bg_begin(&cpu,0x80026AA0u);CHECK(!bounds_enabled);
     psx_mod_write_byte(MMX4_PLAY+12,0);psx_mod_write_half(LAYERS+0x1E,0);
     mmx4_bg_begin(&cpu,0x80026AA0u);CHECK(!bounds_enabled);
