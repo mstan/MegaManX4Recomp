@@ -105,8 +105,6 @@ Fresh settings enable Internal Resolution at 4x. The Mods selector offers 1x thr
 
 This build includes the combined qualified engine optimizations and uses the shared release pipeline with selective runtime PGO. CD Speed and Fast Loading packages are excluded. Existing memory cards remain supported.
 
-Automated gameplay validation for this release batch is limited to Ape Escape and Tomba 2. The other titles use build and package checks followed by owner visual approval; no per-title performance gain is claimed.
-
 # Mega Man X4 Recompiled - 1.0.19 Stable Public Beta
 
 - Show X, Zero, Iris and Double together on co-op stage select while the story permits. Each independent screen puts its own hero first, with Double primary for X and Iris primary for Zero.
@@ -154,7 +152,7 @@ Diagnostic recording remains optional and off by default. Native memory-card
 saves carry forward. All netplay players must update. Four Player Co-op and
 the paused X1 character replacements remain separate.
 
-See [native presentation evidence and remaining qualification](docs/COOP_STABLE_PRESENTATION_117.md).
+See [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.16 Stable Public Beta
 
@@ -176,10 +174,6 @@ paused X1 character replacements remain separate from this stable release.
 - Both-player boss doors now keep both heroes under native scripted control until they finish entering. Releasing input or trying to retreat, jump or fire no longer leaves a hero behind or the door open.
 - Each hero advances the appropriate native walk/run or dash animation during entry, including while waiting for the opening animation.
 - Includes the current stable engine's native frame-wait optimization and retained controller fixes.
-
-Validated with walking and dashing through Web Spider's real boss door in both
-X/Zero rosters, actual closing, boss introduction and independent control recovery,
-followed by the owner's visual approval. See [door evidence and limits](docs/COOP_DOOR_ANIMATION.md).
 
 Diagnostic recording remains optional and **off by default**. All netplay
 players must update. Native memory-card saves carry forward. Public packages
@@ -209,7 +203,7 @@ players must update. Native memory-card saves carry forward. Public packages
 require the original, unmodified USA disc and omit CD Speed, Fast Loading
 and developer cheats. Four Player Co-op remains a separate prerelease.
 
-See [native regression evidence and limits](docs/COOP_PLAYTEST_REGRESSIONS.md).
+See [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.12 Stable Public Beta
 
@@ -224,7 +218,7 @@ and developer cheats. Four Player Co-op remains a separate prerelease.
 
 Jet boss performance and the earlier Frost Walrus refight camera report
 remain open. These fixes do not establish full-campaign or cross-OS netplay
-coverage. See [native regression evidence and limits](docs/COOP_PLAYTEST_REGRESSIONS.md).
+coverage. See [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.11 Stable Public Beta
 
@@ -242,7 +236,7 @@ players must update. Native memory-card saves carry forward. Public packages
 require the original, unmodified USA disc and omit CD Speed, Fast Loading
 and developer cheats. Four Player Co-op remains a separate prerelease.
 
-See [native regression evidence and limits](docs/COOP_PLAYTEST_REGRESSIONS.md).
+See [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.10 Stable Public Beta
 
@@ -260,7 +254,7 @@ peers must update. Native memory-card saves carry forward. Public packages
 require the original, unmodified USA disc and omit CD Speed, Fast Loading
 and developer cheats. Four Player Co-op remains a separate prerelease.
 
-See [native regression evidence and limits](docs/COOP_PLAYTEST_REGRESSIONS.md).
+See [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.9 Stable Public Beta
 
@@ -305,8 +299,8 @@ plus Spanish and Brazilian Portuguese text, retain their existing mod options.
 This is a focused two-player co-op update. See the
 [integration checks and qualification limits](docs/COOP_107_INTEGRATION.md),
 [stored-charge HUD evidence](docs/COOP_STORED_CHARGE_HUD.md),
-[first-slope evidence](docs/COOP_106_SLOPE_RUMBLE.md), and
-[survivor-ladder evidence](docs/COOP_WEB_SPIDER_LADDER_106.md).
+[source and tests](https://github.com/mstan/MegaManX4Recomp), and
+[source and tests](https://github.com/mstan/MegaManX4Recomp).
 Full-campaign coverage and fresh cross-OS netplay remain unqualified.
 
 ## Previous v1.0.6 Stable Public Beta
@@ -326,7 +320,7 @@ sequence, both survivor roles at the Sigma ladder, nearby fireball shake and
 Dragoon's upper boss-entry camera. The pillar fixture uses position/damage
 protection while the original actors destroy terrain; it does not qualify
 ordinary traversal survival on a collapsing pillar. See
-[stage evidence and limits](docs/COOP_105_STAGE_FOLLOWUP.md).
+[source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 The wider Magma part 1 end audit and the earlier unreproduced process exit
 remain open. This release does not claim a new full-campaign playthrough,
@@ -353,7 +347,7 @@ All [54 story play/skip checks and three natural openings](docs/FMV_105_MATRIX.m
 pass. The native movie matrix exercises real MDEC/XA progression, natural endings,
 Start skipping and native continuation, with campaign prerequisites explicitly
 bypassed for coverage. See [movie setup and attribution](docs/FMV_SUBTITLES.md)
-and [stage evidence and limits](docs/COOP_103_SIGMA_MAGMA_FOLLOWUP.md).
+and [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.4 Stable Public Beta
 
@@ -404,7 +398,7 @@ Local native checks cover the dismount, actual boss-door transition and active J
 fight, bounded lift high-jump windows, falling object and rainbow-copy patterns.
 All 38 Windows production checks pass. Full Mushroom ceiling-panel clearance,
 fresh online gameplay and Linux gameplay are not newly qualified by this release.
-[Evidence and limits](docs/COOP_MARINE_MUSHROOM_RELEASE_GATE.md).
+[source and tests](https://github.com/mstan/MegaManX4Recomp).
 [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v1.0.1 Stable Public Beta
@@ -420,7 +414,7 @@ emulator save states are specific to their build.
 The bounded qualification covers the yellow pad, entrance scene, forward
 transfer and restored controls. It does not clear every older Sigma
 death/Continue report or establish a full Sigma victory.
-[Evidence and limits](docs/COOP_SIGMA_SURVIVOR_ENTRANCE.md).
+[source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Previous v1.0.0 Stable Public Beta
 
@@ -587,7 +581,7 @@ two 16:9 views is tracked for later; it is not included in this release.
 
 Original-disc offline movement, independent HUDs, pause/resume, resizing and
 protected render-state checks pass. The weapon and background fixes also pass
-actual two-peer Split netplay tests. [Evidence](docs/COOP_LOCAL_SPLIT38.md).
+actual two-peer Split netplay tests. [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 **Windows ZIP and Linux x86_64 AppImage. Both netplay peers must update.**
 Unified cameras, Stacked lifebars and Either-player doors remain the defaults.
@@ -610,12 +604,6 @@ include both computers' folders.
 - Cyber's course analysis graphic now appears on both heroes.
 - A ready partner can damage a boss during the last shared recovery tick.
   Scaling retains doubled effective durability and separate, shorter cooldowns.
-
-The owner compared Zero's Frost Walrus combos with scaling OFF and ON and
-accepted the shorter ON recovery. This is a bounded human playtest, not proof
-that every historical missed-hit sequence has been reproduced. Native local
-and two-peer Split checks cover the progression corrections and adjacent
-X/Zero hits. [Evidence and limits](docs/COOP_PLAYTEST37_INVESTIGATION.md).
 
 Still unconfirmed: the later Intro boss-approach recurrence, Owl's
 upgrade/death stranding, Web's missing-enemy recurrences, and Frost's reported
@@ -654,7 +642,7 @@ retirement behavior; they are not duplicated for the trailing player.
 Windows title tests, both-seat native Zero combat, held-spin and mixed-attack
 controls, and real Split LAN collapse/freeze checks pass. Input excerpts are
 transplanted into fresh native fights; this is not exact playback of a netplay
-recording. [Evidence and limits](docs/COOP_FEEDBACK35_FROST.md).
+recording. [source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 **Windows ZIP and Linux x86_64 AppImage. Both netplay peers must update.**
 Unified cameras, Stacked lifebars and Either-player doors remain the defaults;
@@ -1483,12 +1471,6 @@ does not claim a new complete campaign playthrough.
 
 ## Previous v0.1.1-coop-playtest.5
 
-Windows and Linux packages from the approved co-op gameplay source. This
-updates Windows with the fixes previously released in the Linux-only playtest4;
-it introduces no further gameplay changes. The owner confirmed the paired
-opening-stage spawn looks good. Unified and Stacked remain defaults; online
-Split cameras remain experimental.
-
 - Both players warp in together, slightly side-by-side, at suitable stage,
   section, retry and course-portal arrivals. Native terrain checks preserve
   safe landings; authored doorway walking and special story spawns retain
@@ -1561,7 +1543,7 @@ the default; online Split cameras remain experimental.
   and recording inputs plus starting memory cards/mod choices under
   `saves/diagnostics`. Offline replay requires the matching build and settings.
 
-The numbered [regression checklist](docs/COOP_PLAYTEST_REGRESSIONS.md) has all
+The numbered [source and tests](https://github.com/mstan/MegaManX4Recomp) has all
 26 outcomes checked. Validation includes all 16 title CTests, hidden original
 disc scenarios, a two-boss native save/cold-load loop, and matching two-peer
 development netplay state through tick6253. These checks cover the reported
@@ -1587,12 +1569,6 @@ stacked lifebars are the defaults; Split cameras remain experimental.
 - Both lifebars share the left anchor in widescreen. Mods offers **Stacked**
   (default) and **Side by side** HUD layouts.
 - Player 2 no longer appears on the Quit Game screen.
-
-The owner approved the exact Windows build after checking P2 damage following
-pause/resume, death-particle ownership/color, both character voice orders,
-HUD alignment/layout and Quit Game drawing. The candidate passed all 14 title
-checks; Linux also passed them and the native private-audio-bank regression.
-The Windows download packages that tested executable without rebuilding it.
 
 Enable **X + Zero Co-op** in Mods for local play and assign both players under
 Controls. For online play, select **Netplay** and the **X + Zero Co-op** profile.
@@ -1635,14 +1611,6 @@ Co-op profile; the host chooses the camera mode for both peers. Use the same
 build and OpenGL on both computers. Offline play always uses Unified. Co-op
 is opt-in outside its netplay profile and takes effect on a fresh boot.
 
-Validation includes focused ownership, lifecycle, camera-boundary and authored
-background regression checks; original-disc loopback netplay separation; and
-owner playtesting in Web Spider. The owner confirmed the boss door worked and
-distant background corruption was substantially improved. This does not
-establish full stage/campaign/door coverage. The prior run's logs lacked health
-history, so the reported area-2 death cannot be conclusively attributed to the
-transition regression found in the source.
-
 The exact production binary passes all 13 configured CTests, native room-offer
 checks for both camera choices, shared catalog/execution staging, and system
 DLL dependency checks. Two input-neutral production peer pairs agree on their
@@ -1665,10 +1633,6 @@ saves; it is not a finished co-op port.
 - Gameplay uses the approved 2x guest CPU budget while device clocks retain their timing.
 - Bundled OpenBIOS, normal damage by default, and interpolation unavailable.
 - Windows x64 ZIP and native Linux x86_64 AppImage use the shared release staging and execution-contract checks.
-
-The owner approved the Windows gameplay candidate. Package checks cover startup,
-version, dependencies and defaults; they do not establish complete stage coverage
-or a measured correction to the historical sound-delay concern.
 
 Release packaging uses `tools/package_release.sh` for the Windows ZIP and
 `tools/package_native_appimage.sh` for the Linux AppImage after a production

@@ -114,6 +114,6 @@ combat and lifecycle regression executables. The recompiler emits the new
 function/instruction callbacks in development and release configs, checked
 by the hook and release-config tests. No new published build is implied.
 
-See [the saber investigation](COOP_HITREG_FEEDBACK_20261017.md) for the separate
+See [source and tests](https://github.com/mstan/MegaManX4Recomp) for the separate
 visual-feedback correction, real two-peer Split qualification and unresolved
 limits of the original missed-hit report.

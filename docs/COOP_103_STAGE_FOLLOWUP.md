@@ -5,7 +5,7 @@ native controls confirm the P2 corner and snapshot/projectile return; all
 opening flying-group emitters are now qualified separately. The owner withdrew
 the intermittent stutter report. Idle Dragoon slowdown remains unreproduced in
 bounded current-host controls, with no performance fix claimed. See the
-[updated findings and limits](COOP_103_SIGMA_MAGMA_FOLLOWUP.md).
+[source and tests](https://github.com/mstan/MegaManX4Recomp).
 
 ## Opening dragon
 

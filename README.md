@@ -81,8 +81,8 @@ the original loading routines. Music and cutscenes retain their normal timing.
 </p>
 
 Offline co-op also supports **save states (F7)** and **rewind (F8)** when enabled.
-The Mods page includes widescreen, character codes and optional input display
-and diagnostic recording, **off by default**. [Controls, saves and reporting guide →](docs/PLAYTESTING.md)
+Adaptive widescreen is enabled for fresh settings. Character codes, input display
+and diagnostic recording are optional. [Controls, saves and reporting guide →](docs/PLAYTESTING.md)
 
 Optional language mods offer **Spanish** and **Brazilian Portuguese** dialogue
 using the game's own font. Supply your Japanese Rockman X4 disc to choose
