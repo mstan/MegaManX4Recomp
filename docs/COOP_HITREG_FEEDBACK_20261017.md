@@ -12,32 +12,9 @@ controlled reproductions described below.
 
 ## Source identity and viewing
 
-`E:/Downloads/Single hit slash.zip` is 285,285 bytes and passes ZIP CRC checks.
-SHA-256: `52595aa182406f01c86189c01015f52c929d229a681977332dfcd2fb86fc6786`.
-Both diagnostic sessions identify execution
-`93f56a5e8f8d35fdee77384cb5e3772b5dfbd9b973dcbcd76206bba14f883dc5`
-and build
-`mmx4-coop-delay-v3:ecd52d497bc3fa33b583df9c3fbc9e004f363602`.
-Their input files are byte-identical, with 6,181 native rows, numbered 0–6180.
-Input SHA-256:
-`8cc5f280156d99335c41218bc9bfbabf2dc47da16d042730e4cbe094bf63f2a6`.
-
 The archive enables boss scaling, Split cameras, Both doors and both story
 bosses. It omits `boss_cooldowns`; the matching manifest defaults to
 `per_player`. This was checked against the baseline manifest.
-
-All three supplied MOVs were sampled at quarter-second intervals and viewed.
-`IMG_0997.mov` was also decoded and viewed at its full 30 fps. Its visible
-HUD sequence, approximately F5399–5637, corresponds to the archive's rapid
-P2 presses. It shows separate first, second and finishing ground animations.
-`IMG_0996.mov` shows the upgraded purple aerial spin in the fortress refight.
-`IMG_0995.mov` shows the green basic saber in Frost's original arena with a
-much later HUD frame number; its provenance is not assigned to this archive.
-The phone images do not support reliable individual HP-pixel measurements.
-
-The supplied [YouTube recording](https://youtu.be/tPKr56Yp-oc) was identified,
-but bounded download attempts received HTTP 403. The findings below use the
-local MOVs, archive inputs, native memory observations and generated captures.
 
 P2 attack presses in the ground excerpt begin at source frames 5409, 5420,
 5430, 5441, 5478, 5489, 5500, 5510, 5520, 5546, 5556, 5569 and 5578.

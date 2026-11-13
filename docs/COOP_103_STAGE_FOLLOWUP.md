@@ -7,12 +7,6 @@ the intermittent stutter report. Idle Dragoon slowdown remains unreproduced in
 bounded current-host controls, with no performance fix claimed. See the
 [updated findings and limits](COOP_103_SIGMA_MAGMA_FOLLOWUP.md).
 
-Report/video: [Thomu's recorded playtest](https://youtu.be/0cGH_DNk2pg),
-supplied with `1.0.3 bugs.zip`. The private diagnostics identify an offline
-local 8:3 Split run on 1.0.3. The owner approved the opening stages, Storm Owl,
-Slash Beast and most remaining traversal, subject to the specific reports
-below. That approval does not resolve intermittent frame pacing.
-
 ## Opening dragon
 
 The earlier background-dragon fix used the canonical P1 camera to turn the
@@ -121,7 +115,3 @@ No event completion or actor phase is forced. Observation-only probes require
 assessment of their JSON and composed images; their harness status alone is
 not a mechanic pass. Runs are private, hidden and muted. No new LAN or Linux
 gameplay qualification is claimed.
-
-Private evidence: `F:/Temp/Codex/psxrecomp/x4-feedback-103/`.
-Tracking: `beads-78sc`, `beads-e0b2`, `beads-5k3q`, `beads-pu0l`; bees remain in
-`beads-eio.9.197`.

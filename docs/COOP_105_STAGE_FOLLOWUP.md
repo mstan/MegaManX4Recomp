@@ -1,12 +1,5 @@
 # 1.0.5 Volcano effects and Sigma1 survivor camera
 
-Owner reports, 2026-10-23:
-[Volcano](https://youtu.be/gQYjyQsBPPA),
-[Sigma1](https://youtu.be/WnJKDRLfUcc).
-The two supplied ZIPs contain startup logs identifying1.0.5; they do not
-contain replay inputs. The owner confirms Dragoon's arena camera correction
-works and ordinary part1 fireballs now trigger for P2.
-
 Tracking: `beads-eio.9.221` and `beads-eio.9.222`.
 Private evidence: `G:/Temp/Codex/psxrecomp/x4-magma-105/`.
 

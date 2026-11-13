@@ -1,5 +1,13 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.31 Preview
+
+- Keep the adaptive widescreen camera anchored during horizontal boss-impact shake. The original shake and guest gameplay remain unchanged.
+- Retain the native runtime, controller settings, memory cards, language options and bundled overlay compiler from the preceding preview.
+- Include player documentation and complete notices for the bundled launcher fonts and libraries.
+
+This is a preview release. The stable release remains v1.0.29. Save states are specific to a build; native memory-card saves are preserved.
+
 ## v1.0.29 - Story boss music and Japanese disc selection
 
 - Play each boss's own music when fighting both Double and Iris, including the second encounter in either campaign. Applies to co-op and Complete Story while preserving the selected campaign.
@@ -347,10 +355,6 @@ Start skipping and native continuation, with campaign prerequisites explicitly
 bypassed for coverage. See [movie setup and attribution](docs/FMV_SUBTITLES.md)
 and [stage evidence and limits](docs/COOP_103_SIGMA_MAGMA_FOLLOWUP.md).
 
-The supplied one-off Magma process exit remains unreproduced and is not claimed
-fixed. Intermittent stutters were withdrawn by the reporter. This release does
-not claim a new full-campaign playthrough or an audible listening review.
-
 ## Previous v1.0.4 Stable Public Beta
 
 - The verified original USA disc is now required before launch, including with every mod disabled. Incorrect or modified images receive a clear original-disc error instead of failing later on an individual mod such as Custom Renderer.
@@ -383,7 +387,7 @@ reported beams, midboss admissions, Mushroom's actual part 2 transition, opening
 camera/effects and native Quit/Escape transitions. Full campaign coverage and
 fresh online/Linux gameplay are not newly qualified. Missing opening-stage bee
 groups remain open. [Evidence and limits](docs/COOP_102_STAGE_FOLLOWUP.md).
-[Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v1.0.2 Stable Public Beta
 
@@ -401,7 +405,7 @@ fight, bounded lift high-jump windows, falling object and rainbow-copy patterns.
 All 38 Windows production checks pass. Full Mushroom ceiling-panel clearance,
 fresh online gameplay and Linux gameplay are not newly qualified by this release.
 [Evidence and limits](docs/COOP_MARINE_MUSHROOM_RELEASE_GATE.md).
-[Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v1.0.1 Stable Public Beta
 
@@ -431,7 +435,7 @@ saves carry forward; older emulator save states may be incompatible.
 Public packages disable development cheats and omit CD Speed and Fast Loading mods.
 
 This is a public beta with bounded validation. Full campaign coverage, native-speaker
-translation review and unresolved reports on the [known-issues checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
+translation review and unresolved reports on the [project issues](https://github.com/mstan/MegaManX4Recomp/issues)
 remain open. [Language setup, evidence and limits](docs/LOCALIZATION.md).
 
 ## Previous v0.1.1-coop-playtest.43
@@ -585,11 +589,6 @@ Original-disc offline movement, independent HUDs, pause/resume, resizing and
 protected render-state checks pass. The weapon and background fixes also pass
 actual two-peer Split netplay tests. [Evidence](docs/COOP_LOCAL_SPLIT38.md).
 
-GitHub #41's intro freeze remains unconfirmed. Current native tests pass through
-the gate, explosions, Dragoon's dialogue/rescue and healthy arrivals in part 2;
-the reporter has been asked for a fresh full diagnostic session. Other unchecked
-historical reports remain on the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
-
 **Windows ZIP and Linux x86_64 AppImage. Both netplay peers must update.**
 Unified cameras, Stacked lifebars and Either-player doors remain the defaults.
 Boss scaling, Fight Double and Iris, and local split remain optional.
@@ -630,7 +629,7 @@ Split cameras are experimental. Boss scaling and Fight Double and Iris remain
 optional and default off. Campaign memory-card saves carry forward.
 Production packages disable debug tools and development cheats.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 Keep **Input Display and Recording** enabled and look for **REC**. After a bug,
 quit normally and send the complete `saves/diagnostics` folder beside the
 executable or AppImage, the release version, and a video timestamp. For netplay,
@@ -662,7 +661,7 @@ Unified cameras, Stacked lifebars and Either-player doors remain the defaults;
 Split cameras are experimental. Boss scaling and Fight Double and Iris remain
 optional and default off. Campaign memory-card saves carry forward.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 Keep **Input Display and Recording** enabled and look for **REC**. After a bug,
 quit normally and send the complete `saves/diagnostics` folder beside the
 executable or AppImage, the release version, and a video timestamp. For netplay,
@@ -680,17 +679,12 @@ include both computers' folders.
   a fresh swing to reuse its native contact key after recovery. A held swing
   still counts as one hit. Cooldown lengths are unchanged.
 
-**Issue 157 remains unconfirmed.** The contact-cleanup correction and independent
-X/Zero hits have been validated, but the tester's exact missed follow-up slash
-sequence has not been reproduced or confirmed resolved. This release does not
-claim that every reported missed hit is fixed.
-
 **Windows ZIP and Linux x86_64 AppImage. Both netplay peers must update.**
 Unified cameras, Stacked lifebars and Either-player doors remain the defaults;
 Split cameras are experimental. Boss scaling and Fight Double and Iris remain
 optional and default off. Campaign memory-card saves carry forward.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 Keep **Input Display and Recording** enabled and look for **REC**. After a bug,
 quit normally and send the complete `saves/diagnostics` folder beside the
@@ -719,7 +713,7 @@ Unified cameras, Stacked lifebars and Either-player doors remain the defaults;
 Split cameras are experimental. Boss scaling and Fight Double and Iris remain
 optional and default off. Campaign memory-card saves carry forward.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 Keep **Input Display and Recording** enabled and look for **REC**. After a bug,
 quit normally and send the complete `saves/diagnostics` folder beside the
@@ -744,7 +738,7 @@ Unified cameras, Stacked lifebars and Either-player doors remain the defaults;
 Split cameras are experimental. Boss scaling and Fight Double and Iris remain
 optional and default off. Campaign memory-card saves carry forward.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 Keep **Input Display and Recording** enabled and look for **REC**. After a bug,
 quit normally and send the complete `saves/diagnostics` folder beside the
@@ -769,7 +763,7 @@ Unified cameras, Stacked lifebars and Either-player doors remain the defaults;
 Split cameras are experimental. Boss scaling and Fight Double and Iris remain
 optional and default off. Campaign memory-card saves carry forward.
 
-The [release dispositions](docs/COOP_PLAYTEST32_DISPOSITIONS.md) distinguish
+The [project issues](https://github.com/mstan/MegaManX4Recomp/issues) distinguish
 these five validated fixes from reports that did not reproduce in bounded
 checks. Those reports remain tracked; they are not advertised as fixed.
 
@@ -799,7 +793,7 @@ Campaign memory-card saves carry forward. Changes to snapshot memory layout or
 ongoing co-op/boss protocols still require compatible settings. Online startup
 and intermittent music/intro-boss reports remain under investigation.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.30
 
@@ -832,7 +826,7 @@ quit normally and send the complete `saves/diagnostics` folder beside the
 executable or AppImage, the release version, and a video timestamp. For netplay,
 include both computers' folders. An abrupt process kill can lose the unflushed tail.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.29
 
@@ -857,7 +851,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers and the stage area and camera mode.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.28
 
@@ -892,7 +886,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers. Include the stage area and camera mode.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.27
 
@@ -921,7 +915,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.26
 
@@ -950,7 +944,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.25
 
@@ -978,7 +972,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.24
 
@@ -1011,7 +1005,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.23
 
@@ -1042,7 +1036,7 @@ recurs, note its video timestamp, quit normally, and send the complete
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.22
 
@@ -1073,7 +1067,7 @@ If a problem recurs, leave **Input Display and Recording** enabled, look for
 `saves/diagnostics` folder beside the executable or AppImage. For netplay,
 include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.21
 
@@ -1100,7 +1094,7 @@ keep **Input Display and Recording** enabled, look for **REC**, note the video
 timestamp, quit normally, and send the complete `saves/diagnostics` folder
 beside the executable or AppImage. For netplay, include folders from both peers.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.20
 
@@ -1128,7 +1122,7 @@ enabled and look for **REC**. If the disappearance recurs, note the video
 timestamp, quit normally, and send the complete `saves/diagnostics` folder
 beside the executable or AppImage from **both peers**.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.19
 
@@ -1150,7 +1144,7 @@ Diagnostics default on in fresh installs. Keep **Input Display and Recording**
 enabled and look for **REC**. After reproducing a bug, quit normally and zip the
 complete `saves/diagnostics` folder beside the executable or AppImage.
 
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.18
 
@@ -1180,7 +1174,7 @@ enabled and look for **REC**. After reproducing a bug, quit normally and zip the
 complete `saves/diagnostics` folder beside the executable or AppImage.
 
 Jet Stingray's reported P2 entrance presentation remains open.
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.17
 
@@ -1203,7 +1197,7 @@ enabled and look for **REC**. After reproducing a bug, quit normally and zip the
 complete `saves/diagnostics` folder beside the executable or AppImage.
 
 Keep normal memory-card saves for campaign progress. Use save states made with
-this release. [Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+this release. [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.16
 
@@ -1222,10 +1216,9 @@ After reproducing a bug, quit normally and zip the complete `saves/diagnostics`
 folder beside the executable or AppImage.
 
 Keep normal memory-card saves for campaign progress; use save states made with
-this release. The reported failure was reproduced from a tester recording;
-the corrected return and both Storm Owl exit paths were checked in native
+this release. the corrected return and both Storm Owl exit paths were checked in native
 gameplay. Windows and Linux production checks pass.
-[Known issues and numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.15
 
@@ -1249,7 +1242,7 @@ the complete `saves/diagnostics` folder beside the executable or AppImage.
 Keep normal memory-card saves for campaign progress; use save states made with
 this release. Windows and Linux production checks pass. These fixes were
 reproduced and checked in native gameplay; outstanding reports retain their
-status in the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+status in the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.14
 
@@ -1272,7 +1265,7 @@ and zip the complete `saves/diagnostics` folder beside the executable or AppImag
 
 Keep normal memory-card saves for campaign progress; use save states made with
 this release. Earlier unresolved reports retain their status in the
-[numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.13
 
@@ -1314,7 +1307,7 @@ beside the executable or AppImage. Keep Playtest Diagnostics enabled and include
 a video when possible. Existing memory-card saves remain your campaign saves;
 use save states made with this release.
 
-See the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.12
 
@@ -1335,7 +1328,7 @@ status; this release does not claim to fix every intro-door or staircase issue.
 For bug reports, quit normally and zip the complete `saves/diagnostics` folder
 beside the executable or AppImage. Keep Playtest Diagnostics enabled and include
 video when possible. Startup logging fixes from Playtest 9 are included.
-See the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.11
 
@@ -1344,8 +1337,7 @@ Unified cameras and Stacked lifebars remain defaults; Split remains experimental
 
 - Fixes the intro's post-dragon rescue scene locking when Zero/P1 is dead and
   X/P2 wins in Zero's campaign. The scene follows its surviving owner while
-  preserving Player 1's campaign. Reproduced from a branch of a tester recording
-  and verified through Mission Completed.
+  preserving Player 1's campaign.
 - Fixes X/P2's acquired armor artwork in Zero's campaign. Boots, helmet, body,
   both arm variants and full armor render through the private character
   textures. Permanent upgrades still belong to the single shared campaign.
@@ -1357,7 +1349,7 @@ experimental Split reports retain their documented status.
 For bug reports, quit normally and zip the complete `saves/diagnostics` folder
 beside the executable or AppImage. Keep Playtest Diagnostics enabled and include
 video when possible. Startup logging fixes from Playtest 9 are included.
-See the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.10
 
@@ -1372,15 +1364,10 @@ Unified cameras and Stacked lifebars remain defaults; Split remains experimental
 - Fixes Web Spider's waterfall exit stalling when P1 is dead and P2 reaches it.
   The surviving player can complete the exit and arrive in the next section.
 
-The reported Frozen Zero problem on Split Mushroom's second rotating staircase
-remains unresolved. Its supplied recording does not reproduce a character-state
-lock; movement inputs are absent during the reported stall. This release does
-not claim to fix the underlying input-delivery problem or every disappearance.
-
 For bug reports, quit normally and zip the complete `saves/diagnostics` folder
 beside the executable or AppImage. Keep Playtest Diagnostics enabled and include
 video when possible. Startup logging fixes from Playtest 9 are included.
-See the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.9
 
@@ -1408,7 +1395,7 @@ checks show ordinary and charged shots travelling on both staircase sections
 with X/P1 and on the second section with X/P2. This release does not claim a
 separate fix for that report or every earlier disappearance report.
 Discord/WAN investigations and the other unresolved staircase/elevator reports
-remain parked. See the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+remain parked. See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.8
 
@@ -1437,7 +1424,7 @@ when playing: ceiling crush is authentic.
 Discord authorization and real WAN startup have not been requalified in this
 release. Intermittent co-op removal remains on the backlog. The older
 intro-act2 WARNING report still needs a matching current diagnostic recording.
-See the [numbered checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md).
+See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues).
 
 ## Previous v0.1.1-coop-playtest.7
 
@@ -1540,7 +1527,7 @@ on Windows. Unified remains the default, and Split cameras remain experimental.
 - Zero can use the partner's Lightning Web as a native wall-jump anchor.
 - Both Split views keep the train scenery moving during Slash Beast's fight.
 
-The stable [October 10 checklist](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
+The stable [project issues](https://github.com/mstan/MegaManX4Recomp/issues)
 tracks the original 28 reports and their individual evidence; those entries are checked.
 All 18 title checks pass. Native two-peer Split tests cover either player
 leading into Slash Beast's fight, with matching state checks through tick8672.

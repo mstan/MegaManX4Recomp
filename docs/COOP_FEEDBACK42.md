@@ -1,29 +1,5 @@
 # Playtest 41 follow-up
 
-Intake on October 19. These reports remain open until the corresponding
-native behavior is qualified. Fixes189/206/208 now ship in Playtest42.
-
-| Item | Current evidence |
-|---|---|
-| 189: Slash Beast scenery freezes for P2 | **Fixed candidate, native qualified in both sections.** Native P2 jumps reproduce a private-view panorama wrap being discarded: its origin keeps growing, so every subsequent draw resets to the same scenery. Retain the authored integer wrap in the saved planes and owner writeback. Both near/far layers now remain animated in native local8:3 checks with separated, living heroes. The short phone clips were inspected. This is additional to the canonical scrolling correction shipped in41. |
-| 198: intro part 1 shake missing for nearby P2 | Tester reconfirms in 41. Preserve intentional isolation of distant explosion flashes. |
-| 199: first intro part 2 block | **Tester confirms fixed in 41.** No new change requested. |
-| 200: intro part 2 bees missing | Tester still reports missing bees. A bounded native P2-only approach does spawn the static pair and a later type7 at703/332 while P1 stays144. This does not qualify all later flying groups. |
-| 206: Magma Dragoon refight camera | **Fixed candidate, native qualified with either initiator.** The exact Playtest41 replay verifies all 13,666 native inputs. The native phase 2-to-3 release writes horizontal targets after releasing the scene. Preserve those completed writes in each saved view still in the closed arena. Both views now pan during the active fight, with either P1 or P2 initiating. Earlier arrival checks did not cover this event. |
-| 208: P2 pause ownership and frozen controls | **Fixed candidate, native qualified.** Exact published41 replay verifies all12,705 native inputs. A native two-confirmation Quit, new game and Slash reload independently reproduce wrong ownership and frozen P2. Retire the old callback guard on stage initialization and reconcile the menu latch on ordinary gameplay entry. The same fixed-build flow opens Zero's own menu, rejects P1 resume/P2 Quit, resumes with P2 Start and moves P2 by61.5px while P1 remains still, both32HP. |
-
-Both archives identify the actual version as `0.1.1-coop-playtest.41`, offline
-`local_split_8_3`, Both doors, per-player boss cooldown scaling, separate
-E-tanks and both story bosses enabled. The new mode metadata identifies these
-without asking the tester. The Dragoon archive includes the earlier two
-sessions plus a new13,667-input fortress session; duplicated sessions are not
-independent reproductions.
-
-Archive SHA256:
-
-- `Bugs 41.zip`: `c65c20db555ed00d248e7c86951c972563ae40366137d1594756fb0db22e4f09`
-- `Dragoon cam bug 41.zip`: `0ee39dc81b53af8fbf79b7dac8080c5b1fd152a86945d2353e2c48ffc8214562`
-
 Private evidence is under `build-pr23/feedback42/`. `exact41-replay/replay.log`
 and both `inspect-bugs41*/replay.log` files preserve complete replay validation.
 The additional observations read the shipped process; they do not patch the
@@ -88,6 +64,5 @@ cannot enroll the co-op renderer and is excluded. A Dragoon probe timed out
 waiting for a private screenshot before its approach; it establishes neither
 fight activation nor a gameplay regression. No user windows were opened and
 all background launches were muted.
-
 
 Published: [v0.1.1-coop-playtest.42](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.42). Windows36 and Linux30 production checks and public-package qualification pass. The release receipt records actual uploaded asset digests; the remaining reports above stay open.

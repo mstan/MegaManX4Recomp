@@ -1,19 +1,6 @@
 # Magma Dragoon first-slope rumble after 1.0.6
 
-Tracking: `beads-eio.9.225`. Source branch: `fix/magma-first-slope-shake`.
-Report: [first slope video](https://youtu.be/2eg5ZVTRGhk) and
-`Dragoon first slope screen shake.zip`, session `1792821537733088`.
-This is local 8:3 Split, X/P1 and Zero/P2. P1 waits at the entrance while
-P2 dashes, jumps and descends the first slope.
-
 ## Reproduction and native contract
-
-The original Windows 1.0.6 package verifies all 7,082 complete native input
-intervals/state hashes in the supplied recording. A clean-master developer
-replay also verifies them, with only the private replay copy's build identity
-changed to the developer identity. Input rows and expected hashes are unchanged;
-the runtime's replay validation is retained. This does not qualify a netplay
-handshake between different builds.
 
 In that exact route, P2 has no active horizontal shake in 17 observations at
 X400..699 or 48 observations at X700..999. P1 does shake. Native write traces
@@ -55,14 +42,6 @@ alternates X806/810 while P2 stands at X966.9375/Y893.
 The complete comparison is `report-replay-development/` versus
 `report-replay-candidate-bounded/` in the private evidence root
 `G:/Temp/Codex/psxrecomp/x4-slope-106`.
-
-`magma_slope_rumble` in `tools/test_mmx4_coop_regressions.py` adds a native
-damage-enabled descent control with either leader. Only the stage and starting
-48HP are prepared; movement, boulder collisions, damage and rumble are native.
-The waiting hero must actually take damage, both remain alive, and the leading
-camera's native timer must progress. These independent controls can show some
-shake even before the correction; the supplied recording is the reproduction
-gate for the reported missing effect.
 
 All39 Windows development CTests pass. Both campaigns pass both-leader native
 slope descents with damage enabled: the waiting hero takes real boulder damage,

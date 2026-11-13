@@ -27,16 +27,6 @@ remain ignored. The framework and UI pins are unchanged.
 
 ## Reproduction and evidence
 
-The supplied ZIP's SHA256 is
-`d6293485199ae19903bf60b49c4023f7924e806ad9e6f4b1391819eb17585f74`.
-Its session 1792620601501259 records 1.0.0, X campaign, local Split 8:3,
-Both-player doors, scaling, both story bosses and separate E-tanks. It has
-49,857 native rows, ending at game frame 49,830. P1 reaches 0 HP at 45,767.
-The native yellow portal subsequently arrives at stage 12/section 0/checkpoint 10
-with P1 dead at 1840/2507 and P2 alive at 1864/2506. P2 eventually reaches 2356
-without starting the scene. The separate supplied YouTube video could not be
-downloaded; these findings come from the recording and native reproductions.
-
 Private evidence is under
 `G:/Temp/Codex/psxrecomp/mmx4-sigma-p2-20261021/`.
 

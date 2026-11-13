@@ -80,8 +80,3 @@ directory, `--hidden-window --local-cameras split --cameras split`, and explicit
 G:/F: temporary/profile/cache paths. Run one game at a time. Cannon position
 protection qualifies original beam origins, not stage traversal. Native Quit
 and Escape checks prepare eligibility and follow the original frontend flow.
-
-Private evidence is retained beneath
-`G:/Temp/Codex/psxrecomp/mmx4-intro-102-20261022/`: original archive intake,
-video storyboards, original/candidate observations, composed PNGs and build/test
-logs. Tracking: `beads-eio.9.215` through `beads-eio.9.218`.

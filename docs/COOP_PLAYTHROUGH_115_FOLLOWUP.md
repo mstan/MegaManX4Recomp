@@ -1,29 +1,5 @@
 # Stable playthrough follow-up
 
-Owner report, October 28, 2026:
-[complete playthrough](https://youtu.be/ucIsvq2lM3k), supplied
-`1.0.5 test playthrough.zip`. The archive's session metadata identifies
-**1.0.15**, local 8:3 Split, Both-player doors and the X campaign.
-Its SHA256 is `d170e582e6a652a8a24ad712acb03075c2d66bbfe3f4b253282bcdce54de4f2e`.
-The original archive, cards and settings are preserved.
-
-Additional feedback provides Web Spider air-dash examples at
-https://youtu.be/kFoOg9fXX2w and https://youtu.be/k_uU8-exp5A, plus
-`E:/Downloads/Boss door player 2 air dash of death bug 1.0.15.zip`
-(SHA256 `53f2c8d087bd46b637bc32361e64ec787dd393dfab35e8dffb7507b380d2c067`).
-Its trace identifies P2's 21-to-zero HP transition at native frame 15991,
-stage 1/section 1, position 4295/1411: the outer boss door. This is an
-additional admission case for `beads-eio.9.272`. An unmodified public1.0.15
-replay verifies all16917 native input hashes and reproduces that death.
-Read-only process observations show P2's airborne flagFF and active terrain
-box800F8BC8 during action19, followed by the lethal scripted displacement.
-Its two views have Y1280 and1258 while Zero is airborne. This observation
-does not establish a persistent camera-offset fault; independent views are
-preserved. The bounded Web case now matches the recording's Jump, neutral,
-then Dash **without Right**. Holding Right caused wall-slide and a landing
-before admission, so the earlier passing baseline controls were insufficient.
-The corrected short case reproduces the original death at4295/1411.
-
 The owner also reports flying enemies swarming in during solo intro play
 but failing to appear in two-player co-op (`beads-eio.9.276`). The owner
 confirmed the **outdoor first section**, distinct from the historical part2
@@ -43,14 +19,6 @@ test approach correction, not an additional part2 spawn or AI fix.
 
 This work is based on stable `c404f1d`, with framework `9868d30` and UI
 `b964eab`. X1 replacements and Four Player Co-op are separate work.
-
-| Report | Owning Bead | Correction |
-| --- | --- | --- |
-| P2 air-dash death at Cyber Peacock's inner door | `beads-eio.9.272` | Apply the admitted passenger's native door collision suspension even when airborne. |
-| P2 starts Dragoon's fight and the camera remains enclosed | `beads-eio.9.273` | Retain the native main-fight camera release before restoring the projected owner. |
-| P1 dead, P2 defeats final Sigma and cannot progress | `beads-eio.9.274` | Retain the victory camera release and give the ending controller the surviving entrant. |
-| Web Spider's corridor scenery follows P2 into the arena | `beads-eio.9.275` | Continue each independent view's native background parallax during a paired door. |
-| Outdoor intro swarm waits forever with a trailing partner | `beads-eio.9.276` | Evaluate its native waiting predicate against the leading living hero, then resume normal targeting. |
 
 ## Native causes
 

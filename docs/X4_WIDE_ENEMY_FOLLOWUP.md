@@ -20,9 +20,7 @@ category4/type4 handler800C081C installs the destructible doorway hitbox and HP.
 Only that verified prop type joins the extended placement/visit scan; scripted
 encounters remain on the native scanner. OpenBIOS is the current review default.
 
-Owner subsequently accepted X4 gameplay, with searchlights as the final repair.
-The category3/type7 intro controller800B6C9C now supplements its original
-scanner800B6EB4 over each layer's full adaptive rectangle. This small separate
+This small separate
 twelve-record table uses its native latches, allocation failure handling and
 category6 beam actors. Beam visibility800D4024 widens only its original X tests;
 Y, animation and geometry stay native. Stationary aspect changes are handled

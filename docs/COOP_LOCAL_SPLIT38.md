@@ -89,9 +89,6 @@ still welcome, particularly for performance at higher internal resolutions.
 
 ## Follow-up: offline performance report
 
-Tracked as beads-eio.9.196 after Playtest 38. The reported severe lag is still
-open; reporter hardware and a session recording were unavailable at this check.
-
 Enhanced builds now skip the retail 21x16 background packet producer **inside
 protected offline view callbacks**: the authored-map renderer replaces that
 list immediately afterwards. The ordinary canonical draw and online paths keep
@@ -106,13 +103,6 @@ RTX 3080 Ti, with the 1080p setting and render verification disabled for timing:
 | --- | --- | --- | --- |
 | Original producer | 58.84 FPS | 59.73 FPS | 0.810 / 0.750 ms |
 | Optimized producer | 59.97 FPS | 59.96 FPS | 0.505 / 0.563 ms |
-
-The measured improvement is in redundant drawing work, not proof that the
-reporter's lag is fixed. An earlier development binary ran at 46?48 FPS; that
-is not an otherwise identical build comparison, so its larger difference is
-not credited to this patch. Fast-forward samples are excluded because private
-views are refused while fast-forwarding. The final measured frames publish
-both own views at 1600x1200 per pane; the unchanged Jungle artifact remains.
 
 All 36 title tests pass. A separate native-resolution run enables full render
 verification and checks player separation, pause/resume, resize and P2 surviving

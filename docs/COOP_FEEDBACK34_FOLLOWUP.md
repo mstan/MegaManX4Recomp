@@ -12,13 +12,6 @@ Its two sessions identify Playtest34 (`7669a86f`), Split netplay and boss
 scaling with the default per-player cooldowns. The excerpts have P2 attacking
 and P1 idle. They enter the Frost refight, not the outdoor Frost stage.
 
-The [slash video](https://youtu.be/PdxhXzTN-Co) storyboard at approximately108s
-shows the same two Split views and F6084..658x. Full media retrieval failed;
-storyboard inspection is not a full motion review. The
-[ice-path video](https://youtu.be/zal4e5xvWGM) was downloaded and reviewed in full.
-It shows the later outdoor path, distinct from the opening timed platforms
-fixed in Playtest28 and the indoor second area.
-
 ## Saber contact lifecycle
 
 The outer ENEMY_HIT (`8002DD04`) filter skipped an immune attacker's entire
@@ -79,12 +72,6 @@ post-hit empty-overlap cleanup37 frames after the hit; the correction begins
 that cleanup nine frames after the hit, while private immunity still runs.
 Ground recovery, ordinary green blades, landing and hurt flashes were reviewed.
 Receipts: `feedback35-continued/basic24-before/` and `basic24-after/`.
-
-These asynchronous fresh fights do not have identical initial AI timing or
-positions. Their difference is supporting evidence, not a deterministic replay
-or proof that all of the tester's missed-hit experience is resolved. Ordinary
-ground chains and broadly spaced aerials already worked before this change.
-The broader report157 remains open pending qualification of the exact symptom.
 
 Private receipts: `build-pr23/feedback35-intake/air34-before/`,
 `air35-after/` and the captured review sheets beside them. The original

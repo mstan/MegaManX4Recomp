@@ -6,12 +6,6 @@ The published 1.0.1 archive/tag is preserved. These fixes ship in 1.0.2.
 
 ## Marine Base bike exit (211)
 
-Report: [Marine Base X and Zero footage](https://www.youtube.com/watch?v=skLz1xr2M_g),
-apparently Unified 4:3; transport and exact release are unknown. Storyboard
-frames around 198–202 seconds show both bikes reaching the final platform,
-followed by Zero's death while X remains. Full video download returned 403;
-the investigation does not claim frame-by-frame playback of that video.
-
 Native 1.0.1 reproduces the failure at stage 5/section 1's final Chaser exit.
 `8003BA24` clears the rider's mount and calls `80036AE4(0x17,0x40)` from
 `8003BA84`. Co-op mistakes that personal ejection pose for a shared room
@@ -60,13 +54,6 @@ are excluded. Native on-foot checkpoint 1 establishes the platform's floor;
 loading that checkpoint alone does not count as testing a dismount.
 
 ## Renewed Playtest 40 reports
-
-`Split Mushroom bugs 40.zip` has SHA256
-`3527afb705c08a842f5f0fd3cf8d1fd2667f672eb0ed6cc3bf2682313229ec2d`.
-Its metadata identifies Playtest 40, offline local Split 8:3, Both-player doors.
-The supplied[24-minute video](https://www.youtube.com/watch?v=vtSGsKW2dhk)
-was already associated with checklist 185/203. This is older evidence;
-presence of a fix in source alone is not treated as a fresh gameplay pass.
 
 ### First opening-stage part2 drop (199)
 

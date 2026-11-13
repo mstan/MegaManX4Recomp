@@ -3,10 +3,6 @@
 Issue: `beads-eio.9.288`. Branch: `fix/board-departure-pose`, based on
 `7c44e09cec794070d16addda0d4b939ed766fcb3` (v1.0.26).
 
-The supplied `C:/Users/Matthew/Downloads/Tiny bug 1.0.26.zip` and
-<https://youtu.be/kVZyFbl9G04> show Player 2 staying idle after the opening
-Hunter Base briefing while Player 1 enters the departure pose.
-
 The original recording replayed completely with all5015 inputs verified.
 In both campaign orders, native phase9 enters hero sequence1 through the
 original dialogue animation script, without a new stage-confirm control
@@ -39,13 +35,6 @@ Evidence root: `G:/Temp/Codex/psxrecomp/x4-departure-20261102`.
   entry passed in `candidate-selection-canonical`.
 * Current-build briefing snapshots are saved in slot0 of each private profile.
   These are for human replay and must not be replaced with old-build states.
-
-The existing new-game boot helper now accepts an optional observation callback;
-its ordinary input sequence is unchanged. Run the native case with
-`--campaign 0|1 --hidden-window --local-cameras split --cases opening_departure`.
-It uses no card seed or turbo. Preserve the supplied archive/cards; all test
-profiles are private. Video review used a decodable partial download through
-the first departure, not the entire video.
 
 The first selection run failed a raw `PLAY+0x43` gameplay read. The failure's
 completed diagnostic mirror still showed campaign0 and player characters0/1;

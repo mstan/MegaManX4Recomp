@@ -1,68 +1,11 @@
 # October 12 co-op feedback assessment
 
-Automatic startup capture is corrected and production-qualified for Playtest9.
-Independent native follow-up now reproduces the Jungle P2/HUD removal and
-identifies a reused weapon slot's stale graphics pointer as its rendering cause.
-The fix is integrated on master and native validation passes with X in either
-seat. It is included in [Playtest 9](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.9), now published for Windows and Linux.
-The staircase missing-shot report remains unreproduced after bounded native
-attempts. The owner authorizes Playtest9 after the disappearance fix is validated.
-
 Assessment: `beads-eio.9.70`. Existing checklist numbers and qualifications in
-[the October 10 feedback](COOP_PLAYTEST_FEEDBACK_20261010.md) remain unchanged.
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues) remain unchanged.
 That checklist has 49 stable items, 41 checked. New evidence below does not
 revalidate earlier staircase, elevator, graphics, or netplay fixes.
 
-## Sources and limits
-
-All times below are elapsed source-video times. Frame sampling can narrow a
-visible transition; it does not identify its original game tick or input.
-
-| Source | Reviewed material | What it establishes |
-| --- | --- | --- |
-| `E:/Downloads/IMG_0786.mov` | 9.667 seconds, 480×854, 30 fps; phone recording of the rotating staircase | Both bodies stay on screen; a charge-like effect ends with no clear travelling shot in the visible area. Perspective, overlapping bodies and a cropped HUD limit interpretation. |
-| [YouTube YTcB2JQEFdM](https://www.youtube.com/watch?v=YTcB2JQEFdM) | Downloaded video, 116.228 seconds, 1280×720, 60 fps; title `2026 10 12 10 05 44` | Startup through loading a save, selecting Jungle, repeatedly firing/cycling weapons at the opening waterfall, and removal of P2's body/HUD. |
-| `E:/Downloads/New Compressed (zipped) Folder.zip` | CRC-valid archive; 3 files | Three `diagnostics/startup-*.log` files, each zero bytes. |
-| `E:/Downloads/Diagnostics.zip` | CRC-valid archive; 15 files | Fifteen `diagnostics/startup-*.log` files, each zero bytes; includes the same three names as the smaller archive. |
-
-Neither archive contains `inputs.csv`, session metadata, starting memory cards,
-settings, or mod state. No REC indicator is visible in the reviewed gameplay.
-This means an input recording was not supplied; it does not prove that Playtest
-Diagnostics was enabled or that the input recorder failed. Offline replay of
-these ZIPs is impossible.
-
-At YouTube 00:02, Explorer shows the folder
-`MegaManX4Recomp-v0.1.1-coop-playtest.8-windows-x64` with the game executable
-selected. This corroborates the reported Playtest8 package folder, but neither
-the video nor the empty archives verify an execution ID, binary hash, or exact
-running build. Execution metadata and freeze dump filenames are visible in
-Explorer but their contents were not supplied. The launcher at 00:04 verifies
-the NTSC-U disc `SLUS-00561` and shows Player 1's connected Xbox controller.
-Actual Mods selections are not shown in the reviewed startup frames. The
-gameplay HUD identifies X/P1 and Zero/P2; their armor/palette appearance must
-not be treated as captured mod configuration. Network gameplay is not shown.
-
-Private audit and frame artifacts are in the ignored
-`build-pr23/feedback-20261012/` directory: `archive-audit.json`,
-`youtube-YTcB2JQEFdM.info.json`, the downloaded `.webm`, `img0786-sheet.jpg`,
-`img-shot-sheet.jpg`, `img-release-agent-sheet.jpg`, `yt000-sheet.jpg`,
-`yt040-sheet.jpg`, `yt080-sheet.jpg`, `yt-weapons-sheet.jpg`,
-`yt-disappear-sheet.jpg`, and `yt-transition-agent-sheet.jpg`. Source media and
-private captures are not repository artifacts.
-
 ## Timestamped observations
-
-| Source/time | Observed | Qualification |
-| --- | --- | --- |
-| YouTube 00:20–00:24 | Continue leads to Load Data; memory-card slot 1 and Data 1 are selected. | A native saved game is loaded. Its contents are unavailable for replay. |
-| YouTube 00:34–00:42 | Jungle is selected, READY/arrival completes, and both HUD groups appear at the opening waterfall ledge. | This footage supplies a concrete scene preceding the disappearance; it is not the previously reported boss-door scene. |
-| YouTube 00:42–01:48 | The characters remain near the starting ledge while P1's weapon icon/energy changes repeatedly and several shot/charge effects are visible. | Weapon cycling and attacks are visible; exact button sequences, selected weapon IDs and internal allocations are unknown. |
-| YouTube 01:26–01:28 | Large green triangular/cone geometry extends from the character while P1 has a magenta diamond weapon icon. | Appearance only. This may be an authored aiming/scan effect. A matching native comparison is needed before calling it corruption; it is not a confirmed bug. |
-| YouTube 01:48.43–01:48.47 | P2's lower HUD is still full green at the earlier sample and gone by the later sample; the partner body is also no longer visible. P1 continues firing a visible green shot in the same scene. | Removal is visually established. No death sequence, health depletion, room transition or camera relocation is apparent immediately before it. Manual withdrawal or a co-op failure remain possible without inputs/logs. |
-| YouTube 01:48.50–01:54.50 | P1 remains visible and active with the upper HUD; P2's HUD does not return in these samples. The recording is black by 01:55.00. | Persistent removal across the remaining visible gameplay is established. The footage does not establish why P2 left, whether a rejoin input was attempted, or permanent failure beyond this recording. |
-| MOV 00:00–00:05 | Both bodies overlap on the rotating staircase; a brief jump and return are visible. | This is useful location evidence. Phone perspective and overlap do not qualify the older staircase-height report. |
-| MOV approximately 00:05–00:07.02 | A charge-like glow grows/flashes around the overlapping bodies, then ends. | Charging is visually suggested; an actual attack-button release is not recorded. |
-| MOV approximately 00:07.02–00:07.08, then to clip end | An apparent right-facing buster pose follows the glow; no clear projectile travels through the visible area. Both bodies and partially cropped HUD groups remain present. | Supports the owner's missing-shot report as a visual symptom. It does not prove whether a shot spawned, was immediately retired, failed to draw, or could damage a target. |
 
 ## Burndown
 
@@ -142,15 +85,6 @@ stale table `801A47A4`, yet its projectile and both HUD groups remain visible.
 All three runs exit normally0. Item31 is checked for this reproduced
 weapon-reuse failure; the earlier boss-door enemy-fire, Mushroom midboss and
 intro disappearance reports are not independently qualified by these runs.
-
-The separate item49 attempt remains unqualified as a fix. QA113 visibly produces
-ordinary and three charged travelling X/P1 shots on both green and purple
-Mushroom stairs. QA114 produces ordinary and three charged X/P2 shots on the
-purple second-section stairs; inspected capture
-`stairs-1-400-1-True-2.png` shows the travelling shot. Its first-section setup
-entered a development-induced hurt lock and is excluded from qualification.
-Neither result proves the exact missing-shot state in IMG_0786.mov resolved,
-and no damage conclusion is drawn. Item49 stays unchecked and deferred.
 
 Private evidence: `build-pr23/qa-items31-111/`, `qa-items31-112/`,
 `qa-items31-115/`, `qa-items49-113/`, and the corresponding QA114/116/117/118

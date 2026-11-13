@@ -36,12 +36,6 @@ Private evidence and exact capacity/source/binary receipts:
 
 ## Train foreground pillars (`beads-eio.9.279`)
 
-Report: <https://youtu.be/ucIsvq2lM3k?t=2032>. Native D9A58 queues a type20
-foreground pillar while running the progressing hero's train controller.
-Its deferred CB940 initializer subsequently reads the shared camera at
-CAMERA+(352,128), after the hero's projection has ended. A leading P2 can
-therefore receive a pillar at P1's older camera origin, inside P2's screen.
-
 The original CB8F8 dispatch now initializes that pillar once with the
 allocating hero's saved camera and layer. The stage assembly at SCRATCH+20
 stays intact; projecting character resources here would corrupt its graphics.

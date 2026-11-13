@@ -42,10 +42,6 @@ with Windows ZIP and Linux x86_64 AppImage. Includes fresh saber-contact cleanup
 distant intro red-palette isolation, and the leading-P2 trigger for Frost's
 later outdoor ice path. [Qualification and limits](COOP_FEEDBACK34_FOLLOWUP.md).
 
-**Report157 remains unconfirmed:** the tester's exact missed follow-up slash
-sequence has not been reproduced or confirmed resolved. The contact-history
-fix and independent X/Zero hits have separate passing qualification.
-
 Unified cameras, Stacked HUD and Either-player doors remain defaults; Split is
 experimental. Both peers must update. Campaign memory-card saves carry forward.
 Production packages disable both debug tools and synchronized development controls.
@@ -60,11 +56,6 @@ with Windows ZIP and Linux x86_64 AppImage. Includes controller instance-zero
 rebinding and release handling, Windows SDL2 borderless windows, immediate mod
 preference saving, and compatible offline HUD/native-code setting changes.
 Black Zero's palette refreshes after loading a state with the option enabled.
-
-Unified cameras, Stacked HUD and Either-player doors remain defaults; Split is
-experimental. Both peers must update. Campaign memory-card saves carry forward.
-Online/Discord startup, intermittent music loss, historical intro-boss failures,
-Switch Pro drift and high-refresh Alt-Tab behavior still need reporter confirmation.
 
 Release issue: `beads-eio.9.169`. Private build and publication receipts:
 `build-pr23/release31-qa/`. Player-facing changes are in
@@ -389,7 +380,7 @@ sprite selection and paired-door admission (items84-85).
 Item86, the Sigma stage3 P2 disappearance, remains open and is not claimed fixed.
 Both local Unified and a fresh hidden two-peer Split netplay survivor transition
 passed; the latter used recorded mod settings but did not replay the exact inputs.
-See the [numbered checklist](COOP_PLAYTEST_FEEDBACK_20261010.md) for evidence limits.
+See the [project issues](https://github.com/mstan/MegaManX4Recomp/issues) for evidence limits.
 
 Unified cameras and Stacked lifebars remain defaults; Split is experimental.
 Both peers must update. The Double/Iris encounter option remains optional and
@@ -523,14 +514,6 @@ slot reuse and capsule palettes (`c5ba8de`), and the surviving-player waterfall
 exit (`24a1205`). Unified cameras and Stacked lifebars remain defaults; Split
 remains experimental. Both peers must upgrade together.
 
-These fixes were qualified against the supplied diagnostic recordings and
-targeted native checks. Production builds pass 32 Windows and 26 Linux title
-tests. Both packaged hidden launchers pass, complete room offers and execution/
-co-op identities match, and private development controls are disabled. Windows
-detached, no-window and redirected launches write nonempty startup logs and
-capture a real pre-boot error. AppImage layout/seeding and portable logs pass;
-glibc 2.38 or newer remains required.
-
 Compiled source: `d60a2f2`, framework `9bd4c20f9`, UI `06fd73e7`.
 Production profile: `mmx4-coop-delay-v3:2bd5608dde5146b445b4acbc60e1011b84e3314b`.
 
@@ -658,12 +641,6 @@ not alter the compiled runtime. Production profile:
 | Windows ZIP | `09bf8c4a3f369a7751e59ff5afcbd96f770083170192689427e33c2a78522637` |
 | Linux x86_64 AppImage | `e27153279506b5b680bbcf3a16de79c9c5f5f9ad9a418a71628d6371add168f3` |
 
-Public assets/checksums are staged under `dist/playtest7-public`. Private
-source, cards and QA remain excluded. Native gameplay/state qualification
-is Windows; Linux gameplay and WAN/NAT remain additional coverage. Exact
-staircase-floating and teleporter reports remain unqualified; intermittent
-co-op disappearance stays on the backlog. See the stable feedback checklist.
-
 ## Previous co-op playtest 6
 
 Version: `v0.1.1-coop-playtest.6`. Windows ZIP and Linux x86_64 AppImage
@@ -739,7 +716,7 @@ AppImage. Windows gameplay was validated using the current development
 build; no Windows package rebuild was requested for this release.
 
 Current changes are summarized in [release notes](../RELEASE_NOTES.md).
-The stable [October 10 checklist](COOP_PLAYTEST_FEEDBACK_20261010.md) records
+The stable [project issues](https://github.com/mstan/MegaManX4Recomp/issues) records
 the original 28 reports separately; those entries are checked. All 18 title checks pass,
 and QA88 qualifies both Split scenery panes with either leading seat and
 matching peer state checks through tick8672. The public Linux build also passes

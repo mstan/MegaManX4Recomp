@@ -114,13 +114,6 @@ player damage/capture. They are outside the requested enhancement.
 
 ### October 13 follow-up — feedback item 56
 
-The supplied `Player 2 Zero wall jump spider shot glitched.zip` contains three
-Playtest10 local recordings and five nonempty startup logs. The longest session,
-`session-1791910357664245`, replays all6,092 retained input/state checks on its
-original compatibility profile. The linked video `fSi_JH0r6HM` agrees with that
-recording's Mushroom section0 and controller display. Private evidence is kept
-under `build-pr23/feedback-web-zero`.
-
 Zero repeatedly alternates Fall7 and WallGrip9 at unchanged XY, including
 frames3837–3863,4695–4747 and4926–4951. The adapter accepted Fall7/FF and
 WallSlide11/FF but rejected the intervening WallGrip9. Original80034968 sets
@@ -270,7 +263,6 @@ Direct RAM writes and other raw mutation requests are rejected. Its eight
 offline fake-peer tests verify routing and completed-body reads, with sockets
 prohibited; live Split/native CRC and visual qualification remain with root.
 
-
 Root native QA88 qualifies the corrected range using two connected hidden
 peers with real Split rendering and synchronized development fixtures.
 The live base-slot actor is type2, state[1,5,0,0], speed00080000. Original
@@ -361,24 +353,6 @@ players need to destroy those panels. This is no longer treated as a bug.
 The reusable elevator check stops before the obstacles instead of requiring
 idle riders to survive the entire ascent. No crush policy was weakened.
 
-IMG0755's foot/tread offset is visible in the tester's footage. The blue spiral
-is stage3/section1/checkpoint0 beforeX2400. Native slope positions obey
-X:Y=714-floor(worldX/4) and Zero:Y=713-floor(worldX/4). Foreground mode2 uses
-cameraY=offset512-trunc(cameraX/4). QA35 compares both rosters at five positions
-fromX400 through1200, switching stationary bodies between4:3 and16:9.
-The configured renderer's ring/map validation reports1113 checked tiles and0
-differences at each boundary. Custom-renderer-disabled native4:3 reference
-captures also align visually; its unconfigured generic comparator output is
-not an X4 map-validation result. QA36 uses1080p, separates the players161px,
-and pauses/resumes with each owner. Native heights and visible feet remain
-correct. The floating pickup and tester offset are not reproduced, so
-item36 remains open.
-
-The exact section2 staircase-arrival footage for item34 is unavailable in the
-specified clip range. Frame-by-frame review of IMG0757's later lift retry
-at5.77–6.47seconds shows ordinary beams, overlapping circular arrival
-sprites, then both normal bodies. This does not qualify the missing report.
-
 ## Offline co-op states and diagnostic baselines, October 11
 
 Offline co-op now registers a versioned, pointer-free host snapshot provider.
@@ -467,12 +441,6 @@ run used explicit private memory cards. Full Linux gameplay remains additional
 coverage. These changes are not in the published Playtest6.
 # GitHub25 intro warning review (October11)
 
-The reporter's14.42-second Playtest6 clip shows X's empty HUD, Zero present,
-and repeated WARNING without an Eregion sprite or boss meter. The precise
-death location and timing, prior stage history and complete settings are not
-in the report. The issue remains open; these checks do not prove its old
-failure fixed or identify its cause.
-
 A fresh hidden debug build from Playtest7 source8207f27, using the original
 disc, OpenGL/OpenBIOS and private cards, passes all four checkpoint2
 campaign/dead-seat combinations. An original fatal-HP request runs the native
@@ -510,25 +478,6 @@ or new release is needed for this review. Central review issue: `beads-enkq`.
 
 ## Renewed online startup report, October 11
 
-The owner reports a netplay-fix PR from TechnicallyComputers, with one peer
-remaining white and the other staying in the lobby. The tested PR/build has
-not been identified. GitHub currently has no open X4 PR from that author;
-X4 PR23 is already merged. Shared runtime commit c47f7391e has no associated
-PR and repeats the full title-version, START relay-path, suspended lobby-agent
-and adopted-ICE transport fixes already present in Playtest7's 5a2332b6a pin.
-Its additional transport logging is absent from that pin. Do not infer that
-the latest user failure is fixed merely from this overlap.
-
-Fresh private `qa-online-start-56` uses current Playtest7-source debug controls,
-the original disc, owned cards and two hidden launchers. The real upstream
-WebSocket server runs privately with account authorization disabled. Current
-co-op metadata includes all four options; Create, Join, Ready and Play adopt
-the waiting-room ICE agents on both peers and boot native gameplay. There
-are92 identical core/mod CRC samples through tick3020. No desktop input or
-personal saves are used. The private server and both owned peers are stopped
-after the run. This qualifies the current local ICE handoff, not Discord
-authorization, WAN connectivity or the reporter's unidentified candidate.
-
 The suspected completed-agent race is not established: the server requires
 the guest's completed-connection path report before starting a two-seat room.
 Next evidence should identify the exact PR/build and capture both peers'
@@ -538,23 +487,6 @@ during a pre-boot white screen is expected. Keep checklist32 and central
 `beads-eio.9.42` open.
 
 ## October 11 independent-view fix and new Mushroom footage
-
-IMG0782 shows Zero's independent display replaced temporarily by X's camera
-and both stacked HUDs. Framework catch-up policy deliberately refused the
-local-view pass at four frames behind for at least60 ticks. Remove that
-automatic refusal, retaining the real fast-forward/session/backend/sandbox
-guards. Framework runtime d23e13dce, docs b292bfdc6 and X4 master85c9edd
-contain the fix; shared draftPR634 is assigned TechnicallyComputers. Windows
-and Linux sandbox regressions fail before and pass after, including restored
-CPU/RAM/clock under forced shed pressure; all21 Windows title tests pass.
-Hidden native `qa-split-view-59` keeps correct separate X/P1 and Zero/P2
-cameras/HUDs under25ms receive latency with10ms jitter. There are84 matching
-intro core/mod samples and3 later samples through3068; both peers add over120
-local redraws with no additional gameplay refusals or state leaks. The earlier
-QA57 failed an invalid lifetime-zero-startup-refusals assertion; QA58 failed
-because the private driver generated different session IDs across a second
-boundary. Both failures remain retained. No performance improvement or new
-public release is claimed. Residual slowdown is separate `beads-802e`.
 
 The linked Mushroom video RZd3pBBAKfA was downloaded at720p and reviewed over
 its complete356.85s timeline, with denser2fps review of109-144s and1fps
@@ -566,14 +498,6 @@ staircase remains the reported item36. The recording reaches the green lift
 near348s and cuts to black at the end; it does not show a later P2 lift death.
 Distinguish those visible symptoms from exact native causes and from the
 separately qualified earlier destination-plane correction/authentic panels.
-
-`Nuclear launch codes.zip` contains valid Playtest7 metadata, starting cards,
-settings and39013 native input records. Its metadata marks netplay, and its
-recorded gameplay stages are1/section0 then1/section1; there is no stage3.
-The owner says it was intended for this Mushroom session. Its saved mod state
-has the local input-diagnostic feature disabled. The recording is not yet
-matched to the footage: preserve it, check the recorder/session mismatch and
-do not claim an offline deterministic replay of a network recording.
 
 Private native `qa-mushroom-portal-60` probes authored stage3 checkpoint1 in
 both sections. Its short observation includes native initialization/arrival,
@@ -705,7 +629,6 @@ checks cover phases1-4, unrelated/no crossing and stale serials. No cutscene
 or native story is skipped. Private evidence: feedback21-metadata6-20261015/
 {inspect-intro1,intro1-prefix,intro-door-before,intro-door-fixed,intro-door-final}
 under build-pr23. Older item53's reported act2 process crash stays unconfirmed.
-
 
 ## Metadata6: shared Maverick victory poses (2026-10-14)
 

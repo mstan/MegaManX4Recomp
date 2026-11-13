@@ -1,8 +1,5 @@
 # Post-Playtest40 feedback
 
-The owner identified the new reports as **local co-op, experimental8:3 split**.
-The numbered burndown remains authoritative for completed and open work.
-
 ## Opening-stage first falling object (199)
 
 The executable's table at8010C160 contains15 records, numbered0 through14.
@@ -53,11 +50,6 @@ Private receipts: `candidate-tests.log`, `linux-diagnostic-checks.json`, and
 the actual native recording under `intro-after/saves/diagnostics/`.
 
 ## Slash Beast follow-up
-
-The owner reports that stage triggers now work, but backgrounds stop in both
-players' views. Items191-193 are checked as **tester confirmation**, not new
-native automated clearance. Background189 remains open for the broader
-both-view report, with one confirmed cause fixed locally.
 
 The actual opening-section train controller still runs when P2 leads, but
 the lifecycle's uncommitted P2 camera transaction restores the old canonical
@@ -134,12 +126,6 @@ qualification plus portable boundary coverage, not a fresh two-peer run.
 
 ## New Sigma recording intake (206-207)
 
-`Sigma stage3 bugs40.zip` has four native diagnostic sessions. The longest
-contains202878 inputs, including63261 gameplay rows in the refight section.
-It is Playtest40, offline local8:3, Both-player doors and boss scaling enabled.
-The video recording failure does not mean these inputs are missing. Its
-archive SHA256 isbac76e69799077d46c55579fa5cf31cb50716e1d1f6090b49b152071b5b17a08.
-
 Track Dragoon's refight camera lock as206 and Slash Beast's repeated weakness
 stun as207. Input positions alone cannot establish a camera's bounds or a boss reaction.
 
@@ -177,25 +163,5 @@ are excluded. Private receipts: `linux-native-proof/qualification.json`,
 `build-pr23/feedback41/`.
 
 ## Additional bounded controls
-
-- **Midboss187:** a native final saber hit and controller-driven leftward
-  jumps leave Mushroom's midboss room and trigger the original part2 loader.
-  Both heroes finish healthy at32HP; P2 is at184/667 with normal controls in
-  section1. No exit/success flag or collision tile is set. This verifies the
-  current leading-P2 exit; no additional collision patch is added. Private
-  evidence: `workshop-fixed2/midboss-forward-confirmed/`.
-- **Lasers182:** captured four P2-leading Owl locations with original enemy
-  kinds38/51/52/63/67 and laser attachments20. Inspected separated views do
-  not show the reported cross-view beam. This bounded result leaves182 open.
-- **Waterfall204:** the original checkpoint3 reaches the actual log section.
-  A no-compiler profile measures57.13 VBlank/world ticks per second with both
-  heroes alive, and58.91/59.07 with P1 dead. GPU scene time averages14.57/14.81ms;
-  render submission remains active in both windows. This shows limited
-  headroom, not the severe reported slowdown or a performance fix. Earlier
-  cross-room teleports were clamped into another camera region; those timings
-  and the capsule-scene timing are excluded. Private evidence:
-  `workshop-fixed2/waterfall-profile-no-compiler/`. The tester's saved1080p
-  configuration is not matched by this native-resolution control.
-
 
 Published: [v0.1.1-coop-playtest.41](https://github.com/mstan/MegaManX4Recomp/releases/tag/v0.1.1-coop-playtest.41). Windows and Linux production/package gates passed before publication.

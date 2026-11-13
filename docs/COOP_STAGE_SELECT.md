@@ -70,32 +70,6 @@ simulation evidence are retained privately in
 `G:/Temp/Codex/psxrecomp/x4-cast-followup121`. Earlier release qualification
 remains under `G:/Temp/Codex/psxrecomp/x4-stage-select-followup-20261030`.
 
-Tester evidence: `Select screen bugs 1.0.19.zip` and
-<https://youtu.be/jH2kzTL_b1o>. Loading the card's third record reproduces
-the Double conversation. In1.0.19, the added Iris receives sequence8 and an
-animation pointer into executable code (`800CA030`), outside her animation
-table. Version1.0.21 overcorrected this by hiding the partner cast throughout
-minor9. `Secret files.zip` confirms that the standalone cast feature was on;
-the public1.0.21 AppImage reproduces two actors during dialogue and four only
-on the interactive menu. The visibility follow-up keeps the added cast present
-and idle instead. The tester clarified that both heroes
-"talking" meant their mouth animations during text dialogue, not audio.
-
-| Native check | Result |
-| --- | --- |
-| Released1.0.21, tester's native save and exact enabled mod state | Reproduced missing partner cast: only X/Double in dialogue despite the feature being active; four actors appear once the interactive menu opens. |
-| Mod disabled, same save and local8:3 | Original two-character menu and dialogue; current-build save/load and gameplay entry pass. |
-| Zero campaign, private early-story native save, local8:3 | Four actors throughout Iris's conversation; X/Double remain idle. Matching pane layouts, save/load, selection animation and gameplay entry pass. |
-| X campaign, Unified camera, tester's native save | Four actors through Double's conversation and interactive menu; save/load and gameplay entry pass. |
-| Earlier release: early and late board story states | Both companions appear only while the campaign's native companion is admitted; original disappearance rules own that boundary. |
-| Current-build board save/load | Cast actors and native animation state restore. |
-| Final candidate, two consecutive native Quit/Continue returns, local8:3 | Four actors after each return, preserved P1 campaign/clear flags and gray portraits, no stale pause UI, zero render-transaction verification mismatches. |
-| Earlier1.0.19 loopback qualification |56 matching CRC samples did not cover the scripted Double conversation; that missing case is now reproduced above. The old view-local ordering is superseded. |
-| Earlier release: two-peer loopback, Split-camera netplay, experimental cast enabled |55 identical core/mod CRC samples through simulation1825; no render verification mismatches. Both peers admit the added hero. Direct peers with unequal cast options reject the match before frame0. This does not qualify the new dialogue follow-up over netplay. |
-| Earlier release: P2 Zero defeats Web Spider in X's campaign, scaling enabled | One native victory request, `21/72` from `80034FF0`. |
-| Earlier release: P2 X defeats Web Spider in Zero's campaign, scaling disabled | One native victory request, `22/75` from `80034FF0`. |
-| Earlier owner review corrections | Restored backdrop and portrait depth, both companions, original selection animations, matching nonblack Storm Owl intro panes, and no board animation table in recorded gameplay spawn states. |
-
 `tools/test_mmx4_coop_regressions.py --cases stage_select --card-seed ...`
 adds a reusable native board scenario to the existing hidden QA runner.
 It checks both actors, companion admission, Player 1's stage-choice ownership,

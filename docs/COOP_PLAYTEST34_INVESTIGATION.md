@@ -3,21 +3,7 @@
 These are development findings, not a published release. Tracking:
 `beads-eio.9.176`; the new saber investigation is `beads-eio.9.177`.
 
-## Supplied evidence
-
-The public Drive folder contains Metadata9.zip, SHA256
-`7637a7376ff32793e2adbca8061c50760d23abce0c8e3440e4ded287c3d9cd1f`.
-Its20 intact sessions identify local Unified Playtest31, not the reported30:
-execution `93f56a5e8f8d35fdee77384cb5e3772b5dfbd9b973dcbcd76206bba14f883dc5`,
-co-op source `a2ed2a044309d2cf51c67fbed296bd947b076bb2`.
-Scaling, Both doors and both story bosses are enabled. Relevant sessions use
-Zero/P1 and X/P2. No original assets, cards or recordings are committed.
-
 ## 155: charged fire resets the game
-
-Recorded resets at session1792259419106881 sequence26501 and
-session1792262129313887 sequence63717 preserve living health and ordinary
-attack inputs before PLAY becomes zero. Neither is a Start/Select reset.
 
 On current33, ordinary simultaneous fire and a lethal overlap survive.
 Fully charged X Rising Fire is the missing condition. Against native Frost,

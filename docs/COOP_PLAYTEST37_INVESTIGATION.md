@@ -1,20 +1,11 @@
 # Playtest36 burndown: implementation evidence
 
-Scope: the owner's attached goal and [the recurrence review](COOP_FEEDBACK36_REVIEW.md).
-This is a working investigation record. The owner now accepts the current157
-Frost comparison; production package qualification and publication are pending.
-
 ## Original local scaling controls
 
 An instrumented executable was built from unchanged36 gameplay sources with
 `PSX_DEBUG_TOOLS=ON`, `MMX4_COOP_NETPLAY_DEBUG=OFF`. It retains the production
 execution identity and co-op compatibility prefix/hash. Original diagnostic
 header, mod-plan, input and recorded state checks remain enabled.
-
-| Supplied recording | Options | Result |
-|---|---|---|
-| Storm Owl36 / P2 /1792313942710697 | Local, scaling on | Completes5503 verified input intervals;814 observed samples map to original recorded player state. Eleven native HP stores include three complete24/25/26 ground chains. |
-| Storm Owl36 / P1 /1792313940507867 | Local, scaling off | Completes5773 verified input intervals;932 observed samples map to original recorded player state. Four native HP stores in this encounter. |
 
 These results qualify inspection of the supplied local encounters. They do
 **not** reproduce the owner's reported ON-worse-than-OFF contrast, and are not
@@ -196,7 +187,6 @@ Production-package validation and the rest of the burndown remain pending;
 157 is still open and no release has been authorized as validated by these
 portal/Owl checks alone.
 
-
 ## Frame-scheduled slash controls and remaining instrumentation gap
 
 The next discovery controls use the debug server's queued, vblank-counted pad
@@ -239,7 +229,6 @@ Private discovery archive: `qualification37/route-investigation/` beneath
 `build-pr23/followup36/`, with source-script snapshots and SHA256 manifest.
 No gameplay fix, acceptance of157, or release is claimed from these controls.
 
-
 ### Native P2 route qualification
 
 The rebuilt debug executable830e110c46b62404a47075c06f6f8f90086e258f1717798cd76eeecb73194efd
@@ -265,7 +254,6 @@ Its provenance explicitly distinguishes it from an unchanged36 build; it must
 not be used as a qualified netplay/replay identity. Repeat the now-verified P2
 route to determine whether that correction explains the observed admissions.
 
-
 The local-only no-projection negative control also completes with five class27
 hits,38 backend frames apart (48->43). Its native190-frame P2 input window is
 verified against the same pattern with P1 neutral. Thus4985's shared-table
@@ -280,7 +268,6 @@ TechnicallyComputers. Its base retains the existing X4 framework line; unrelated
 framework master changes have not been pulled into this investigation.
 Native source/capture/input receipts are retained in the verified private
 `qualification37/p2-route-controls.zip` with a separate size/SHA256 receipt.
-
 
 ## Storm Owl post-midboss camera release (166)
 
@@ -611,12 +598,6 @@ Captures show the basic aerial arc, grounded
 chain poses and connected impacts. Later positioning diverges after native
 reactions, and many later attacks are visibly out of range.
 
-These are bounded negative controls for the reported ON-worse behavior, not
-acceptance of157. In particular, faster accepted grounded follow-ups in this
-one saved setup do not establish that the tester's missed slashes are fixed.
-The private pattern adapter, exact executed scenario source, both input logs,
-native traces and captures are retained in saved-basic-ground-controls.zip.
-
 ## Owner playtest handoff
 
 The owner requested a short manual comparison instead of further unattended
@@ -648,13 +629,6 @@ is qualified. Further unattended gameplay reproduction is stopped for this
 handoff; the owner's active instance must remain untouched.
 
 ## Owner playtest result
-
-The owner requested controller input, so the private comparison was relaunched
-with the detected PlayStation controller assigned to Zero/P2, normal audio,
-and P2-native pause ownership. No physical-input overrides remained during
-the handoff. The owner reports that scaling OFF has longer recovery and ON
-allows shorter combo recovery, confirms this is the intended result, then
-accepts the comparison and requests commit/integration and release.
 
 This closes157 for the current release on bounded human acceptance alongside
 the native adjacent-partner correction and recorded control cases. It does

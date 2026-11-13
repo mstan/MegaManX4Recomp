@@ -1,9 +1,5 @@
 # Web Spider survivor ladder follow-up
 
-Tracked by `beads-eio.9.226`. Report: `Wen Spider ladder of death.zip`,
-SHA256 `365b0a60ff87609f64921a0088b49483e1885983e22c894c7db5f5283dc17d41`,
-and [the supplied video](https://youtu.be/UFCmBLA9LJs).
-
 In local 8:3 Split on public 1.0.6, P2 reaches the last upper ladder in
 Web Spider part 1 while P1 remains below. After P1 dies, the camera stays in
 the upper enclosure. Descending kills P2 at world Y521, above the real floor.
@@ -55,12 +51,6 @@ and incompatible shared scenes.
 These are seven successful native scenarios. New online gameplay, Unified
 gameplay and the rest of the campaign were not audited for this follow-up;
 Unified's unchanged ownership path is covered by the lifecycle model.
-
-The developer comparison of the supplied input changes only the private
-build-identity header. Its corrected behavior first diverges from the old
-expected state at input5877, so it is explicitly **not** a successful replay
-or cross-build compatibility claim. The original release replay and fresh
-before/after gameplay fixtures serve different purposes.
 
 The native scenario `spider_ladder_survivor` in
 `tools/test_mmx4_coop_regressions.py` uses the original USA disc, a private

@@ -6,33 +6,7 @@ The burndown tracks each of the21 incoming symptoms separately (182–202).
 Unqualified Dragoon and lift-command candidates are excluded from the release;
 their private patch is retained under `build-pr23/feedback39/deferred-magma-lift.patch`.
 
-## Supplied evidence
-
-The eight diagnostic ZIPs cover Storm Owl lasers, Mushroom latches/midboss,
-Mushroom lift, Chaser dash, Slash Beast, Dragoon and two opening-stage runs.
-The indexed sessions identify Playtest39 offline local split, Both doors and
-boss scaling. Cumulative archives are deduplicated by session, keeping the
-longest input stream. Originals remain unchanged.
-
-Videos indexed: O7cQUeDZGkc, OA-BsVELu7Q, GbEFAAiIEIY, KGr_STHBYsE,
-9_7YxBHgcT0, PFuk8tsshi0 and rFtnY31SJcU. Contact sheets help locate events;
-they are not a claim that every video frame was reviewed.
-
 ## Native qualifications so far
-
-All runs use the original game executable/disc, hidden copies on a private
-Windows desktop, dummy audio, and local8:3 Split. Stage/checkpoint, position,
-invulnerability and enemy-health fixtures prepare scenarios. Native controller
-input and original actors commit the events below. These are controlled native
-scenarios, not exact replays of the tester's input stream.
-
-| Item | Observation and limit |
-| --- | --- |
-| 183 | Original39 closes the hatch while P2 is below it. Revised logic keeps state1 with the separated players and reaches state2 after both clear the collision edge. Both retainHP32. The first close follow-up used an invalid staggered setup; the final test moves both at one native boundary. |
-| 184 | Before revision, a P2 entry around4752 began the pan from the distant P1 camera near5192. Revised entry begins around4608/4592 in P2's room. A subsequent native slash supplies the final hit after an enemy-health setup; the original death sequence retires the actor with both heroes healthy. This does not establish the separate post-fight traversal report187. |
-| 190 | Original39 waits in its initial train phase despite P2 crossing the first threshold. Revised controller admits and finishes native bomb scenes at2256,3376 and6736. P1 is alive for the first two and dead for the last; P2 remains healthy. An initial test incorrectly expected a bomb admission at5056: native D8A64 is a no-op there. That timeout is not evidence of a survivor bug. |
-| 202 | With P1 alive at1616/443, P2 crosses the final slab and descends to954. The original closing-wall actors advance from state1 to state2, and both retainHP32. Only the predicate's loaded Y changes; native movement, map edits and collision still run once. |
-| 201 | Matched movement reproduces the difference: P1 is airborne in action7 atY473.94/689.29/845.29 while P2 remains grounded in action4/5/2 atY496/722/878. Native BED90 writes-1 to the slab's carry field before collision. P2's cached positive carry replaced it. The final native retest keeps both airborne in action7 atY463.11/462.11,598.29/597.29,741.29/740.29 and916.79/915.79. They land at955/954 withHP32 each. A boundary regression also verifies that the override is temporary and does not disable later normal carrying. |
 
 ## Candidates and remaining checks
 

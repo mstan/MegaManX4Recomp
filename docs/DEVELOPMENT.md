@@ -63,10 +63,7 @@ Development fixtures require `PSX_DEBUG_TOOLS=ON` and
 `MMX4_COOP_NETPLAY_DEBUG=ON`. Release packages disable both. Always use isolated
 settings, cards and hidden windows when running automated scenarios.
 
-The [numbered burndown](COOP_PLAYTEST_FEEDBACK_20261010.md) records reproduced
-defects, qualified fixes and unresolved reports. [Disc inventory](DISC_INVENTORY.md)
-documents the resident executable and asset archives; a runtime capture alone
-is not evidence of a separate disc overlay.
+[Disc inventory](DISC_INVENTORY.md) documents the resident executable and asset archives; a runtime capture alone is not evidence of a separate disc overlay.
 
 Framework changes belong upstream in PSXRecomp. Keep game images, generated
 code, memory cards, native caches, raw overlay captures and Ghidra databases

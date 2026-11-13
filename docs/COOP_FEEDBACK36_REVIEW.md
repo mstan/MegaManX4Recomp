@@ -1,11 +1,5 @@
 # Playtest36 recurrence review
 
-The owner reports that scaled Zero slashes remain wrong in36. Item157 is
-reopened. The Playtest36 implementation and its tests do **not** establish
-that the reported scaling-off versus scaling-on difference is resolved.
-The corrections below have bounded native qualification recorded separately;
-the owner now accepts the current157 Frost comparison for37; broader unconfirmed reports remain listed.
-
 ## Intended scaling behavior
 
 - A boss requires twice its original total damage to defeat.
@@ -54,12 +48,6 @@ it is not a safe one-line replacement.
 
 ## Why the prior acceptance was insufficient
 
-The earlier source-cadence probes transplanted controller timing into fresh
-native fights. They did not reproduce the tester's exact encounter. They
-showed that some attacks connected, and that selected counters/timers matched
-the implementation. They did not show that a connected native attack blocked
-by scaling became equivalent to its unscaled control.
-
 In particular, the prior fresh scaling-off control accepted fewer attacks than
 its scaling-on counterpart. That did not reproduce the owner's observed
 contrast and should have prevented closing157. Improved hit totals in another
@@ -86,22 +74,6 @@ and co-op profile `4944a647210cafcb6e9c1a22f8ae2b3e9565eef1`.
 | Storm Owl36.zip | b21405deec1ab0731871b10ea60650729a80e0a24a6590b4e9b1539a608eb3e3 | Paired network sessions, local sessions, scaling-on and scaling-off settings, Owl and Cyber routes. |
 | Opening stage Web Spider Frost Walrus36.zip | cb76eb51321af46e537d3991099b99604d563ef09f6d627e2903af09abb2d8e4 | Multiple sessions including repeats from the first archive; use recording identity rather than counting the repeats as separate reproductions. |
 
-Both hashes match the intake receipt. Private receipts and safely extracted data are under
-`build-pr23/followup36/`; originals remain unchanged. Settings select Both-player
-doors and Split cameras. A local session can retain the Split setting while
-the current game still uses Unified locally; the setting alone does not prove
-local split rendering. Network recordings are not supported as deterministic
-offline replays by the existing replay tool.
-
-`IMG_1004.mov` is9.33 seconds. The inspected contact sheet shows P2 approaching
-Cyber's course portal, then remaining beside it while the recorded frame
-counter continues advancing. That supports the reported stuck progression;
-it does not identify the native wait condition or prove an unbounded freeze.
-The supplied [Owl](https://youtu.be/Eu1-SnJQHYo) and
-[Intro/Web/Frost](https://youtu.be/vxliwk-y3OU) videos were queried. Full-media
-downloads return403; public storyboard sheets are available. Do not describe
-storyboard review as watching the full-motion videos.
-
 One paired Owl session, `1792318160615607`, records P1 dying at2905/524 while
 P2 is6348/426 at input20539. P2 also dies by20898. A later retry reaches part2.
 The existing `storm_survivor_exit` substitution applies only when P1 is dead
@@ -111,22 +83,6 @@ of that threshold; a teleport beyond6352 is not proof that a walking player can
 reach the trigger. These are investigation leads, not a validated new fix.
 
 ## Current burndown additions
-
-| Item | Status | Scope |
-|---|---|---|
-|157 | Owner accepted current timing | The owner compared the saved native Frost fight OFF/ON and reports shorter ON combo recovery as intended. Earlier36 automated acceptance stays withdrawn. [Result and limits](COOP_PLAYTEST37_INVESTIGATION.md#owner-playtest-result). |
-|25 | Validated correction | Native before/after leading-P2 and death/fade race checks reach part2 in local Unified and real Split LAN; see [qualification](COOP_PLAYTEST37_INVESTIGATION.md). |
-|2 | Reopened | Intro P2 boss approach walks left, loses P1 and corrupts graphics; upstream missing platforms may be related. |
-|107 | Still open | Web part1 spiked enemy also missing when both traverse. |
-|165 | Validated correction | Preserve the original assessment completion producer through P2 portal admission. Native grade/checkpoint/movement checks pass local Unified and real Split with both rosters; see [qualification](COOP_PLAYTEST37_INVESTIGATION.md). |
-|166 | Validated correction | Native Generaid Core death now releases both affected Split camera limits; both rosters/final-hit owners, local Unified control and regression checks pass. See [qualification](COOP_PLAYTEST37_INVESTIGATION.md). |
-|167 | Reported | Owl Buster Upgrade followed by X's death strands Zero above; additional secondhand report, not automatically attributed to this archive. |
-|168 | Validated correction | Native P1/P2 walking controls reproduce the falling-platform trigger exclusion. Either living hero now supplies its original threshold predicate; both local and real Split rosters pass. Boss-approach2 remains separate. See [qualification](COOP_PLAYTEST37_INVESTIGATION.md). |
-|169 | Reported | Frost rising-ice shaft camera stays behind after P1 dies. |
-|170 | Reported | Frost P2 camera graphics corrupt after the first death. |
-|171 | Reported | Frost part2 slowdown after the ice bird freezes the stage; separate from the36 camera-selection fix162. |
-|172 | Validated feature | Draw a second instance of the native course character-analysis graphic for P2 without a second assessment update. Both local rosters, real Split near/distant views, original portal completion and matching peers pass. See [qualification](COOP_PLAYTEST37_INVESTIGATION.md). |
-|173 | Requested feature | Optional local8:3 composition, two side-by-side4:3 views; Unified stays default. |
 
 Correctness intake is `beads-eio.9.188`, scaling remains `.177`, Cyber reticle
 is `.189`, and local split feasibility is `.190`. Existing issue references

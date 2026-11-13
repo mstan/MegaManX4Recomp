@@ -15,11 +15,6 @@ cameras, not a new enhancement switch.
 
 ## Reproduction and qualification
 
-The video d71pWkEZgRk shows Jungle terrain fragmentation and a return to one
-4:3 image for menus/shared scenes. The supplied `Split screen 38.zip` contains
-ten older sessions with the Playtest 36 profile and no local-camera setting;
-it cannot be used as a matching recording of that local 8:3 run.
-
 Hidden, muted native original-disc A/B checks hold P2 on Jungle's first
 platform at (56,138), then move P1 to the waterfall at (500,427). With Custom
 Renderer disabled, the first platform breaks into floating fragments while
