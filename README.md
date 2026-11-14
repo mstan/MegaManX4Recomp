@@ -11,10 +11,10 @@ from acediez/Hondoori (English) and El Retro Dan (Spanish), with
 
 **X and Zero. Together.**
 
-Mega Man X4 on Windows and Linux. **1.0.27 Stable Public Beta**, with two-player co-op.
+Mega Man X4 on Windows and Linux. **1.0.31 Preview Public Beta**, with two-player co-op.
 Bring a friend through X's or Zero's campaign, on one computer or over netplay.
 
-**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.27](RELEASE_NOTES.md) · [Known issues](docs/COOP_PLAYTEST_FEEDBACK_20261010.md)
+**[Downloads](https://github.com/mstan/MegaManX4Recomp/releases)** · [What's new in 1.0.31](RELEASE_NOTES.md) · [Known issues](https://github.com/mstan/MegaManX4Recomp/issues)
 
 <p align="center">
   <img src="docs/images/coop-jungle.png" width="640" alt="X and Zero together at the Jungle waterfall, with vertically stacked lifebars">
@@ -81,8 +81,8 @@ the original loading routines. Music and cutscenes retain their normal timing.
 </p>
 
 Offline co-op also supports **save states (F7)** and **rewind (F8)** when enabled.
-The Mods page includes widescreen, character codes and optional input display
-and diagnostic recording, **off by default**. [Controls, saves and reporting guide →](docs/PLAYTESTING.md)
+Adaptive widescreen is enabled for fresh settings. Character codes, input display
+and diagnostic recording are optional. [Controls, saves and reporting guide →](docs/PLAYTESTING.md)
 
 Optional language mods offer **Spanish** and **Brazilian Portuguese** dialogue
 using the game's own font. Supply your Japanese Rockman X4 disc to choose
@@ -103,7 +103,7 @@ additional Colonel, Iris and Zero/Sigma movies in your campaign.
 
 Expect bugs; independent cameras can still slow down. Online sign-in/startup
 reports remain under investigation.
-[Check the burndown](docs/COOP_PLAYTEST_FEEDBACK_20261010.md) or
+[project issues](https://github.com/mstan/MegaManX4Recomp/issues) or
 [report a bug](https://github.com/mstan/MegaManX4Recomp/issues).
 
 To record a bug, enable **Playtest Diagnostics → Input Display and Recording**

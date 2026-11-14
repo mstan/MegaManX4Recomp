@@ -1,0 +1,6 @@
+Mega Man X4 Recompiled v1.0.31 Preview
+Title release source: https://github.com/mstan/MegaManX4Recomp/tree/v1.0.31
+The exact build source and component commits are recorded in RELEASE_MANIFEST.json.
+PSXRecomp source: https://github.com/RetroPortingToolKit/psxrecomp/tree/7fa04b20b084ece216e6fafa0e6bac201101f867
+recomp-ui source: https://github.com/mstan/recomp-ui/tree/9127166118c878705770b0c5356a10e304c5e78b
+Bundled components retain their individual licenses and upstream references under licenses/ and overlay_toolchain/.

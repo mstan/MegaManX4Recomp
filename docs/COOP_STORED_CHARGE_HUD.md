@@ -44,15 +44,6 @@ private-view refusal, allocation reuse, and actor-pool bounds. Native visual
 and replay qualification is recorded separately when performed; these boundary
 tests alone do not establish that a gameplay image is correct.
 
-The supplied recording (`Charged shots hud display bug.zip`, session
-`1792889506553145`) was replayed with its exact original preview binary.
-All 16,902 inputs in the bounded photo-near prefix verified. A read-only
-2 MiB RAM capture at completion shows X with `PLAYER+A6=4` and the live
-controller at `80173CA0`: type54, visible, layer255, position32/52,
-CLUT780A, frame27. This confirms that the reported icons are this controller.
-It establishes the original reproduction and actor identity, not a pass for
-the modified build.
-
 Both development and release recompiler hook lists include `800B2C8C`;
 regenerate the native code before testing this updater interception.
 
