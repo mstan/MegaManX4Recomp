@@ -3,7 +3,7 @@ id = "mmx4.diagnostics"
 version = "1.0.0"
 name = "Playtest Diagnostics"
 author = "mstan"
-description = "Optional input display and diagnostic recording with initial memory cards. Off by default."
+description = "Records gameplay inputs with initial memory cards by default. The optional input display is independent."
 resolver = "declarative"
 save_compatibility = "shared"
 
@@ -13,11 +13,22 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 
 [[feature]]
 id = "inputs"
-name = "Input Display and Recording"
-description = "Shows P1/P2 buttons and an input counter during local play. Writes inputs.csv and starting card copies beneath saves/diagnostics. For online play, use Netplay diagnostic recording under X + Zero Co-op."
+name = "Input Recording"
+description = "Writes inputs.csv and starting card copies beneath saves/diagnostics. Recording is independent of Input Display. For online play, use Netplay diagnostic recording under X + Zero Co-op."
+group = "Diagnostics"
+default_enabled = true
+
+[[feature]]
+id = "osd"
+name = "Input Display"
+description = "Shows P1/P2 buttons and an input counter during local play. Turning this off does not stop recording."
 group = "Diagnostics"
 default_enabled = false
 
 [[plugin]]
 feature = "inputs"
 id = "mmx4.diagnostics"
+
+[[plugin]]
+feature = "osd"
+id = "mmx4.diagnostics.osd"

@@ -44,9 +44,9 @@ default = false
 feature = "coop"
 id = "diagnostic_recording"
 label = "Netplay diagnostic recording"
-description = "Off by default. The host can enable input display and diagnostic traces on both peers for a bug report. Includes starting game saves; recordings are stored locally under saves/diagnostics. For local play, use Playtest Diagnostics. Requires a fresh boot."
+description = "Records diagnostic traces on both peers by default. The host may turn recording off for the match. Includes starting game saves; recordings are stored locally under saves/diagnostics. The optional local Input Display is a separate Diagnostics control. For local play, use Input Recording. Requires a fresh boot."
 type = "boolean"
-default = false
+default = true
 
 [[option]]
 feature = "coop"

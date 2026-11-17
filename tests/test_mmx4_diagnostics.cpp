@@ -26,6 +26,7 @@ static std::map<std::string,unsigned> counters;
 static std::string save_root,shown[2];
 static std::string application_root;
 static bool online;
+static unsigned native_calls;
 static bool coop_active=true,split_views_config;
 static std::map<std::string,std::string> coop_options{{"local_cameras","unified"},
     {"cameras","unified"},{"hud_layout","stacked"},{"boss_scaling","false"}};
@@ -40,6 +41,7 @@ void psx_mod_write_half(uint32_t a,uint16_t v) {psx_mod_write_byte(a,(uint8_t)v)
 uint32_t psx_mod_read_word(uint32_t a) {return psx_mod_read_half(a)|(uint32_t(psx_mod_read_half(a+2))<<16);}
 void psx_mod_write_word(uint32_t a,uint32_t v) {psx_mod_write_half(a,(uint16_t)v);psx_mod_write_half(a+2,(uint16_t)(v>>16));}
 int psx_mod_register_activation_plugin(const char*,PSXModActivationCallback) {return 1;}
+int psx_mod_register_session_reset_plugin(const char*,PSXModActivationCallback) {return 1;}
 int psx_mod_register_function_filter_plugin(const char*,uint32_t,PSXModFunctionFilterCallback) {return 1;}
 int psx_mod_register_snapshot_loaded_observer(const char*,PSXModSnapshotLoadedObserver) {return 1;}
 int psx_mod_register_snapshot_provider(const char*,const PSXModSnapshotProvider*) {return 1;}
@@ -76,6 +78,7 @@ void mmx4_coop_development_mask_pad(void) {}
 uint8_t *mmx4_coop_second_body(void) {return partner.data();}
 int mmx4_coop_finish(CPUState *cpu,uint32_t v) {cpu->gpr[2]=v;return 1;}
 uint32_t mmx4_coop_call(CPUState*,uint32_t,uint32_t,uint32_t) {
+    ++native_calls;
     uint16_t held=(uint16_t)~pads[0];held=(uint16_t)((held<<8)|(held>>8));
     uint16_t old=psx_mod_read_half(0x80166C08u);
     psx_mod_write_half(0x80166C08u,held);psx_mod_write_half(0x80166C0Au,old);
@@ -132,16 +135,33 @@ int main(int argc,char **argv) {
     save_root=argc>1?argv[1]:"diagnostic-test-output";
     save_root+="/"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
     application_root=save_root;
-    std::filesystem::create_directories(save_root);CPUState cpu{};env("");activate();
+    std::filesystem::create_directories(save_root);CPUState cpu{};env("");reset_session();activate();
+    CHECK(recording_enabled && !display_enabled);
+    CHECK(shown[0].empty() && shown[1].empty());
+    activate_display();
     CHECK(!sources[0] && !sources[1]);
     std::filesystem::create_directories(PSXRecompV4::mod_runtime_root());
     {std::ofstream state(PSXRecompV4::mod_runtime_root()/"state.toml");state<<"format_version = 2\n";}
+    reset_session();activate_display();
+    pads={0xFFEF,0xBFFF};
+    CHECK(display_inputs(&cpu,0x80012328u) && sequence==1);
+    CHECK(!recording_enabled && !started && !recording.is_open());
+    CHECK(shown[0].find("U")!=std::string::npos && shown[0].find("REC")==std::string::npos);
+    activate(); // Existing saved inputs choice enables recording only.
+    CHECK(display_enabled && recording_enabled && sequence==0);
+    CHECK(!display_inputs(&cpu,0x80012328u) && sequence==0);
+    reset_session();activate();
+    CHECK(!display_enabled);
     auto initial=std::make_unique<decltype(memory)>(memory);
     pads={0xFFEF,0xBFFF};CHECK(inputs(&cpu,0x80012328u));
-    CHECK(shown[0].find("U")!=std::string::npos && shown[1].find("X")!=std::string::npos);
+    CHECK(recording.is_open() && shown[0].empty() && shown[1].empty());
+    activate_display();
+    auto calls_before=native_calls;
+    CHECK(!display_inputs(&cpu,0x80012328u) && sequence==1 && native_calls==calls_before);
     uint16_t raw=0xFFEF;mmx4_diagnostics_resolve_input(0,&raw);
     raw=0xFF7F;mmx4_diagnostics_resolve_input(1,&raw);
     psx_mod_write_word(FRAME,1);pads={0xFFFF,0xFFF7};CHECK(inputs(&cpu,0x80012328u));
+    CHECK(shown[1].find("St")!=std::string::npos);
     raw=0xFFF7;mmx4_diagnostics_resolve_input(1,&raw);
     recording.flush();auto final=std::make_unique<decltype(memory)>(memory);recording.close();
     std::filesystem::path file;
@@ -255,7 +275,8 @@ int main(int argc,char **argv) {
     // restored machine image. It must not append a time jump to old inputs.
     online=false;activate();inputs(&cpu,0x80012328u);
     const uint8_t restored_image[]={0x50,0x53,0x54,0x0A,0xFE,0x01};
-    diagnostics_active=false;activate();
+    diagnostics_active=false;reset_session();
+    activate_display(); // Display-only must not claim a recording or restore segment.
     auto folder_count=std::distance(std::filesystem::directory_iterator(
         std::filesystem::path(application_root)/"saves/diagnostics"),
         std::filesystem::directory_iterator{});
@@ -265,7 +286,7 @@ int main(int argc,char **argv) {
     CHECK(std::distance(std::filesystem::directory_iterator(
         std::filesystem::path(application_root)/"saves/diagnostics"),
         std::filesystem::directory_iterator{})==folder_count);
-    diagnostics_active=true;
+    diagnostics_active=true;activate();
     state_loaded(restored_image,sizeof restored_image);
     CHECK(sequence==0 && started && recording.is_open() && pending_baseline.empty());
     CHECK(counters["mmx4.diagnostics.state-segments"]==1);
@@ -313,7 +334,7 @@ int main(int argc,char **argv) {
     env("");activate();
     // A directory/write failure is visible both on the input display and in
     // the location pointer. It must never show REC with an unusable recording.
-    online=false;activate();
+    online=false;activate();activate_display();
     application_root+="/blocked-app";std::filesystem::create_directories(application_root);
     {std::ofstream blocked(std::filesystem::path(application_root)/"saves");blocked<<"file, not a directory";}
     inputs(&cpu,0x80012328u);

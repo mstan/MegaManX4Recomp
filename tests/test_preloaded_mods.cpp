@@ -49,6 +49,11 @@ int main(int argc, char** argv) {
                 entry.path(), package, &error)) {
             return fail("manifest parse failed: " + error);
         }
+        if(package.id=="mmx4.diagnostics") {
+            for(const auto& feature:package.features)
+                if(feature.hidden || feature.quick || feature.group!="Diagnostics")
+                    return fail("diagnostics must be visible regular Mods controls");
+        }
         for (const auto& resource : package.resources) {
             if (resource.id == "japanese-disc" &&
                 resource.file_patterns != "*.cue,*.bin,*.chd,*.iso") {
@@ -62,7 +67,7 @@ int main(int argc, char** argv) {
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
-             "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics",
+             "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics", "mmx4.diagnostics.osd",
              "mmx4.ultimate_armor", "mmx4.black_zero",
              "mmx4.japanese-media", "mmx4.translation",
              "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
@@ -102,7 +107,7 @@ int main(int argc, char** argv) {
         return fail("complete story must resolve independently and change session identity");
     if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",false,&error))return fail(error);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 3) {
+        default_plan.plugins.size() != 4) {
         return fail("normal-damage override was not enabled by default");
     }
     if (manager.feature_enabled("mmx4.nomusic", "no-music"))
@@ -124,24 +129,53 @@ int main(int argc, char** argv) {
     if (!music_restored.ok || !music_restored.overlays.empty() ||
         music_restored.fingerprint != default_plan.fingerprint)
         return fail("disabling no-music must restore the default plan");
-    bool diagnostics_default=false;
-    for(const auto& plugin:default_plan.plugins)diagnostics_default|=plugin.id=="mmx4.diagnostics";
-    if(diagnostics_default || manager.feature_enabled("mmx4.diagnostics","inputs"))
-        return fail("input diagnostics must default off");
-    if(manager.feature_option_value("mmx4.coop","coop","diagnostic_recording")!="false")
-        return fail("netplay diagnostic recording must default off");
-    // Recording stays selectable, and an explicit preference survives reload.
-    if(!manager.set_feature_enabled("mmx4.diagnostics","inputs",true,&error) ||
+    bool diagnostics_default=false,display_default=false;
+    for(const auto& plugin:default_plan.plugins) {
+        diagnostics_default|=plugin.id=="mmx4.diagnostics";
+        display_default|=plugin.id=="mmx4.diagnostics.osd";
+    }
+    if(!diagnostics_default || display_default ||
+       !manager.feature_enabled("mmx4.diagnostics","inputs") ||
+       manager.feature_enabled("mmx4.diagnostics","osd"))
+        return fail("recording must default on independently of display");
+    if(manager.feature_option_value("mmx4.coop","coop","diagnostic_recording")!="true")
+        return fail("netplay recording must default on without enabling co-op");
+    // The original inputs ID owns the saved recording choice. Display is new
+    // and independent; explicitly disabling recording must survive reload.
+    if(!manager.set_feature_enabled("mmx4.diagnostics","inputs",false,&error) ||
+       !manager.set_feature_enabled("mmx4.diagnostics","osd",true,&error) ||
+       !manager.set_feature_option("mmx4.coop","coop","diagnostic_recording","false",&error) ||
        !manager.save_state(&error))return fail(error);
     PSXRecompV4::ModPackageManager restored(root);
     if(!restored.scan(&error) || !restored.load_state(&error) ||
-       !restored.feature_enabled("mmx4.diagnostics","inputs"))
-        return fail("explicit diagnostic preference did not survive reload");
-    const auto recording_plan=restored.resolve(kGameId,"",kDiscSha256);
-    bool recording_plugin=false;
-    for(const auto& plugin:recording_plan.plugins)recording_plugin|=plugin.id=="mmx4.diagnostics";
-    if(!recording_plan.ok || !recording_plugin)return fail("optional diagnostics did not resolve");
-    if(!manager.set_feature_enabled("mmx4.diagnostics","inputs",false,&error))return fail(error);
+       restored.feature_enabled("mmx4.diagnostics","inputs") ||
+       !restored.feature_enabled("mmx4.diagnostics","osd") ||
+       restored.feature_option_value("mmx4.coop","coop","diagnostic_recording")!="false")
+        return fail("saved recording/display/netplay choices did not survive reload");
+    const auto display_plan=restored.resolve(kGameId,"",kDiscSha256);
+    bool recording_plugin=false,display_plugin=false;
+    for(const auto& plugin:display_plan.plugins) {
+        recording_plugin|=plugin.id=="mmx4.diagnostics";
+        display_plugin|=plugin.id=="mmx4.diagnostics.osd";
+    }
+    if(!display_plan.ok || recording_plugin || !display_plugin)
+        return fail("display-only choice must not activate recording");
+    if(!manager.set_feature_enabled("mmx4.diagnostics","inputs",true,&error) ||
+       !manager.set_feature_enabled("mmx4.diagnostics","osd",true,&error))return fail(error);
+    const auto both_plan=manager.resolve(kGameId,"",kDiscSha256);
+    unsigned recorders=0,displays=0;
+    for(const auto& plugin:both_plan.plugins) {
+        recorders+=plugin.id=="mmx4.diagnostics";
+        displays+=plugin.id=="mmx4.diagnostics.osd";
+    }
+    if(!both_plan.ok || recorders!=1 || displays!=1)
+        return fail("both choices must resolve each owner once");
+    if(!manager.save_state(&error) || !restored.load_state(&error) ||
+       !restored.feature_enabled("mmx4.diagnostics","inputs") ||
+       !restored.feature_enabled("mmx4.diagnostics","osd"))
+        return fail("saved recording/display ON choices did not survive reload");
+    if(!manager.set_feature_enabled("mmx4.diagnostics","osd",false,&error) ||
+       !manager.set_feature_enabled("mmx4.diagnostics","inputs",false,&error))return fail(error);
     for(const char* feature:{"japanese-media","translation"})
         if(manager.feature_enabled("mmx4.localization",feature))return fail("language mods must default off");
     for(const char* option:{"voices","title-screen"})
