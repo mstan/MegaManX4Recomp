@@ -12,8 +12,8 @@ class CoopHookRegistrationTest(unittest.TestCase):
         config = tomllib.loads((ROOT / 'game.toml').read_text(encoding='utf-8'))
         emitted = {int(value, 16) for value in config['recompiler']['mod_instruction_sites']}
         pattern = re.compile(r'psx_mod_register_instruction_plugin\s*\('
-                             r'\s*(?:ID|COOP_ID)\s*,\s*(0x[0-9a-fA-F]+)[uU]?\s*,')
-        for source in (ROOT / 'src/mods').glob('mmx4_coop_*.c'):
+                             r'\s*(?:ID|COOP_ID|PLUGIN)\s*,\s*(0x[0-9a-fA-F]+)[uU]?\s*,')
+        for source in (ROOT / 'src/mods').glob('mmx4_*.c'):
             for match in pattern.finditer(source.read_text(encoding='utf-8')):
                 address = int(match.group(1), 16)
                 self.assertIn(address, emitted,

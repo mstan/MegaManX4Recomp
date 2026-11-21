@@ -1,5 +1,9 @@
 #include "mod_packages.h"
+#include "mod_plugins.h"
+#include "cpu_state.h"
 
+#include <array>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -22,7 +26,32 @@ int fail(const std::string& message) {
 
 void no_op_plugin() {}
 
+std::array<uint8_t, 0x60> escape_play;
+std::array<uint8_t, 0x40> escape_menu;
+bool escape_bad_write = false;
+
 }  // namespace
+
+// Compile the real title plugin and use the production registration owner.
+// Only its guest-memory access is replaced in this catalog-only fixture.
+extern "C" int psx_mod_register_instruction_plugin(
+    const char* id, uint32_t address, uint32_t expected,
+    PSXModFunctionEntryCallback callback) {
+    return id && PSXRecompV4::mod_register_instruction_plugin(id, address, expected, callback);
+}
+
+extern "C" uint8_t psx_mod_read_byte(uint32_t address) {
+    if (address >= 0x801721C0u && address < 0x801721C0u + escape_play.size())
+        return escape_play[address - 0x801721C0u];
+    return 0;
+}
+
+extern "C" void psx_mod_write_byte(uint32_t address, uint8_t value) {
+    if (address >= 0x801754A0u && address < 0x801754A0u + escape_menu.size())
+        escape_menu[address - 0x801754A0u] = value;
+    else
+        escape_bad_write = true;
+}
 
 int main(int argc, char** argv) {
     if (argc != 2 && argc != 5) return fail("expected mods root [English.x4fmv Spanish.x4fmv Japanese-BIN]");
@@ -63,14 +92,49 @@ int main(int argc, char** argv) {
     }
     if (manifest_count != 13) return fail("expected thirteen package manifests, including optional stage escape");
 
+    const auto escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.stage-escape");
+    if (!PSXRecompV4::mod_plugin_registered("mmx4.stage-escape") ||
+        escape_hooks.size() != 1 || escape_hooks[0].address != 0x2FF7Cu ||
+        escape_hooks[0].expected != 0xA2020024u || !escape_hooks[0].callback)
+        return fail("actual stage-escape instruction-only plugin was not registered");
+    CPUState escape_cpu{};
+    escape_cpu.gpr[16] = 0x801754A0u;
+    escape_play.fill(0xA5);
+    escape_play[0] = 6;
+    escape_play[1] = 2;
+    const auto original_play = escape_play;
+    const CPUState original_cpu = escape_cpu;
+    for (unsigned inactive = 0; inactive < 3; ++inactive) {
+        escape_menu.fill(0x5A);
+        escape_cpu.gpr[16] = inactive == 0 ? 0 : 0x801754A0u;
+        escape_play[0] = inactive == 1 ? 3 : 6;
+        escape_play[1] = inactive == 2 ? 1 : 2;
+        escape_hooks[0].callback(&escape_cpu, 0x8002FF7Cu);
+        for (uint8_t byte : escape_menu)
+            if (byte != 0x5A) return fail("stage-escape callback changed a non-gameplay menu");
+    }
+    escape_cpu = original_cpu;
+    escape_play = original_play;
+    escape_menu.fill(0x5A);
+    escape_hooks[0].callback(&escape_cpu, 0x8002FF7Cu);
+    for (size_t i = 0; i < escape_menu.size(); ++i)
+        if (escape_menu[i] != (i == 0x23 ? 1 : 0x5A))
+            return fail("stage-escape callback must change only pause eligibility");
+    if (escape_bad_write || escape_play != original_play ||
+        std::memcmp(&escape_cpu, &original_cpu, sizeof(escape_cpu)))
+        return fail("stage-escape callback changed campaign or CPU state");
+
     PSXRecompV4::mod_clear_plugins_for_tests();
+    if (!PSXRecompV4::mod_register_instruction_plugin("mmx4.stage-escape",
+            0x8002FF7Cu, 0xA2020024u, escape_hooks[0].callback))
+        return fail("could not restore actual stage-escape instruction registration");
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
              "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics", "mmx4.diagnostics.osd",
              "mmx4.ultimate_armor", "mmx4.black_zero",
              "mmx4.japanese-media", "mmx4.translation",
-             "mmx4.japanese-fmvs", "mmx4.complete-story", "mmx4.stage-escape"}) {
+             "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
