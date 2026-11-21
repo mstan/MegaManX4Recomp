@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    if (manifest_count != 12) return fail("expected twelve package manifests, including optional stage-select cast");
+    if (manifest_count != 13) return fail("expected thirteen package manifests, including optional stage escape");
 
     PSXRecompV4::mod_clear_plugins_for_tests();
     for (const char* id : {
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
              "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics", "mmx4.diagnostics.osd",
              "mmx4.ultimate_armor", "mmx4.black_zero",
              "mmx4.japanese-media", "mmx4.translation",
-             "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
+             "mmx4.japanese-fmvs", "mmx4.complete-story", "mmx4.stage-escape"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -80,10 +80,28 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 12)
-        return fail("expected twelve package families");
+    if (manager.packages().size() != 13)
+        return fail("expected thirteen package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
+    if(manager.feature_enabled("mmx4.qol.stage-escape","escape"))
+        return fail("unfinished-stage escape must default off");
+    if(!manager.set_feature_enabled("mmx4.qol.stage-escape","escape",true,&error) ||
+       !manager.save_state(&error))return fail(error);
+    PSXRecompV4::ModPackageManager escape_saved(root);
+    if(!escape_saved.scan(&error) || !escape_saved.load_state(&error) ||
+       !escape_saved.feature_enabled("mmx4.qol.stage-escape","escape"))
+        return fail("saved stage-escape choice did not survive reload");
+    const auto escape_plan=escape_saved.resolve(kGameId,"",kDiscSha256);
+    unsigned escape_plugins=0;
+    for(const auto& plugin:escape_plan.plugins)escape_plugins+=plugin.id=="mmx4.stage-escape";
+    if(!escape_plan.ok || escape_plugins!=1 || !escape_plan.writes.empty() ||
+       escape_plan.fingerprint==default_plan.fingerprint)
+        return fail("stage escape must resolve independently without campaign writes");
+    if(!manager.set_feature_enabled("mmx4.qol.stage-escape","escape",false,&error) ||
+       !manager.save_state(&error) || !escape_saved.load_state(&error) ||
+       escape_saved.feature_enabled("mmx4.qol.stage-escape","escape"))
+        return fail("saved stage-escape off choice did not survive reload");
     if(manager.feature_enabled("mmx4.coop-stage-select","cast") ||
        manager.feature_option_value("mmx4.coop","coop","stage_select_cast")!="false")
         return fail("stage-select cast must default off locally and online");
