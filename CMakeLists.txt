@@ -256,14 +256,12 @@ if(BUILD_TESTING)
                     add_executable(${MMX4_GL_TARGET}
                         tests/test_mmx4_sprite_atlas_gl.c
                         "${MMX4_GL_TEST_SRC}/gpu_sw_renderer.c"
-                        "${MMX4_GL_TEST_SRC}/frame_interpolation.c"
                         "${MMX4_GL_TEST_SRC}/render_pass_plan.c"
                         "${MMX4_GL_TEST_SRC}/psx_openxr.c"
                         "${MMX4_GL_TEST_SRC}/render_thread.c"
                         "${MMX4_GL_TEST_SRC}/present_thread.c"
                         "${MMX4_GL_TEST_SRC}/gpu_render.c"
-                        "${MMX4_GL_TEST_SRC}/host_overlay.c"
-                        "${MMX4_GL_TEST_SRC}/frame_gen.c")
+                        "${MMX4_GL_TEST_SRC}/host_overlay.c")
                     target_include_directories(${MMX4_GL_TARGET} PRIVATE
                         "${PSXRECOMP_V4_ROOT}/runtime/include" "${MMX4_GL_TEST_SRC}"
                         "${PSXRECOMP_V4_ROOT}/runtime/tests")
