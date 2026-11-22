@@ -29,11 +29,15 @@ void no_op_plugin() {}
 std::array<uint8_t, 0x60> escape_play;
 std::array<uint8_t, 0x40> escape_menu;
 bool escape_bad_write = false;
+bool escape_online = false;
+bool escape_option_present = true;
+const char* escape_online_option = "false";
 
 }  // namespace
 
 // Compile the real title plugin and use the production registration owner.
-// Only its guest-memory access is replaced in this catalog-only fixture.
+// Guest-memory access and the supplied committed option context are replaced
+// here; saved selections and plan identity still use the production manager.
 extern "C" int psx_mod_register_instruction_plugin(
     const char* id, uint32_t address, uint32_t expected,
     PSXModFunctionEntryCallback callback) {
@@ -51,6 +55,15 @@ extern "C" void psx_mod_write_byte(uint32_t address, uint8_t value) {
         escape_menu[address - 0x801754A0u] = value;
     else
         escape_bad_write = true;
+}
+
+extern "C" int psx_mod_netplay_is_active(void) { return escape_online; }
+extern "C" int psx_mod_current_option_value(
+    const char* option, char* out, uint32_t size) {
+    if (!escape_option_present || std::strcmp(option, "stage_escape") ||
+        size <= std::strlen(escape_online_option)) return 0;
+    std::strcpy(out, escape_online_option);
+    return 1;
 }
 
 int main(int argc, char** argv) {
@@ -124,10 +137,29 @@ int main(int argc, char** argv) {
         std::memcmp(&escape_cpu, &original_cpu, sizeof(escape_cpu)))
         return fail("stage-escape callback changed campaign or CPU state");
 
+    const auto online_escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.coop");
+    if (online_escape_hooks.size() != 1 || online_escape_hooks[0].address != 0x2FF7Cu ||
+        online_escape_hooks[0].expected != 0xA2020024u || !online_escape_hooks[0].callback)
+        return fail("Co-op's online Escape callback was not registered");
+    for (unsigned choice = 0; choice < 4; ++choice) {
+        escape_online = choice != 0;
+        escape_option_present = choice != 1;
+        escape_online_option = choice == 2 ? "false" : "true";
+        escape_menu.fill(0x5A);
+        online_escape_hooks[0].callback(&escape_cpu, 0x8002FF7Cu);
+        for (size_t i = 0; i < escape_menu.size(); ++i)
+            if (escape_menu[i] != (choice == 3 && i == 0x23 ? 1 : 0x5A))
+                return fail("online Escape did not follow its committed host option");
+    }
+    escape_online = false;
+
     PSXRecompV4::mod_clear_plugins_for_tests();
     if (!PSXRecompV4::mod_register_instruction_plugin("mmx4.stage-escape",
             0x8002FF7Cu, 0xA2020024u, escape_hooks[0].callback))
         return fail("could not restore actual stage-escape instruction registration");
+    if (!PSXRecompV4::mod_register_instruction_plugin("mmx4.coop",
+            0x8002FF7Cu, 0xA2020024u, online_escape_hooks[0].callback))
+        return fail("could not restore actual Co-op Escape instruction registration");
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
@@ -166,6 +198,22 @@ int main(int argc, char** argv) {
        !manager.save_state(&error) || !escape_saved.load_state(&error) ||
        escape_saved.feature_enabled("mmx4.qol.stage-escape","escape"))
         return fail("saved stage-escape off choice did not survive reload");
+    if(manager.feature_option_value("mmx4.coop","coop","stage_escape")!="false")
+        return fail("netplay stage escape must default off");
+    if(!manager.set_feature_enabled("mmx4.coop","coop",true,&error))return fail(error);
+    const auto online_escape_off=manager.resolve(kGameId,"",kDiscSha256);
+    if(!manager.set_feature_option("mmx4.coop","coop","stage_escape","true",&error) ||
+       !manager.save_state(&error) || !escape_saved.load_state(&error) ||
+       escape_saved.feature_option_value("mmx4.coop","coop","stage_escape")!="true")
+        return fail("saved netplay Escape choice did not survive reload");
+    const auto online_escape_on=escape_saved.resolve(kGameId,"",kDiscSha256);
+    if(!online_escape_on.ok || online_escape_on.fingerprint==online_escape_off.fingerprint)
+        return fail("netplay Escape choice did not change the settings plan identity");
+    if(!manager.set_feature_option("mmx4.coop","coop","stage_escape","false",&error) ||
+       !manager.set_feature_enabled("mmx4.coop","coop",false,&error) ||
+       !manager.save_state(&error) || !escape_saved.load_state(&error) ||
+       escape_saved.feature_option_value("mmx4.coop","coop","stage_escape")!="false")
+        return fail("saved netplay Escape off choice did not survive reload");
     if(manager.feature_enabled("mmx4.coop-stage-select","cast") ||
        manager.feature_option_value("mmx4.coop","coop","stage_select_cast")!="false")
         return fail("stage-select cast must default off locally and online");

@@ -50,6 +50,14 @@ default = "true"
 
 [[option]]
 feature = "coop"
+id = "stage_escape"
+label = "Netplay Escape unfinished stages"
+description = "Either player can leave an unfinished stage and take both players back to stage select. Keep collected items; reenter at the stage entrance. The host chooses for both peers. For local play, use the separate Escape Unfinished Stages mod. Requires a fresh boot."
+type = "boolean"
+default = false
+
+[[option]]
+feature = "coop"
 id = "local_cameras"
 label = "Local co-op display"
 description = "Unified shares one screen. Side by side gives each local player a 4:3 camera and HUD, together in an 8:3 view. Independent pause menus show both character menus side by side in either local layout. Shared story scenes use one view. Requires a fresh boot; this setting does not change online cameras."
