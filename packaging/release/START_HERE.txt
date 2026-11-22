@@ -60,6 +60,12 @@ CO-OP PUBLIC BETA
   the lives counter shows team retries. Either living player can use Select in
   the pause menu to Quit, or select Escape in a cleared stage.
 
+  Escape Unfinished Stages is an optional Mods toggle. It keeps collected
+  items and native progress while discarding that stage's checkpoint.
+  Skip Sigma's Boss Rush is another optional toggle: after unlocking the final
+  stage normally, use Sigma's original teleporter without the eight refights.
+  Both default off. Online hosts choose the matching Co-op options instead.
+
   Offline co-op supports save states and rewind. F7 opens save states:
   Square saves, Cross loads, and Circle goes back, using your configured
   controller/keyboard bindings. F8 opens rewind when Rewind is enabled.

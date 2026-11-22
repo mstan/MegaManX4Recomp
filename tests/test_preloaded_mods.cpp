@@ -1,5 +1,10 @@
 #include "mod_packages.h"
+#include "mod_plugins.h"
+#include "cpu_state.h"
 
+#include <algorithm>
+#include <array>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -22,7 +27,53 @@ int fail(const std::string& message) {
 
 void no_op_plugin() {}
 
+std::array<uint8_t, 0x60> escape_play;
+std::array<uint8_t, 0x40> escape_menu;
+std::array<uint8_t, 0x8C> rush_actor;
+bool rush_local_view = false;
+const char* rush_online_option = "false";
+bool escape_bad_write = false;
+bool escape_online = false;
+bool escape_option_present = true;
+const char* escape_online_option = "false";
+
 }  // namespace
+
+// Compile the real title plugin and use the production registration owner.
+// Guest-memory access and the supplied committed option context are replaced
+// here; saved selections and plan identity still use the production manager.
+extern "C" int psx_mod_register_instruction_plugin(
+    const char* id, uint32_t address, uint32_t expected,
+    PSXModFunctionEntryCallback callback) {
+    return id && PSXRecompV4::mod_register_instruction_plugin(id, address, expected, callback);
+}
+
+extern "C" uint8_t psx_mod_read_byte(uint32_t address) {
+    if (address >= 0x801721C0u && address < 0x801721C0u + escape_play.size())
+        return escape_play[address - 0x801721C0u];
+    if (address >= 0x80165A30u && address < 0x80165A30u + rush_actor.size())
+        return rush_actor[address - 0x80165A30u];
+    return 0;
+}
+
+extern "C" int psx_mod_local_view_scope(void) { return rush_local_view; }
+
+extern "C" void psx_mod_write_byte(uint32_t address, uint8_t value) {
+    if (address >= 0x801754A0u && address < 0x801754A0u + escape_menu.size())
+        escape_menu[address - 0x801754A0u] = value;
+    else
+        escape_bad_write = true;
+}
+
+extern "C" int psx_mod_netplay_is_active(void) { return escape_online; }
+extern "C" int psx_mod_current_option_value(
+    const char* option, char* out, uint32_t size) {
+    const char* value = !std::strcmp(option, "stage_escape") ? escape_online_option :
+        !std::strcmp(option, "boss_rush_skip") ? rush_online_option : nullptr;
+    if (!escape_option_present || !value || size <= std::strlen(value)) return 0;
+    std::strcpy(out, value);
+    return 1;
+}
 
 int main(int argc, char** argv) {
     if (argc != 2 && argc != 5) return fail("expected mods root [English.x4fmv Spanish.x4fmv Japanese-BIN]");
@@ -61,9 +112,141 @@ int main(int argc, char** argv) {
             }
         }
     }
-    if (manifest_count != 12) return fail("expected twelve package manifests, including optional stage-select cast");
+    if (manifest_count != 14) return fail("expected fourteen package manifests, including optional stage escape and boss-rush skip");
+
+    const auto escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.stage-escape");
+    if (!PSXRecompV4::mod_plugin_registered("mmx4.stage-escape") ||
+        escape_hooks.size() != 1 || escape_hooks[0].address != 0x2FF7Cu ||
+        escape_hooks[0].expected != 0xA2020024u || !escape_hooks[0].callback)
+        return fail("actual stage-escape instruction-only plugin was not registered");
+    CPUState escape_cpu{};
+    escape_cpu.gpr[16] = 0x801754A0u;
+    escape_play.fill(0xA5);
+    escape_play[0] = 6;
+    escape_play[1] = 2;
+    const auto original_play = escape_play;
+    const CPUState original_cpu = escape_cpu;
+    for (unsigned inactive = 0; inactive < 3; ++inactive) {
+        escape_menu.fill(0x5A);
+        escape_cpu.gpr[16] = inactive == 0 ? 0 : 0x801754A0u;
+        escape_play[0] = inactive == 1 ? 3 : 6;
+        escape_play[1] = inactive == 2 ? 1 : 2;
+        escape_hooks[0].callback(&escape_cpu, 0x8002FF7Cu);
+        for (uint8_t byte : escape_menu)
+            if (byte != 0x5A) return fail("stage-escape callback changed a non-gameplay menu");
+    }
+    escape_cpu = original_cpu;
+    escape_play = original_play;
+    escape_menu.fill(0x5A);
+    escape_hooks[0].callback(&escape_cpu, 0x8002FF7Cu);
+    for (size_t i = 0; i < escape_menu.size(); ++i)
+        if (escape_menu[i] != (i == 0x23 ? 1 : 0x5A))
+            return fail("stage-escape callback must change only pause eligibility");
+    if (escape_bad_write || escape_play != original_play ||
+        std::memcmp(&escape_cpu, &original_cpu, sizeof(escape_cpu)))
+        return fail("stage-escape callback changed campaign or CPU state");
+
+    auto online_escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.coop");
+    online_escape_hooks.erase(std::remove_if(online_escape_hooks.begin(), online_escape_hooks.end(),
+        [](const auto& hook) { return hook.address != 0x2FF7Cu; }), online_escape_hooks.end());
+    if (online_escape_hooks.size() != 1 || online_escape_hooks[0].address != 0x2FF7Cu ||
+        online_escape_hooks[0].expected != 0xA2020024u || !online_escape_hooks[0].callback)
+        return fail("Co-op's online Escape callback was not registered");
+    for (unsigned choice = 0; choice < 4; ++choice) {
+        escape_online = choice != 0;
+        escape_option_present = choice != 1;
+        escape_online_option = choice == 2 ? "false" : "true";
+        escape_menu.fill(0x5A);
+        online_escape_hooks[0].callback(&escape_cpu, 0x8002FF7Cu);
+        for (size_t i = 0; i < escape_menu.size(); ++i)
+            if (escape_menu[i] != (choice == 3 && i == 0x23 ? 1 : 0x5A))
+                return fail("online Escape did not follow its committed host option");
+    }
+    escape_online = false;
+
+    // Execute the real portal callback. Its only allowed effect is the
+    // native eligibility operand; original campaign/refight/actor bytes stay.
+    const auto rush_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.boss-rush-skip");
+    auto online_rush_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.coop");
+    online_rush_hooks.erase(std::remove_if(online_rush_hooks.begin(), online_rush_hooks.end(),
+        [](const auto& hook) { return hook.address != 0xC7900u; }), online_rush_hooks.end());
+    if (rush_hooks.size() != 1 || rush_hooks[0].address != 0xC7900u ||
+        rush_hooks[0].expected != 0x306300FFu || !rush_hooks[0].callback ||
+        online_rush_hooks.size() != 1 || online_rush_hooks[0].expected != 0x306300FFu)
+        return fail("actual standalone/Co-op Sigma portal hooks were not registered");
+    CPUState rush_cpu{};
+    rush_cpu.gpr[16] = 0x80165A30u;
+    rush_cpu.gpr[3] = 8;
+    escape_play.fill(0);
+    escape_play[0] = 6; escape_play[12] = 12;
+    escape_play[0x59] = 255; escape_play[0x5F] = 10;
+    rush_actor.fill(0);
+    rush_actor[0] = 0x41; rush_actor[1] = 27;
+    rush_actor[2] = 10; // Original yellow pad: authored destination10.
+    rush_actor[4] = 1; rush_actor[5] = 4;
+    const auto portal_play = escape_play;
+    const auto portal_actor = rush_actor;
+    const CPUState portal_cpu = rush_cpu;
+    for (unsigned invalid = 0; invalid < 15; ++invalid) {
+        rush_cpu = portal_cpu; escape_play = portal_play; rush_actor = portal_actor;
+        switch (invalid) {
+        case 0: rush_local_view = true; break;
+        case 1: escape_play[0] = 3; break;
+        case 2: escape_play[1] = 2; break;
+        case 3: escape_play[12] = 11; break;
+        case 4: escape_play[13] = 1; break;
+        case 5: escape_play[0x59] = 254; break;
+        case 6: escape_play[0x5F] = 9; break;
+        case 7: rush_cpu.gpr[16] += 1; break;
+        case 8: rush_actor[0] = 0; break;
+        case 9: rush_actor[1] = 26; break;
+        case 10: rush_actor[2] = 0; break;
+        case 11: rush_actor[4] = 0; break;
+        case 12: rush_actor[5] = 3; break;
+        case 13: rush_actor[6] = 1; break;
+        case 14: rush_cpu.gpr[3] = 7; break;
+        }
+        const CPUState rejected_cpu = rush_cpu;
+        const auto rejected_play = escape_play;
+        const auto rejected_actor = rush_actor;
+        rush_hooks[0].callback(&rush_cpu, 0x800C7900u);
+        if (std::memcmp(&rush_cpu, &rejected_cpu, sizeof rush_cpu) ||
+            escape_play != rejected_play || rush_actor != rejected_actor || escape_bad_write)
+            return fail("Sigma skip bypassed its native portal/campaign eligibility guard");
+        rush_local_view = false;
+    }
+    escape_play = portal_play; rush_actor = portal_actor;
+    for (unsigned remaining = 8; remaining <= 16; ++remaining) {
+        rush_cpu = portal_cpu; rush_cpu.gpr[3] = remaining;
+        rush_hooks[0].callback(&rush_cpu, 0x800C7900u);
+        if (rush_cpu.gpr[3] != 16) return fail("Sigma portal eligibility was not admitted");
+        rush_cpu.gpr[3] = portal_cpu.gpr[3];
+        if (std::memcmp(&rush_cpu, &portal_cpu, sizeof rush_cpu) ||
+            escape_play != portal_play || rush_actor != portal_actor || escape_bad_write)
+            return fail("Sigma skip changed native flags, rewards, actor or unrelated CPU state");
+    }
+    for (unsigned choice = 0; choice < 4; ++choice) {
+        rush_cpu = portal_cpu;
+        escape_online = choice != 0; escape_option_present = choice != 1;
+        rush_online_option = choice == 2 ? "false" : "true";
+        online_rush_hooks[0].callback(&rush_cpu, 0x800C7900u);
+        if (rush_cpu.gpr[3] != (choice == 3 ? 16 : 8))
+            return fail("online Sigma portal did not follow the committed host option");
+    }
+    escape_online = false; escape_option_present = true;
 
     PSXRecompV4::mod_clear_plugins_for_tests();
+    if (!PSXRecompV4::mod_register_instruction_plugin("mmx4.boss-rush-skip",
+            0x800C7900u, 0x306300FFu, rush_hooks[0].callback) ||
+        !PSXRecompV4::mod_register_instruction_plugin("mmx4.coop",
+            0x800C7900u, 0x306300FFu, online_rush_hooks[0].callback))
+        return fail("could not restore actual Sigma portal registrations");
+    if (!PSXRecompV4::mod_register_instruction_plugin("mmx4.stage-escape",
+            0x8002FF7Cu, 0xA2020024u, escape_hooks[0].callback))
+        return fail("could not restore actual stage-escape instruction registration");
+    if (!PSXRecompV4::mod_register_instruction_plugin("mmx4.coop",
+            0x8002FF7Cu, 0xA2020024u, online_escape_hooks[0].callback))
+        return fail("could not restore actual Co-op Escape instruction registration");
     for (const char* id : {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
@@ -80,10 +263,74 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 12)
-        return fail("expected twelve package families");
+    if (manager.packages().size() != 14)
+        return fail("expected fourteen package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
+    if (manager.feature_enabled("mmx4.qol.boss-rush-skip", "skip") ||
+        manager.feature_option_value("mmx4.coop", "coop", "boss_rush_skip") != "false")
+        return fail("standalone/online boss-rush skip must default off");
+    if (!manager.set_feature_enabled("mmx4.qol.boss-rush-skip", "skip", true, &error) ||
+        !manager.save_state(&error)) return fail(error);
+    PSXRecompV4::ModPackageManager rush_saved(root);
+    if (!rush_saved.scan(&error) || !rush_saved.load_state(&error) ||
+        !rush_saved.feature_enabled("mmx4.qol.boss-rush-skip", "skip"))
+        return fail("saved boss-rush skip choice did not survive reload");
+    const auto rush_plan = rush_saved.resolve(kGameId, "", kDiscSha256);
+    unsigned rush_plugins = 0;
+    for (const auto& plugin : rush_plan.plugins) rush_plugins += plugin.id == "mmx4.boss-rush-skip";
+    if (!rush_plan.ok || rush_plugins != 1 || !rush_plan.writes.empty() ||
+        rush_plan.fingerprint == default_plan.fingerprint)
+        return fail("boss-rush skip must have its own settings identity without campaign writes");
+    if (!manager.set_feature_enabled("mmx4.qol.boss-rush-skip", "skip", false, &error) ||
+        !manager.save_state(&error) || !rush_saved.load_state(&error) ||
+        rush_saved.feature_enabled("mmx4.qol.boss-rush-skip", "skip"))
+        return fail("saved boss-rush skip off choice did not survive reload");
+    if(manager.feature_enabled("mmx4.qol.stage-escape","escape"))
+        return fail("unfinished-stage escape must default off");
+    if(!manager.set_feature_enabled("mmx4.qol.stage-escape","escape",true,&error) ||
+       !manager.save_state(&error))return fail(error);
+    PSXRecompV4::ModPackageManager escape_saved(root);
+    if(!escape_saved.scan(&error) || !escape_saved.load_state(&error) ||
+       !escape_saved.feature_enabled("mmx4.qol.stage-escape","escape"))
+        return fail("saved stage-escape choice did not survive reload");
+    const auto escape_plan=escape_saved.resolve(kGameId,"",kDiscSha256);
+    unsigned escape_plugins=0;
+    for(const auto& plugin:escape_plan.plugins)escape_plugins+=plugin.id=="mmx4.stage-escape";
+    if(!escape_plan.ok || escape_plugins!=1 || !escape_plan.writes.empty() ||
+       escape_plan.fingerprint==default_plan.fingerprint)
+        return fail("stage escape must resolve independently without campaign writes");
+    if(!manager.set_feature_enabled("mmx4.qol.stage-escape","escape",false,&error) ||
+       !manager.save_state(&error) || !escape_saved.load_state(&error) ||
+       escape_saved.feature_enabled("mmx4.qol.stage-escape","escape"))
+        return fail("saved stage-escape off choice did not survive reload");
+    if(manager.feature_option_value("mmx4.coop","coop","stage_escape")!="false")
+        return fail("netplay stage escape must default off");
+    if(!manager.set_feature_enabled("mmx4.coop","coop",true,&error))return fail(error);
+    const auto online_escape_off=manager.resolve(kGameId,"",kDiscSha256);
+    if (!manager.set_feature_option("mmx4.coop", "coop", "boss_rush_skip", "true", &error) ||
+        !manager.save_state(&error) || !rush_saved.load_state(&error) ||
+        rush_saved.feature_option_value("mmx4.coop", "coop", "boss_rush_skip") != "true")
+        return fail("saved online boss-rush choice did not survive reload");
+    const auto online_rush_on = rush_saved.resolve(kGameId, "", kDiscSha256);
+    if (!online_rush_on.ok || online_rush_on.fingerprint == online_escape_off.fingerprint)
+        return fail("online boss-rush choice did not change settings identity");
+    if (!manager.set_feature_option("mmx4.coop", "coop", "boss_rush_skip", "false", &error) ||
+        !manager.save_state(&error) || !rush_saved.load_state(&error) ||
+        rush_saved.feature_option_value("mmx4.coop", "coop", "boss_rush_skip") != "false")
+        return fail("saved online boss-rush off choice did not survive reload");
+    if(!manager.set_feature_option("mmx4.coop","coop","stage_escape","true",&error) ||
+       !manager.save_state(&error) || !escape_saved.load_state(&error) ||
+       escape_saved.feature_option_value("mmx4.coop","coop","stage_escape")!="true")
+        return fail("saved netplay Escape choice did not survive reload");
+    const auto online_escape_on=escape_saved.resolve(kGameId,"",kDiscSha256);
+    if(!online_escape_on.ok || online_escape_on.fingerprint==online_escape_off.fingerprint)
+        return fail("netplay Escape choice did not change the settings plan identity");
+    if(!manager.set_feature_option("mmx4.coop","coop","stage_escape","false",&error) ||
+       !manager.set_feature_enabled("mmx4.coop","coop",false,&error) ||
+       !manager.save_state(&error) || !escape_saved.load_state(&error) ||
+       escape_saved.feature_option_value("mmx4.coop","coop","stage_escape")!="false")
+        return fail("saved netplay Escape off choice did not survive reload");
     if(manager.feature_enabled("mmx4.coop-stage-select","cast") ||
        manager.feature_option_value("mmx4.coop","coop","stage_select_cast")!="false")
         return fail("stage-select cast must default off locally and online");
