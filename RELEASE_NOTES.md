@@ -1,5 +1,14 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.32 - Optional stage exits and Sigma boss-rush skip
+
+- Add **Escape Unfinished Stages** in Mods. The original Escape option returns both local co-op players to stage select, keeps collected items and native progress, and restarts the unfinished stage from its beginning next time.
+- Add **Skip Sigma's Boss Rush** in Mods. Once the final stage is unlocked normally, Sigma's original teleporter can open without repeating the eight Maverick fights. The original portal and introduction remain in use.
+- Both additions default off. Matching host-controlled options are available under X + Zero Co-op for online sessions; both peers need the same build.
+- Keep Input Recording visible and enabled by default, independently of Input Display, and preserve saved on/off choices.
+
+Native memory-card saves carry forward. Save states are specific to this build.
+
 ## v1.0.29 - Story boss music and Japanese disc selection
 
 - Play each boss's own music when fighting both Double and Iris, including the second encounter in either campaign. Applies to co-op and Complete Story while preserving the selected campaign.
