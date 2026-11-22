@@ -11,7 +11,7 @@ launcher_boxart = "recomp/launcher/boxart.tga"
 [build]
 pgo_train_headless = true
 regenerate = true
-cmake_args = ["-DPSX_RECOMP_UI=ON", "-DPSX_ENABLE_VULKAN=OFF", "-DPSX_PGXP_VARIANT=OFF", "-DPSX_NETPLAY=ON", "-DMMX4_COOP_NETPLAY_DEBUG=OFF"]
+cmake_args = ["-DPSXRECOMP_BIOS_STALE_FATAL=ON", "-DPSX_RECOMP_UI=ON", "-DPSX_ENABLE_VULKAN=OFF", "-DPSX_PGXP_VARIANT=OFF", "-DPSX_NETPLAY=ON", "-DMMX4_COOP_NETPLAY_DEBUG=OFF"]
 
 [aot]
 # Original-disc inventory found no separate executable overlay.
