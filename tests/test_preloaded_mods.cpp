@@ -182,6 +182,7 @@ int main(int argc, char** argv) {
     escape_play[0x59] = 255; escape_play[0x5F] = 10;
     rush_actor.fill(0);
     rush_actor[0] = 0x41; rush_actor[1] = 27;
+    rush_actor[2] = 10; // Original yellow pad: authored destination10.
     rush_actor[4] = 1; rush_actor[5] = 4;
     const auto portal_play = escape_play;
     const auto portal_actor = rush_actor;
@@ -199,7 +200,7 @@ int main(int argc, char** argv) {
         case 7: rush_cpu.gpr[16] += 1; break;
         case 8: rush_actor[0] = 0; break;
         case 9: rush_actor[1] = 26; break;
-        case 10: rush_actor[2] = 1; break;
+        case 10: rush_actor[2] = 0; break;
         case 11: rush_actor[4] = 0; break;
         case 12: rush_actor[5] = 3; break;
         case 13: rush_actor[6] = 1; break;

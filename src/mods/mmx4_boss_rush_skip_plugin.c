@@ -16,13 +16,14 @@ static void allow_native_sigma_portal(CPUState *cpu, uint32_t address) {
         psx_mod_read_byte(PLAY + 0x5F) < 10 ||
         actor < 0x80165A30u || actor >= 0x80166BB0u ||
         (actor - 0x80165A30u) % 0x8Cu || !psx_mod_read_byte(actor) ||
-        psx_mod_read_byte(actor + 1) != 27 || psx_mod_read_byte(actor + 2) ||
+        psx_mod_read_byte(actor + 1) != 27 || psx_mod_read_byte(actor + 2) != 10 ||
         psx_mod_read_byte(actor + 4) != 1 || psx_mod_read_byte(actor + 5) != 4 ||
         psx_mod_read_byte(actor + 6) || cpu->gpr[3] < 8 || cpu->gpr[3] > 16)
         return;
     /* Retail's board admits stage12 only at story10 after the prior fortress
      * stages. At C78BC the final portal waits for eight refight flags. Change
-     * only this completed eligibility count: native allocation, collision,
+     * only this completed eligibility count for the destination10 yellow pad:
+     * native allocation, collision,
      * hero warp, Sigma introduction and rewards retain their original owners.
      * Never write those refight flags or mark the final stage completed. */
     cpu->gpr[3] = 16;
