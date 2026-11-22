@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx4.qol.boss-rush-skip"
+version = "1.0.0"
+name = "Skip Sigma's Boss Rush"
+author = "mstan"
+description = "Open Sigma's teleporter without repeating the eight Maverick fights."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "skip"
+name = "Skip Sigma's Boss Rush"
+description = "After the final stage is legitimately unlocked, keep its Sigma teleporter available without repeating the eight Maverick fights. Earlier stages, weapons, items and completion flags stay unchanged. Use the original teleporter to continue. For online co-op, use the matching Co-op option instead. Requires a fresh boot."
+group = "Gameplay"
+default_enabled = false
+
+[[plugin]]
+feature = "skip"
+id = "mmx4.boss-rush-skip"

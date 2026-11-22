@@ -129,10 +129,12 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_diagnostics.cpp src/mods/mmx4_diagnostics.h src/mods/mmx4_diagnostic_paths.h
     src/mods/mmx4_diagnostic_writer.h src/mods/mmx4_diagnostic_mode.h
     src/mods/mmx4_widescreen_plugin.c src/mods/mmx4_stage_escape_plugin.c
+    src/mods/mmx4_boss_rush_skip_plugin.c
     mods/preloaded/packages/mmx4.coop/0.0.1/manifest.toml
     mods/preloaded/packages/mmx4.coop-stage-select/0.1.0/manifest.toml
     mods/preloaded/packages/mmx4.complete-story/1.0.0/manifest.toml
-    mods/preloaded/packages/mmx4.qol.stage-escape/1.0.0/manifest.toml)
+    mods/preloaded/packages/mmx4.qol.stage-escape/1.0.0/manifest.toml
+    mods/preloaded/packages/mmx4.qol.boss-rush-skip/1.0.0/manifest.toml)
 set(MMX4_COOP_CONTRACT "mmx4-coop-delay-v3\n")
 set(MMX4_COOP_PROFILE_PREFIX "mmx4-coop-delay-v3")
 if(MMX4_COOP_NETPLAY_DEBUG)
@@ -380,6 +382,7 @@ if(BUILD_TESTING)
     add_executable(mmx4_preloaded_mods_test
         tests/test_preloaded_mods.cpp
         src/mods/mmx4_stage_escape_plugin.c
+        src/mods/mmx4_boss_rush_skip_plugin.c
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_packages.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/iso_reader.cpp"

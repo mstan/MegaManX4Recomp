@@ -50,6 +50,14 @@ default = "true"
 
 [[option]]
 feature = "coop"
+id = "boss_rush_skip"
+label = "Netplay: Skip Sigma's Boss Rush"
+description = "After the final stage is legitimately unlocked, make its Sigma teleporter available without repeating the eight Maverick fights. Earlier stages, weapons, items and completion flags stay unchanged. The host chooses for both peers. For local play, enable the separate Skip Sigma's Boss Rush mod. Requires a fresh boot."
+type = "boolean"
+default = false
+
+[[option]]
+feature = "coop"
 id = "stage_escape"
 label = "Netplay Escape unfinished stages"
 description = "Either player can leave an unfinished stage and take both players back to stage select. Keep collected items; reenter at the stage entrance. The host chooses for both peers. For local play, use the separate Escape Unfinished Stages mod. Requires a fresh boot."
