@@ -1944,8 +1944,13 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
         snapshot_validate,snapshot_read,snapshot_ready};
     psx_mod_register_snapshot_provider(ID,&snapshot);
     psx_mod_register_savestate_plugin(ID,snapshot_resources_restored);
+    static const PSXModNetplayContentFeature shared_content[] = {
+        {"mmx4.localization", "translation"},
+        {"mmx4.japanese-fmvs", "japanese-fmvs"},
+    };
     static const PSXModNetplayProfile profile={ID,MMX4_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,
-        "mmx4.widescreen",state_digest,1,ID,"coop","cameras","split"};
+        "mmx4.widescreen",state_digest,1,ID,"coop","cameras","split",
+        NULL,NULL,NULL,NULL,shared_content,sizeof shared_content / sizeof shared_content[0]};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_activation_plugin(BOARD_ID,board_package_activate);

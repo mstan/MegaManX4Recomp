@@ -1,5 +1,10 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.33 - Text Translation in netplay
+
+- Apply the host's Text Translation choice to both players when co-op starts. The game checks that each player has the required local translation catalog.
+- All netplay players need the same release.
+
 ## v1.0.32 - Optional stage exits and Sigma boss-rush skip
 
 - Add **Escape Unfinished Stages** in Mods. The original Escape option returns both local co-op players to stage select, keeps collected items and native progress, and restarts the unfinished stage from its beginning next time.
