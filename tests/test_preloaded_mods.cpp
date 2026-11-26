@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    if (manifest_count != 15) return fail("expected fifteen package manifests, including optional Nightmare Zero palette");
+    if (manifest_count != 16) return fail("expected sixteen package manifests, including community patches and Nightmare Zero palette");
 
     const auto escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.stage-escape");
     if (!PSXRecompV4::mod_plugin_registered("mmx4.stage-escape") ||
@@ -253,7 +253,9 @@ int main(int argc, char** argv) {
              "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics", "mmx4.diagnostics.osd",
              "mmx4.ultimate_armor", "mmx4.black_zero", "mmx4.nightmare-zero",
              "mmx4.japanese-media", "mmx4.translation",
-             "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
+             "mmx4.japanese-fmvs", "mmx4.complete-story",
+             "mmx4.community.zero-buster", "mmx4.community.transparent-hud",
+             "mmx4.community.hybrid-buster", "mmx4.community.plasma-boss-filter"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -263,10 +265,21 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 15)
-        return fail("expected fifteen package families");
+    if (manager.packages().size() != 16)
+        return fail("expected sixteen package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
+    const char* community_features[]={"zero-buster","transparent-hud","hybrid-buster","plasma-boss-filter"};
+    for (unsigned mask=1;mask<16;++mask) {
+        for (unsigned bit=0;bit<4;++bit)
+            if (!manager.set_feature_enabled("mmx4.community-patches",community_features[bit],(mask&(1u<<bit))!=0,&error))
+                return fail(error);
+        const auto plan=manager.resolve(kGameId,"",kDiscSha256);
+        if (!plan.ok || plan.writes.empty() || plan.fingerprint==default_plan.fingerprint)
+            return fail("community patch combination did not resolve: "+std::to_string(mask));
+    }
+    for (const auto* feature:community_features)
+        if (!manager.set_feature_enabled("mmx4.community-patches",feature,false,&error)) return fail(error);
     if (manager.feature_enabled("mmx4.qol.boss-rush-skip", "skip") ||
         manager.feature_option_value("mmx4.coop", "coop", "boss_rush_skip") != "false")
         return fail("standalone/online boss-rush skip must default off");
