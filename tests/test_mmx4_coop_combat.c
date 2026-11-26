@@ -290,7 +290,8 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
         }
         CHECK(projected && !psx_mod_read_byte(MMX4_PLAYER+2));
         CHECK(psx_mod_read_word(a0+0x5C)>=SHOTS && psx_mod_read_word(a0+0x5C)<SHOTS+16*0x9Cu);
-        psx_mod_write_byte(a0,0x93);psx_mod_write_byte(a0+3,1);psx_mod_write_byte(a0+4,1);
+        psx_mod_write_byte(a0,psx_mod_read_byte(a0+2)==3?0x83:0x93);
+        psx_mod_write_byte(a0+3,1);psx_mod_write_byte(a0+4,1);
         psx_mod_write_word(a0+8,psx_mod_read_word(MMX4_PLAYER+8));
         ++aiming_calls;return 0xBEEFu;
     }
@@ -1629,7 +1630,7 @@ static void aiming_charged_scan_owner(void) {
         CPUState cpu={.gpr={[4]=row}};
         PSXModFunctionFilterCallback hook=optional_filter(0x800D6AD8u);
         if(!hook || !hook(&cpu,0x800D6AD8u))cpu.gpr[2]=mmx4_coop_call(&cpu,0x800D6AD8u,row,0);
-        CHECK(cpu.gpr[2]==0xBEEFu && psx_mod_read_byte(row)==0x93 &&
+        CHECK(cpu.gpr[2]==0xBEEFu && psx_mod_read_byte(row)==(i==3?0x83:0x93) &&
             psx_mod_read_byte(row+3)==1 && psx_mod_read_word(row+8)==30u<<16);
     }
     CHECK(aiming_calls==before+4 && !projected && mmx4_coop_combat_snapshot_ready());
