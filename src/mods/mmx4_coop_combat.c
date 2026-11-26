@@ -414,19 +414,22 @@ static int personal_effect(CPUState *cpu,uint32_t address) {
 
 static int aiming_laser_beam(CPUState *cpu,uint32_t address) {
     uint32_t actor=cpu->gpr[4];
-    if(personal_effect_call || !world_ready() || mmx4_coop_second_body()[2] ||
+    unsigned type=address==0x800D67DCu?9u:address==0x800D6AD8u?10u:0u;
+    if(!type || personal_effect_call || !world_ready() || mmx4_coop_second_body()[2] ||
        actor<0x801435B0u || actor>=0x801441B0u || (actor-0x801435B0u)%0x60u ||
-       psx_mod_read_byte(actor+1)!=9)return 0;
-    /* Aiming Laser's reticles belong to the private shot pool, but 968A4
-     * allocates its beam in a separate shared 60-byte pool. D67DC checks
-     * PLAYER+93 (weapon6), PLAYER's pose, and uses PLAYER as the beam origin.
-     * With Zero/P1 restored it deletes X/P2's beam before its first draw.
-     * Only X creates this type: bind the deferred update to X/P2 once.
-     * Native target checks, beam geometry, flicker and expiry remain intact. */
+       psx_mod_read_byte(actor+1)!=type)return 0;
+    /* Both versions defer their drawing to the shared 60-byte actor pool:
+     * 968A4 allocates the type9 target beam; 96A84 allocates four type10
+     * charged scan lines. D67DC and D6AD8 each validate PLAYER+93 (weapon6)
+     * and derive geometry from PLAYER. Restored Zero/P1 would expire them
+     * before drawing. enroll() initializes the opposite campaign character,
+     * so X/P2 means Zero/P1 and only P2 can create these X-only types. Project
+     * its matching native update, including ordinary expiration checks. */
     personal_effect_call=1;mmx4_coop_enter_second();
     uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
     mmx4_coop_leave_second();personal_effect_call=0;
-    psx_mod_counter_add("mmx4.coop.p2-aiming-laser-beam-ticks",1);
+    psx_mod_counter_add(type==9?"mmx4.coop.p2-aiming-laser-beam-ticks":
+        "mmx4.coop.p2-aiming-laser-scan-ticks",1);
     return mmx4_coop_finish(cpu,result);
 }
 void mmx4_coop_combat_clear_current_effects(void) {
@@ -1018,6 +1021,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop_combat) {
     psx_mod_register_function_filter_plugin(COOP_ID,0x800B2A3Cu,personal_effect);
     psx_mod_register_function_filter_plugin(COOP_ID,0x800B2AD0u,personal_effect);
     psx_mod_register_function_filter_plugin(COOP_ID,0x800D67DCu,aiming_laser_beam);
+    psx_mod_register_function_filter_plugin(COOP_ID,0x800D6AD8u,aiming_laser_beam);
     psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_ALLOCATE,allocate_particle);
     psx_mod_register_function_filter_plugin(COOP_ID,0x800B2C8Cu,stored_charge_hud);
     psx_mod_register_function_filter_plugin(COOP_ID,PARTICLE_INITIALIZE,initialize_character_particle);

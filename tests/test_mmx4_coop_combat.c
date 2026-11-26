@@ -181,11 +181,15 @@ int psx_mod_register_guest_function_plugin(const char *id,uint32_t address,
     CHECK((address&0x1FFFFFFFu)>=0x0F000000u && (address&0x1FFFFFFFu)<0x10000000u);
     actor_dispatch=callback;return 1;
 }
-static PSXModFunctionFilterCallback filter(uint32_t address) {
+static PSXModFunctionFilterCallback optional_filter(uint32_t address) {
     for (unsigned i=0;i<filter_count;++i)
         if (filters[i].address==address) return filters[i].callback;
-    CHECK(0);
     return NULL;
+}
+static PSXModFunctionFilterCallback filter(uint32_t address) {
+    PSXModFunctionFilterCallback callback=optional_filter(address);
+    CHECK(callback);
+    return callback;
 }
 int mmx4_coop_ready(void) { return (int)ready; }
 int mmx4_coop_projected(void) { return (int)projected; }
@@ -271,6 +275,25 @@ uint32_t mmx4_coop_call(CPUState *cpu,uint32_t address,uint32_t a0,uint32_t a1) 
             (uint8_t)(psx_mod_read_byte(a0+0x97)&~0x40u));
         psx_mod_write_byte(MMX4_PLAYER+0xC5,0);
         psx_mod_write_word(MMX4_PLAYER+0x68,0x800F8BC4u);return 0;
+    }
+    if(address==0x800D6AD8u) {
+        /* Retail D6AD8 independently expires a charged scan line for either
+         * lock byte C3/C4, weapon!=6, HP==0 or BF!=0. This deliberately runs
+         * on the unprojected baseline too: the native Zero/P1 weapon check
+         * must reject the row, rather than a fixture assuming projection. */
+        PSXModFunctionFilterCallback hook=optional_filter(address);
+        if(hook)CHECK(!hook(cpu,address));
+        if(psx_mod_read_byte(MMX4_PLAYER+0xC3) || psx_mod_read_byte(MMX4_PLAYER+0xC4) ||
+           psx_mod_read_byte(MMX4_PLAYER+0x93)!=6 || !psx_mod_read_byte(MMX4_PLAYER+0x5C) ||
+           psx_mod_read_byte(MMX4_PLAYER+0xBF)) {
+            psx_mod_write_byte(a0,0);return 0;
+        }
+        CHECK(projected && !psx_mod_read_byte(MMX4_PLAYER+2));
+        CHECK(psx_mod_read_word(a0+0x5C)>=SHOTS && psx_mod_read_word(a0+0x5C)<SHOTS+16*0x9Cu);
+        psx_mod_write_byte(a0,psx_mod_read_byte(a0+2)==3?0x83:0x93);
+        psx_mod_write_byte(a0+3,1);psx_mod_write_byte(a0+4,1);
+        psx_mod_write_word(a0+8,psx_mod_read_word(MMX4_PLAYER+8));
+        ++aiming_calls;return 0xBEEFu;
     }
     /* Re-entered native dispatch must decline the active host filter. */
     if (address!=ARMOR_MOUNT && address!=NATIVE_AI && address!=0x8002B3C0u)
@@ -1582,12 +1605,52 @@ static void aiming_beam_owner(void) {
     CHECK(!memcmp(p1,address_ptr(MMX4_PLAYER),sizeof p1) && !memcmp(p2,second,sizeof p2));
     CHECK(!projected && psx_mod_read_byte(MMX4_PLAY+0x43)==1 && mmx4_coop_combat_snapshot_ready());
     mmx4_coop_enter_second();CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));mmx4_coop_leave_second();
-    second[2]=1;CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));second[2]=0;
+    psx_mod_write_byte(MMX4_PLAYER+2,0);second[2]=1; /* Supported X/P1 Zero/P2 order. */
+    CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
+    psx_mod_write_byte(MMX4_PLAYER+2,1);second[2]=0;
     psx_mod_write_byte(beam+1,8);CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
     psx_mod_write_byte(beam+1,9);cpu.gpr[4]=beam+4;
     CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
     cpu.gpr[4]=0x801441B0u;CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
 }
+static void aiming_charged_scan_owner(void) {
+    setup();
+    const uint32_t scan=0x801435B0u;
+    second[2]=0;second[0x93]=6;
+    psx_mod_write_byte(MMX4_PLAYER+2,1);psx_mod_write_byte(MMX4_PLAYER+0x93,0);
+    psx_mod_write_byte(MMX4_PLAY+0x43,1);
+    uint8_t p1[sizeof second],p2[sizeof second];
+    memcpy(p1,address_ptr(MMX4_PLAYER),sizeof p1);memcpy(p2,second,sizeof p2);
+    unsigned before=aiming_calls;
+    /* The original charged initializer emits four independently updated rows. */
+    for(unsigned i=0;i<4;++i) {
+        uint32_t row=scan+i*0x60u;
+        psx_mod_write_byte(row,1);psx_mod_write_byte(row+1,10);psx_mod_write_byte(row+2,(uint8_t)i);
+        psx_mod_write_word(row+0x5C,SHOTS+3*0x9Cu);
+        CPUState cpu={.gpr={[4]=row}};
+        PSXModFunctionFilterCallback hook=optional_filter(0x800D6AD8u);
+        if(!hook || !hook(&cpu,0x800D6AD8u))cpu.gpr[2]=mmx4_coop_call(&cpu,0x800D6AD8u,row,0);
+        CHECK(cpu.gpr[2]==0xBEEFu && psx_mod_read_byte(row)==(i==3?0x83:0x93) &&
+            psx_mod_read_byte(row+3)==1 && psx_mod_read_word(row+8)==30u<<16);
+    }
+    CHECK(aiming_calls==before+4 && !projected && mmx4_coop_combat_snapshot_ready());
+    CHECK(!memcmp(p1,address_ptr(MMX4_PLAYER),sizeof p1) && !memcmp(p2,second,sizeof p2));
+    CPUState cpu={.gpr={[4]=scan}};
+    CHECK(!filter(0x800D6AD8u)(&cpu,0x800D67DCu)); /* PC/type pair is exact. */
+    psx_mod_write_byte(scan+1,9);CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
+    psx_mod_write_byte(scan+1,10);psx_mod_write_byte(MMX4_PLAYER+2,0);second[2]=1;
+    CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u)); /* Native X/P1 owns this order. */
+    psx_mod_write_byte(MMX4_PLAYER+2,1);second[2]=0;
+    cpu.gpr[4]=scan+4;CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
+    cpu.gpr[4]=0x801441B0u;CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
+    cpu.gpr[4]=scan;
+    mmx4_coop_enter_second();CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));mmx4_coop_leave_second();
+    /* Ownership must not suppress the original owner's ordinary expiration. */
+    second[0x93]=7;CHECK(filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
+    CHECK(!psx_mod_read_byte(scan));
+    CHECK(psx_mod_read_byte(MMX4_PLAYER+2)==1 && !projected);
+}
+
 int main(void) {
     for(unsigned campaign=0;campaign<2;++campaign)for(unsigned seat=0;seat<2;++seat) {
         setup();finishes=0;psx_mod_write_byte(MMX4_PLAYER+2,(uint8_t)campaign);
@@ -1600,6 +1663,7 @@ int main(void) {
     }
     stored_charge_hud_ownership();
     aiming_beam_owner();
+    aiming_charged_scan_owner();
     accepted_events();independent_solids();aim_selection();effect_ownership();armor_handoff();armor_forced_dismount();independent_hit_tokens();
     split_native_targets();
     mushroom_shared_palette();

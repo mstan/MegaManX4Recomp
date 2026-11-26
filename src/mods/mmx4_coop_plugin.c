@@ -13,6 +13,7 @@
 #include "mmx4_diagnostics.h"
 #include "mmx4_coop_debug_protocol.h"
 #include "mmx4_coop_views.h"
+#include "mmx4_coop_host_profile.h"
 #include "mmx4_cheats.h"
 #include "mod_netplay.h"
 #include "psx_netplay.h"
@@ -1950,7 +1951,7 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_coop) {
     };
     static const PSXModNetplayProfile profile={ID,MMX4_COOP_NETPLAY_COMPATIBILITY,0,0,1,1u,
         "mmx4.widescreen",state_digest,1,ID,"coop","cameras","split",
-        NULL,NULL,NULL,NULL,shared_content,sizeof shared_content / sizeof shared_content[0]};
+        NULL,NULL,NULL,mmx4_coop_host_profiles,shared_content,sizeof shared_content / sizeof shared_content[0]};
     psx_mod_register_netplay_profile(&profile);
     psx_mod_register_activation_plugin(ID,activate);
     psx_mod_register_activation_plugin(BOARD_ID,board_package_activate);

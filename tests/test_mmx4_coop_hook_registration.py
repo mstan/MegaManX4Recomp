@@ -28,9 +28,11 @@ class CoopHookRegistrationTest(unittest.TestCase):
 
     def test_function_addresses_have_one_handler_per_plugin(self):
         registrations = {}
-        config = tomllib.loads((ROOT / 'game.toml').read_text(encoding='utf-8'))
-        emitted = {int(value, 16) & 0x1FFFFFFF
-                   for value in config['recompiler']['mod_function_entry_funcs']}
+        emitted_configs = {}
+        for path in ('game.toml', 'packaging/release/game.toml'):
+            config = tomllib.loads((ROOT / path).read_text(encoding='utf-8'))
+            emitted_configs[path] = {int(value, 16) & 0x1FFFFFFF
+                                     for value in config['recompiler']['mod_function_entry_funcs']}
         pattern = re.compile(
             r'psx_mod_register_function_(?:entry|filter)_plugin\s*\('
             r'\s*(?:ID|COOP_ID)\s*,\s*(0x[0-9a-fA-F]+|[A-Z][A-Z_0-9]*)[uU]?'
@@ -43,8 +45,10 @@ class CoopHookRegistrationTest(unittest.TestCase):
                 value = constants.get(match.group(1), match.group(1))
                 address = int(value, 16) & 0x1FFFFFFF
                 handler = f'{source.name}:{match.group(2)}'
-                self.assertIn(address, emitted,
-                              f'Missing recompiler function-entry hook for {handler} at {address:#x}')
+                for path, emitted in emitted_configs.items():
+                    self.assertIn(address, emitted,
+                                  f'Missing recompiler function-entry hook in {path} '
+                                  f'for {handler} at {address:#x}')
                 self.assertNotIn(address, registrations,
                                  f'Duplicate mod hook at {address:#x}: '
                                  f'{registrations.get(address)} and {handler}')
