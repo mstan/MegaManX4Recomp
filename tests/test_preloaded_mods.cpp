@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    if (manifest_count != 14) return fail("expected fourteen package manifests, including optional stage escape and boss-rush skip");
+    if (manifest_count != 15) return fail("expected fifteen package manifests, including optional Nightmare Zero palette");
 
     const auto escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.stage-escape");
     if (!PSXRecompV4::mod_plugin_registered("mmx4.stage-escape") ||
@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
              "mmx4.damage-multiplier",
              "mmx4.resident-loading",
              "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics", "mmx4.diagnostics.osd",
-             "mmx4.ultimate_armor", "mmx4.black_zero",
+             "mmx4.ultimate_armor", "mmx4.black_zero", "mmx4.nightmare-zero",
              "mmx4.japanese-media", "mmx4.translation",
              "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
@@ -263,8 +263,8 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 14)
-        return fail("expected fourteen package families");
+    if (manager.packages().size() != 15)
+        return fail("expected fifteen package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
     if (manager.feature_enabled("mmx4.qol.boss-rush-skip", "skip") ||
@@ -445,7 +445,8 @@ int main(int argc, char** argv) {
     if(manager.resolve(kGameId,"",kDiscSha256).ok)return fail("Japanese media requires an owner-provided donor");
     if(!manager.set_feature_enabled("mmx4.localization","japanese-media",false,&error))return fail(error);
     if(manager.feature_enabled("mmx4.cheat.ultimate-armor","ultimate-armor") ||
-       manager.feature_enabled("mmx4.cheat.black-zero","black-zero"))
+       manager.feature_enabled("mmx4.cheat.black-zero","black-zero") ||
+       manager.feature_enabled("mmx4.palette.nightmare-zero","nightmare-zero"))
         return fail("elective character cheats must default off");
       if(manager.feature_option_value("mmx4.coop","coop","separate_etanks")!="false")
           return fail("legacy individual-pausing E-tank preference must default off");
@@ -469,6 +470,16 @@ int main(int argc, char** argv) {
     const auto both_cheats=manager.resolve(kGameId,"",kDiscSha256);
     if(!both_cheats.ok || !both_cheats.writes.empty() || both_cheats.plugins.size()!=5)
         return fail("both independent character cheat plugins must resolve together");
+    if(!manager.set_feature_enabled("mmx4.palette.nightmare-zero","nightmare-zero",true,&error))return fail(error);
+    const auto nightmare=manager.resolve(kGameId,"",kDiscSha256);
+    if(!nightmare.ok || !nightmare.writes.empty() || nightmare.plugins.size()!=both_cheats.plugins.size()+1 ||
+       nightmare.fingerprint==both_cheats.fingerprint)
+        return fail("Nightmare palette must compose independently with both native character codes and affect plan identity");
+    if(manager.resolve(kGameId,"",std::string(64,'0')).ok || manager.resolve("SLPS-00902","",kDiscSha256).ok)
+        return fail("Nightmare palette must reject an incorrect disc or regional target");
+    if(!manager.set_feature_enabled("mmx4.palette.nightmare-zero","nightmare-zero",false,&error))return fail(error);
+    if(manager.resolve(kGameId,"",kDiscSha256).fingerprint!=both_cheats.fingerprint)
+        return fail("disabling Nightmare palette must restore the unchanged character-code plan");
     for(const auto& feature:std::vector<std::pair<const char*,const char*>>{
         {"mmx4.cheat.ultimate-armor","ultimate-armor"},{"mmx4.cheat.black-zero","black-zero"}}) {
         if(!manager.set_feature_enabled(feature.first,feature.second,false,&error))return fail(error);

@@ -16,6 +16,7 @@ else()
     set(PSXRECOMP_V4_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/psxrecomp-v4" CACHE PATH
         "Path to psxrecomp-v4")
 endif()
+file(TO_CMAKE_PATH "${PSXRECOMP_V4_ROOT}" PSXRECOMP_V4_ROOT)
 
 # This title ships a co-op netplay profile on both platforms. The framework's
 # generic runtime defaults netplay off; select it before including that runtime.
@@ -83,7 +84,6 @@ list(REMOVE_ITEM MMX4_MOD_PLUGIN_SOURCES
 set(MMX4_PRELOADED_MODS "${CMAKE_CURRENT_SOURCE_DIR}/mods/preloaded")
 
 psxrecomp_v4_add_runtime_target(psx-runtime
-    NATIVE_IDLE_WAIT_EXCLUDE_DEBUG_TURBO
     NATIVE_IDLE_WAIT_SITES ${MMX4_NATIVE_IDLE_WAIT_SITES}
     GAME_GENERATED_FULL_C "${GAME_GENERATED_FULL}"
     GAME_GENERATED_DISPATCH_C "${GAME_GENERATED_DISPATCH}"
@@ -120,8 +120,10 @@ set(MMX4_COOP_CONTRACT_FILES
     src/mods/mmx4_coop_memory.c src/mods/mmx4_coop_memory.h
     src/mods/mmx4_coop_texture_cache.c src/mods/mmx4_coop_texture_cache.h
     src/mods/mmx4_coop_snapshot.h
+    src/mods/mmx4_coop_host_profile.c src/mods/mmx4_coop_host_profile.h
     src/mods/mmx4_story_damage.h
     src/mods/mmx4_cheats.c src/mods/mmx4_cheats.h
+    src/mods/mmx4_nightmare_zero.c
     src/mods/mmx4_coop_views.c src/mods/mmx4_coop_views.h
     src/mods/mmx4_coop_split.c src/mods/mmx4_coop_web.c src/mods/mmx4_coop_bosses.c
     src/mods/mmx4_coop_balance.c src/mods/mmx4_coop_assessment.c
@@ -229,6 +231,9 @@ if(BUILD_TESTING)
     add_executable(mmx4_cheats_test tests/test_mmx4_cheats.c src/mods/mmx4_cheats.c)
     target_include_directories(mmx4_cheats_test PRIVATE src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
     add_test(NAME mmx4_cheats_test COMMAND mmx4_cheats_test)
+    add_executable(mmx4_nightmare_zero_test tests/test_mmx4_nightmare_zero.c src/mods/mmx4_nightmare_zero.c)
+    target_include_directories(mmx4_nightmare_zero_test PRIVATE "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_nightmare_zero_test COMMAND mmx4_nightmare_zero_test)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/mmx4/SLUS_005.61")
         add_test(NAME mmx4_cheats_native_contract_test COMMAND mmx4_cheats_test
             "${CMAKE_CURRENT_SOURCE_DIR}/mmx4/SLUS_005.61")
@@ -427,3 +432,6 @@ if(PSX_BUILD_COSIM)
         CONTRACT_FILES src/mods/mmx4_resident_catalog.h
             "${PSXRECOMP_V4_ROOT}/runtime/include/mod_resident_sector.hpp")
 endif()
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmx4_build_manifest.cmake")
+mmx4_register_build_manifest()
