@@ -1604,7 +1604,9 @@ static void aiming_beam_owner(void) {
     CHECK(!memcmp(p1,address_ptr(MMX4_PLAYER),sizeof p1) && !memcmp(p2,second,sizeof p2));
     CHECK(!projected && psx_mod_read_byte(MMX4_PLAY+0x43)==1 && mmx4_coop_combat_snapshot_ready());
     mmx4_coop_enter_second();CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));mmx4_coop_leave_second();
-    second[2]=1;CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));second[2]=0;
+    psx_mod_write_byte(MMX4_PLAYER+2,0);second[2]=1; /* Supported X/P1 Zero/P2 order. */
+    CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
+    psx_mod_write_byte(MMX4_PLAYER+2,1);second[2]=0;
     psx_mod_write_byte(beam+1,8);CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
     psx_mod_write_byte(beam+1,9);cpu.gpr[4]=beam+4;
     CHECK(!filter(0x800D67DCu)(&cpu,0x800D67DCu));
@@ -1635,8 +1637,9 @@ static void aiming_charged_scan_owner(void) {
     CPUState cpu={.gpr={[4]=scan}};
     CHECK(!filter(0x800D6AD8u)(&cpu,0x800D67DCu)); /* PC/type pair is exact. */
     psx_mod_write_byte(scan+1,9);CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
-    psx_mod_write_byte(scan+1,10);second[2]=1;
-    CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));second[2]=0;
+    psx_mod_write_byte(scan+1,10);psx_mod_write_byte(MMX4_PLAYER+2,0);second[2]=1;
+    CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u)); /* Native X/P1 owns this order. */
+    psx_mod_write_byte(MMX4_PLAYER+2,1);second[2]=0;
     cpu.gpr[4]=scan+4;CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
     cpu.gpr[4]=0x801441B0u;CHECK(!filter(0x800D6AD8u)(&cpu,0x800D6AD8u));
     cpu.gpr[4]=scan;

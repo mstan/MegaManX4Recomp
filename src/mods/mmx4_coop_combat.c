@@ -422,8 +422,9 @@ static int aiming_laser_beam(CPUState *cpu,uint32_t address) {
      * 968A4 allocates the type9 target beam; 96A84 allocates four type10
      * charged scan lines. D67DC and D6AD8 each validate PLAYER+93 (weapon6)
      * and derive geometry from PLAYER. Restored Zero/P1 would expire them
-     * before drawing. Only X creates these types, so project X/P2 for the
-     * matching native update, including its ordinary expiration checks. */
+     * before drawing. enroll() initializes the opposite campaign character,
+     * so X/P2 means Zero/P1 and only P2 can create these X-only types. Project
+     * its matching native update, including ordinary expiration checks. */
     personal_effect_call=1;mmx4_coop_enter_second();
     uint32_t result=mmx4_coop_call(cpu,address,actor,cpu->gpr[5]);
     mmx4_coop_leave_second();personal_effect_call=0;
