@@ -42,6 +42,13 @@ int main(void) {
     assert(mmx4_coop_host_profiles(&c, &cat) && cat.count == 1);
     assert(cat.rules->flags == PSX_HOST_PROFILE_PORTABLE);
     assert(!strcmp(cat.rules->profile, MMX4_HOST_PROFILE));
+#if defined(__linux__)
+    assert(!strcmp(cat.rules->profile, "mmx4.linux64.enhanced.release"));
+    assert(strstr(MMX4_HOST_POLICY, "abi=linux-gnu-gcc13.3.0;"));
+#else
+    assert(!strcmp(cat.rules->profile, "mmx4.win64.enhanced.release"));
+    assert(strstr(MMX4_HOST_POLICY, "abi=win64-mingw-gcc15.2.0;"));
+#endif
     /* The normal two-host route and narrower loopback route share one policy. */
     c.direct_loopback_scope = 1;
     assert(mmx4_coop_host_profiles(&c, &cat));

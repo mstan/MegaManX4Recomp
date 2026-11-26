@@ -1,5 +1,5 @@
 /* Conservative native co-op policy. Matching declarations are not proof:
- * qualification also exercises this policy on the supported physical hosts. */
+ * each offered artifact/platform contract needs runtime qualification. */
 #include "mmx4_coop_host_profile.h"
 #include "execution_profile.h"
 #include "psx_sha256.h"
@@ -7,8 +7,9 @@
 #include <string.h>
 
 #if defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__) && \
-    defined(_WIN32) && defined(_WIN64) && defined(__MINGW64__) && \
-    __GNUC__ == 15 && __GNUC_MINOR__ == 2 && __GNUC_PATCHLEVEL__ == 0
+    ((defined(_WIN32) && defined(_WIN64) && defined(__MINGW64__) && \
+      __GNUC__ == 15 && __GNUC_MINOR__ == 2 && __GNUC_PATCHLEVEL__ == 0) || \
+     (defined(__linux__) && __GNUC__ == 13 && __GNUC_MINOR__ == 3 && __GNUC_PATCHLEVEL__ == 0))
 #define MMX4_HOST_COMPILER 1
 #else
 #define MMX4_HOST_COMPILER 0
