@@ -19,7 +19,7 @@ WHAT YOU NEED
 FIRST RUN
   1. Run MegaManX4Recomp.exe on Windows, or the .AppImage on Linux.
   2. Set the Disc row to your Mega Man X4 image.
-  3. Custom Renderer / Adaptive and Resident Asset Loading default on.
+  3. Widescreen / Fit to screen and Resident Asset Loading default on.
      Internal Resolution defaults to 4x with fresh settings. Interpolation is unavailable;
      generic CD speed and host timing controls are retired. Optional Damage
      Multiplier defaults to normal 1x damage.
@@ -71,11 +71,11 @@ CO-OP PUBLIC BETA
   controller/keyboard bindings. F8 opens rewind when Rewind is enabled.
   These features are unavailable during a netplay match.
 
-  Diagnostic recording is optional and defaults off. For local play, enable
-  Mods -> Playtest Diagnostics -> Input Display and Recording. For netplay,
-  the host enables X + Zero Co-op -> Netplay diagnostic recording for both
-  peers before starting a match. Existing explicit preferences are preserved.
-  It shows both players' accepted buttons and REC while recording.
+  Mods -> Input Recording defaults on and remembers your saved choice.
+  It records support logs and playable single-player replays with one switch.
+  Input Display is a separate Off/On dropdown below Input Recording.
+  For netplay, the host chooses Netplay diagnostic recording under
+  X + Zero Co-op before starting a match.
   It records each run under saves/diagnostics, including starting memory
   cards and mod choices. Keep the session folder for reproducing a report;
   offline input replay needs the matching build and settings.
@@ -106,6 +106,12 @@ OPTIONAL COMPLETE STORY
   portraits while keeping Zero playable. Movies use your selected language.
   Native campaign progress and memory-card saves keep their original identity.
   This option has not been qualified for online play. See docs/COMPLETE_STORY.md.
+
+OPTIONAL COMMUNITY PATCHES
+  In Mods, choose Zero Buster (X5), HUD with Real Transparency,
+  Hybrid Buster, or Plasma Ball Boss Filter. Each defaults off and uses
+  your original USA disc automatically. Restart after changing a patch.
+  No separate patch files are required. Credit: flipstrike and hasungkee.
 
 OPTIONAL LANGUAGES
   In Mods -> Text Translation, choose Spanish or Brazilian Portuguese.
