@@ -39,6 +39,8 @@ void activate(const char* resource) {
         for (unsigned i=0;i<3;++i) {
             unsigned index=0;
             while (index<138 && std::strcmp(MMX4Files[index].path,Paths[i])) ++index;
+            for(unsigned member=0;member<original[i].size();++member)
+                Mmx4AssetTables::remember_source_member(index,member,original[i][member].data);
             Mmx4AssetTables::mount_file(index,files[i]);
         }
         prepared=true;

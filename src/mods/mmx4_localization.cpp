@@ -242,6 +242,12 @@ void media_activate() {
                     if(jp[k].type!=us[h].type || us[u].type!=jp[j].type)
                         throw std::runtime_error(std::string("Japanese VAB pair contract changed: ")+MMX4Files[i].path+
                             " pair "+std::to_string(n));
+                    // An unchanged donor SFX bank must not replace community
+                    // additions. Zero Buster adds a program, two samples and
+                    // a native record here; dropping them also relocates its
+                    // absolute-addressed controller code in the next member.
+                    if(Mmx4AssetTables::source_member_matches(i,h,jp[k].data) &&
+                       Mmx4AssetTables::source_member_matches(i,u,jp[j].data))continue;
                     us[h].data=jp[k].data;us[u].data=jp[j].data;
                 }
                 mount_archive(i);

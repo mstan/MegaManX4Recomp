@@ -148,10 +148,16 @@ static void community_with_japanese(const char* us_path,const char* jp_path,cons
             for(size_t n=0;n<actual.size();++n) {
                 const auto type=actual[n].type;
                 const bool audio=type>>16==2 || type==4 || type==6 || type==7 || type==8;
-                const auto& wanted=audio?japanese_players[i].at(n):expected[i].at(n);
+                const bool donor_unchanged=audio && japanese_players[i].at(n).data==original_players[i].at(n).data;
+                const auto& wanted=audio && !donor_unchanged?japanese_players[i].at(n):expected[i].at(n);
                 check(type==wanted.type && actual[n].data==wanted.data,
-                    audio?"Japanese voice bank preserved":"community graphics/text preserved");
+                    audio?"Japanese voices and community sound extensions preserved":"community graphics/text preserved");
             }
+        }
+        if(mask&1u) {
+            const auto zero=unpack(read_file(names[1]));
+            check(zero[10].data.size()==3684 && zero[11].data.size()==103328,
+                "Zero Buster keeps its added program, samples and native RAM footprint");
         }
         const auto before=ram;const auto before_aperture=aperture;
         for(const auto& cb:ticks())cb.second();check(ram==before,"publication remains idempotent");

@@ -9,6 +9,10 @@ struct CPUState;
 // the final mounted extent is published to the guest.
 namespace Mmx4AssetTables {
 void reset();
+// Retain source identity so later providers can leave a community extension
+// intact when its donor member is identical to the original source.
+void remember_source_member(unsigned file, unsigned member, const std::vector<uint8_t>& bytes);
+bool source_member_matches(unsigned file, unsigned member, const std::vector<uint8_t>& bytes);
 void patch(uint32_t address, uint32_t original, uint32_t value);
 void guest_blob(uint32_t address, std::vector<uint8_t> bytes);
 void mount_file(unsigned index, const std::vector<uint8_t>& bytes);

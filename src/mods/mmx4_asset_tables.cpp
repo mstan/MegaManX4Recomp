@@ -2,6 +2,9 @@
 #include "mmx4_resident_catalog.h"
 #include "mod_plugins.h"
 #include "crash_trace.h"
+#include "psx_sha256.h"
+#include <array>
+#include <map>
 #include <cstdio>
 #include <stdexcept>
 #include <utility>
@@ -12,10 +15,28 @@ struct Patch { uint32_t address, original, value; };
 std::vector<Patch> patches;
 std::vector<std::pair<uint32_t, std::vector<uint8_t>>> blobs;
 bool applied = false, entered = false;
+struct SourceIdentity { size_t size; std::array<uint8_t,32> sha; };
+std::map<std::pair<unsigned,unsigned>,SourceIdentity> sources;
+SourceIdentity identity(const std::vector<uint8_t>& bytes) {
+    SourceIdentity result{bytes.size(),{}};
+    psx_sha256_compute(bytes.data(),bytes.size(),result.sha.data());return result;
+}
 }
 
 void reset() {
-    patches.clear(); blobs.clear(); applied = false; entered = false;
+    patches.clear(); blobs.clear(); sources.clear(); applied = false; entered = false;
+}
+
+void remember_source_member(unsigned file,unsigned member,const std::vector<uint8_t>& bytes) {
+    const auto value=identity(bytes);const auto key=std::make_pair(file,member);
+    const auto found=sources.find(key);
+    if(found!=sources.end() && (found->second.size!=value.size || found->second.sha!=value.sha))
+        throw std::runtime_error("Conflicting X4 source member identities");
+    sources[key]=value;
+}
+bool source_member_matches(unsigned file,unsigned member,const std::vector<uint8_t>& bytes) {
+    const auto found=sources.find(std::make_pair(file,member));
+    return found!=sources.end() && found->second.size==bytes.size() && found->second.sha==identity(bytes).sha;
 }
 
 void patch(uint32_t address, uint32_t original, uint32_t value) {

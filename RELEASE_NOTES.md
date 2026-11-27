@@ -5,6 +5,7 @@
 - Pin the shared engine rollback of the native BIOS executive while preserving other HLE providers.
 - Keep two-player support logging enabled without starting the single-player-only playable replay recorder in co-op.
 - Preserve Zero Buster's native controller bank and secondary assembly for Zero as Player 2, including current-build save/load and scoped restoration of Player 1's bank.
+- Keep community sound extensions when Japanese donor audio is unchanged, preserving Zero Buster's controller-code placement and added sounds.
 - Preserve the community-patch credits and Japanese-media composition changes for review.
 
 This is an alpha prerelease. v1.0.33 remains the stable release.
