@@ -70,7 +70,8 @@ void publish() {
         for (size_t i = 0; i < blob.second.size(); ++i)
             psx_mod_write_byte(blob.first + uint32_t(i), blob.second[i]);
     applied = true;
-    psx_mod_counter_add("mmx4.assets.tables_published", 1);
+    // Preserve the existing language/media qualification counter.
+    psx_mod_counter_add("mmx4.language.tables_published", 1);
 }
 
 void entry(CPUState*, uint32_t) { entered = true; publish(); }
