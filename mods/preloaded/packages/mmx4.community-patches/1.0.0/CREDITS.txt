@@ -1,7 +1,8 @@
 X4 Community Patches
 
-Patches: Flpstrike.
-Z-Buster sprites: hasungkee.
+by: flpstrike (implementation) and hasungkee (sprites)
+
+hasungkee's sprite credit applies to Zero Buster (X5).
 
 Includes Zero Buster (X5), HUD with Real Transparency, Hybrid Buster,
 and Plasma Ball Boss Filter. All four are built in. Players select their

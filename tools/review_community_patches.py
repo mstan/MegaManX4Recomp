@@ -217,7 +217,7 @@ def panel(root):
     body = ttk.Frame(window, padding=16)
     body.pack(fill='both', expand=True)
     ttk.Label(body, text='Mega Man X4 community patches', font=('Segoe UI', 16, 'bold')).pack(anchor='w')
-    ttk.Label(body, text='Patches: Flpstrike. Z-Buster sprites: hasungkee.').pack(anchor='w', pady=(4, 10))
+    ttk.Label(body, text='by: flpstrike (implementation) and hasungkee (sprites)').pack(anchor='w', pady=(4, 10))
     selected = tk.StringVar(value=game.manifest['scenarios'][0]['title'])
     choices = ttk.Combobox(body, textvariable=selected, state='readonly',
                           values=[case['title'] for case in game.manifest['scenarios']])
