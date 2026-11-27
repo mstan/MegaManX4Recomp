@@ -217,7 +217,11 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
     target_include_directories(mmx4_localization_assets_test PRIVATE
         src/mods "${PSXRECOMP_V4_ROOT}/runtime/include" "${PSXRECOMP_V4_ROOT}/recompiler/include")
-    target_link_libraries(mmx4_localization_assets_test PRIVATE chdr-static)
+    if(TARGET recomp-image-core::core)
+        target_link_libraries(mmx4_localization_assets_test PRIVATE recomp-image-core::core)
+    else()
+        target_link_libraries(mmx4_localization_assets_test PRIVATE chdr-static)
+    endif()
     add_test(NAME mmx4_localization_assets_test COMMAND mmx4_localization_assets_test)
     add_executable(mmx4_startup_log_test tests/test_mmx4_startup_log.cpp src/mods/mmx4_startup_log.cpp)
     target_compile_definitions(mmx4_startup_log_test PRIVATE MMX4_STARTUP_LOG_TEST=1)
@@ -413,7 +417,11 @@ if(BUILD_TESTING)
         "${PSXRECOMP_V4_ROOT}/recompiler/lib/toml11"
     )
     psxrecomp_sha256_file(mmx4_preloaded_mods_test)
-    target_link_libraries(mmx4_preloaded_mods_test PRIVATE chdr-static)
+    if(TARGET recomp-image-core::core)
+        target_link_libraries(mmx4_preloaded_mods_test PRIVATE recomp-image-core::core)
+    else()
+        target_link_libraries(mmx4_preloaded_mods_test PRIVATE chdr-static)
+    endif()
     add_test(
         NAME mmx4_preloaded_mods_test
         COMMAND "$<TARGET_FILE:mmx4_preloaded_mods_test>"
