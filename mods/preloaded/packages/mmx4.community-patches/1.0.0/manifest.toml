@@ -2,8 +2,8 @@ format_version = 9
 id = "mmx4.community-patches"
 version = "1.0.0"
 name = "X4 Community Patches"
-author = "flpstrike (implementation) and hasungkee (sprites)"
-description = "Four built-in patches by flpstrike. Z-Buster sprites by hasungkee. No external patch files required. Original discs stay unchanged; restart after changing a patch."
+author = "flipstrike and hasungkee"
+description = "Four built-in patches by flipstrike and hasungkee. No external patch files required. Original discs stay unchanged; restart after changing a patch."
 resolver = "declarative"
 save_compatibility = "isolated"
 
@@ -14,8 +14,8 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 [[feature]]
 id = "zero-buster"
 name = "Zero Buster (X5)"
-author = "flpstrike (implementation) and hasungkee (sprites)"
-description = "Give Zero the X5-style Z-Buster with its shooting sprites. L2 fires it with default controls (keyboard E); it can be reassigned in the game. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
+author = "flipstrike and hasungkee"
+description = "Give Zero the X5-style Z-Buster with its shooting sprites. L2 fires it with default controls (keyboard E); it can be reassigned in the game. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
 group = "Gameplay"
 default_enabled = false
 
@@ -276,8 +276,8 @@ replace = "e8a61b80"
 [[feature]]
 id = "transparent-hud"
 name = "HUD with Real Transparency"
-author = "flpstrike (implementation)"
-description = "Use genuine HUD transparency in place of the original stippled artwork. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
+author = "flipstrike and hasungkee"
+description = "Use genuine HUD transparency in place of the original stippled artwork. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
 group = "Graphics"
 default_enabled = false
 
@@ -461,8 +461,8 @@ replace = "0000198e00000000801f0a3c48004a8d0000289300004b9501ff01250400201421504
 [[feature]]
 id = "hybrid-buster"
 name = "Hybrid Buster"
-author = "flpstrike (implementation)"
-description = "Combine X's stock and plasma busters: Square (keyboard Z) stocks up to four charged shots; Triangle (keyboard A) fires plasma. Swap their assignments using Stock Shot in Options > Button Config. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
+author = "flipstrike and hasungkee"
+description = "Combine X's stock and plasma busters: Square (keyboard Z) stocks up to four charged shots; Triangle (keyboard A) fires plasma. Swap their assignments using Stock Shot in Options > Button Config. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
 group = "Gameplay"
 default_enabled = false
 
@@ -674,8 +674,8 @@ replace = "a008ff00e49f0e80e09b0e80"
 [[feature]]
 id = "plasma-boss-filter"
 name = "Plasma Ball Boss Filter"
-author = "flpstrike (implementation)"
-description = "The lingering plasma ball does not damage bosses. The charged projectile still hits; the patch's four enemy exceptions are preserved. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
+author = "flipstrike and hasungkee"
+description = "The lingering plasma ball does not damage bosses. The charged projectile still hits; the patch's four enemy exceptions are preserved. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
 group = "Gameplay"
 default_enabled = false
 

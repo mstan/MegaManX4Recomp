@@ -114,7 +114,6 @@ psxrecomp_add_implementation(psx-runtime
 # their source contract in the profile handshake so different spike builds
 # cannot join under the same fixed development version.
 set(MMX4_COOP_CONTRACT_FILES
-    src/mods/mmx4_asset_tables.h src/mods/mmx4_asset_tables.cpp
     src/mods/mmx4_community_assets.h src/mods/mmx4_community_patches.cpp
     src/mods/mmx4_localization.cpp src/mods/mmx4_language_assets.h
     game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_frontend.inc src/mods/mmx4_coop_awards.inc
@@ -208,7 +207,6 @@ if(BUILD_TESTING)
     endif()
     add_executable(mmx4_localization_assets_test
         tests/test_localization_assets.cpp src/mods/mmx4_localization.cpp
-        src/mods/mmx4_community_patches.cpp src/mods/mmx4_asset_tables.cpp
         "${PSXRECOMP_V4_ROOT}/runtime/src/native_text.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/third_party/json11/json11.cpp"
         "${PSXRECOMP_V4_ROOT}/runtime/src/mod_media.cpp"

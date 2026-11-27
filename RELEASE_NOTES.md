@@ -1,23 +1,9 @@
 # Mega Man X4 Recompiled release notes
 
-## v1.0.37 - Community patches with Japanese Voices
-
-- Fix startup when community gameplay patches and Japanese Voices are enabled together.
-- Compose the final player archives before publishing one guarded file-table update, preserving both Japanese voice banks and community graphics.
-- Keep the individual Japanese title and movie selections independent.
-
-All netplay players need the same release and matching platform build. Native
-memory-card saves carry forward. Save states are specific to this build.
-
-## v1.0.36 - Community patch credits
-
-- Correct the community patch credit to: flpstrike (implementation) and hasungkee (sprites).
-- hasungkee's sprite contribution applies to Zero Buster (X5); flpstrike authored all four patches.
-
 ## v1.0.35 - Community patches and simpler mod controls
 
 - Add optional Zero Buster (X5), HUD with Real Transparency, Hybrid Buster, and Plasma Ball Boss Filter mods. Each uses your original USA disc automatically; no separate patch files are needed.
-- Community patches by flpstrike; Z-Buster sprites by hasungkee.
+- Credit flipstrike and hasungkee for the community patches.
 - Rename Custom Renderer to Widescreen, with Fit to screen for the adaptive setting.
 - Keep one Input Recording switch for support logs and playable single-player replays. Input Display is an independent dropdown below it. Recording defaults on and preserves saved choices.
 - Remove the launcher startup selection and place TCP Debug Server last in Mods.
