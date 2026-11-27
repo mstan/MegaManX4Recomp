@@ -1,5 +1,16 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.35 - Community patches and simpler mod controls
+
+- Add optional Zero Buster (X5), HUD with Real Transparency, Hybrid Buster, and Plasma Ball Boss Filter mods. Each uses your original USA disc automatically; no separate patch files are needed.
+- Credit flipstrike and hasungkee for the community patches.
+- Rename Custom Renderer to Widescreen, with Fit to screen for the adaptive setting.
+- Keep one Input Recording switch for support logs and playable single-player replays. Input Display is an independent dropdown below it. Recording defaults on and preserves saved choices.
+- Remove the launcher startup selection and place TCP Debug Server last in Mods.
+
+All netplay players need the same release and matching platform build. Native
+memory-card saves carry forward. Save states are specific to this build.
+
 ## v1.0.34 - native co-op and charged Aiming Laser
 
 - Keep X's charged Aiming Laser scan lines attached to Player 2 in Zero's campaign, including their normal animation and expiration.

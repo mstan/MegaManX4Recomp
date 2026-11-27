@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
             }
         }
     }
-    if (manifest_count != 15) return fail("expected fifteen package manifests, including optional Nightmare Zero palette");
+    if (manifest_count != 16) return fail("expected sixteen package manifests, including community patches and Nightmare Zero palette");
 
     const auto escape_hooks = PSXRecompV4::mod_instruction_hooks("mmx4.stage-escape");
     if (!PSXRecompV4::mod_plugin_registered("mmx4.stage-escape") ||
@@ -253,7 +253,10 @@ int main(int argc, char** argv) {
              "mmx4.widescreen", "mmx4.coop", "mmx4.coop-stage-select", "mmx4.diagnostics", "mmx4.diagnostics.osd",
              "mmx4.ultimate_armor", "mmx4.black_zero", "mmx4.nightmare-zero",
              "mmx4.japanese-media", "mmx4.translation",
-             "mmx4.japanese-fmvs", "mmx4.complete-story"}) {
+             "mmx4.japanese-fmvs", "mmx4.complete-story",
+             "mmx4.community.zero-buster", "mmx4.community.transparent-hud",
+             "mmx4.community.hybrid-buster", "mmx4.community.plasma-boss-filter",
+             "psx.playable-replays"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -263,10 +266,21 @@ int main(int argc, char** argv) {
     std::string error;
     if (!manager.scan(&error)) return fail("catalog scan failed: " + error);
     if (!manager.load_state(&error)) return fail("default state failed: " + error);
-    if (manager.packages().size() != 15)
-        return fail("expected fifteen package families");
+    if (manager.packages().size() != 16)
+        return fail("expected sixteen package families");
 
     const auto default_plan = manager.resolve(kGameId, "", kDiscSha256);
+    const char* community_features[]={"zero-buster","transparent-hud","hybrid-buster","plasma-boss-filter"};
+    for (unsigned mask=1;mask<16;++mask) {
+        for (unsigned bit=0;bit<4;++bit)
+            if (!manager.set_feature_enabled("mmx4.community-patches",community_features[bit],(mask&(1u<<bit))!=0,&error))
+                return fail(error);
+        const auto plan=manager.resolve(kGameId,"",kDiscSha256);
+        if (!plan.ok || plan.writes.empty() || plan.fingerprint==default_plan.fingerprint)
+            return fail("community patch combination did not resolve: "+std::to_string(mask));
+    }
+    for (const auto* feature:community_features)
+        if (!manager.set_feature_enabled("mmx4.community-patches",feature,false,&error)) return fail(error);
     if (manager.feature_enabled("mmx4.qol.boss-rush-skip", "skip") ||
         manager.feature_option_value("mmx4.coop", "coop", "boss_rush_skip") != "false")
         return fail("standalone/online boss-rush skip must default off");
@@ -354,7 +368,7 @@ int main(int argc, char** argv) {
         return fail("complete story must resolve independently and change session identity");
     if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",false,&error))return fail(error);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 4) {
+        default_plan.plugins.size() != 5) {
         return fail("normal-damage override was not enabled by default");
     }
     if (manager.feature_enabled("mmx4.nomusic", "no-music"))
@@ -376,12 +390,13 @@ int main(int argc, char** argv) {
     if (!music_restored.ok || !music_restored.overlays.empty() ||
         music_restored.fingerprint != default_plan.fingerprint)
         return fail("disabling no-music must restore the default plan");
-    bool diagnostics_default=false,display_default=false;
+    bool diagnostics_default=false,display_default=false,playable_default=false;
     for(const auto& plugin:default_plan.plugins) {
         diagnostics_default|=plugin.id=="mmx4.diagnostics";
+        playable_default|=plugin.id=="psx.playable-replays";
         display_default|=plugin.id=="mmx4.diagnostics.osd";
     }
-    if(!diagnostics_default || display_default ||
+    if(!diagnostics_default || !playable_default || display_default ||
        !manager.feature_enabled("mmx4.diagnostics","inputs") ||
        manager.feature_enabled("mmx4.diagnostics","osd"))
         return fail("recording must default on independently of display");
@@ -402,7 +417,7 @@ int main(int argc, char** argv) {
     const auto display_plan=restored.resolve(kGameId,"",kDiscSha256);
     bool recording_plugin=false,display_plugin=false;
     for(const auto& plugin:display_plan.plugins) {
-        recording_plugin|=plugin.id=="mmx4.diagnostics";
+        recording_plugin|=plugin.id=="mmx4.diagnostics" || plugin.id=="psx.playable-replays";
         display_plugin|=plugin.id=="mmx4.diagnostics.osd";
     }
     if(!display_plan.ok || recording_plugin || !display_plugin)
@@ -410,12 +425,13 @@ int main(int argc, char** argv) {
     if(!manager.set_feature_enabled("mmx4.diagnostics","inputs",true,&error) ||
        !manager.set_feature_enabled("mmx4.diagnostics","osd",true,&error))return fail(error);
     const auto both_plan=manager.resolve(kGameId,"",kDiscSha256);
-    unsigned recorders=0,displays=0;
+    unsigned recorders=0,displays=0,playable_recorders=0;
     for(const auto& plugin:both_plan.plugins) {
         recorders+=plugin.id=="mmx4.diagnostics";
+        playable_recorders+=plugin.id=="psx.playable-replays";
         displays+=plugin.id=="mmx4.diagnostics.osd";
     }
-    if(!both_plan.ok || recorders!=1 || displays!=1)
+    if(!both_plan.ok || recorders!=1 || playable_recorders!=1 || displays!=1)
         return fail("both choices must resolve each owner once");
     if(!manager.save_state(&error) || !restored.load_state(&error) ||
        !restored.feature_enabled("mmx4.diagnostics","inputs") ||

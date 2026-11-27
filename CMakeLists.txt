@@ -97,6 +97,8 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     EXCLUDE_BUILTIN_MODS
         psx.enhancement.cd-speed
         psx.enhancement.fast-loading
+        # Input Recording owns both support logs and playable replay output.
+        psx.integration.playable-replays
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
 # X4 recreates its guest arenas and texture registrations on session activation.
@@ -112,6 +114,7 @@ psxrecomp_add_implementation(psx-runtime
 # their source contract in the profile handshake so different spike builds
 # cannot join under the same fixed development version.
 set(MMX4_COOP_CONTRACT_FILES
+    src/mods/mmx4_community_assets.h src/mods/mmx4_community_patches.cpp
     src/mods/mmx4_localization.cpp src/mods/mmx4_language_assets.h
     game.toml src/mods/mmx4_coop_plugin.c src/mods/mmx4_coop_frontend.inc src/mods/mmx4_coop_awards.inc
     src/mods/mmx4_coop_lifecycle.c
@@ -186,6 +189,12 @@ add_custom_command(TARGET psx-runtime POST_BUILD
     VERBATIM)
 
 if(BUILD_TESTING)
+    add_executable(mmx4_community_assets_test tests/test_community_assets.cpp
+        "${PSXRECOMP_V4_ROOT}/runtime/src/psx_sha256.c")
+    target_include_directories(mmx4_community_assets_test PRIVATE
+        src/mods "${PSXRECOMP_V4_ROOT}/runtime/include")
+    add_test(NAME mmx4_community_assets_test COMMAND mmx4_community_assets_test
+        "${MMX4_PRELOADED_MODS}/packages/mmx4.community-patches/1.0.0/assets.x4delta")
     find_package(Python3 QUIET COMPONENTS Interpreter)
     if(Python3_FOUND)
         add_test(NAME mmx4_vwait_contract
