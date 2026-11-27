@@ -34,6 +34,9 @@
 #define CHARGE_GLOWS 0x8013E470u
 #define PAD 0x80166C08u
 #define FRAME_ARENA 0x40000u
+/* SLUS-00561's original Zero ARC loader places member15 here. Zero Buster
+ * adds native code with absolute references to this bank. */
+#define ZERO_BUSTER_BANK 0x801B7EC8u
 typedef struct {
     uint8_t body[0xE4], shots[0x9C0], trails[0x120], charge_glows[0xA0];
     uint8_t double_body[0xE4],vehicle[0xB0];
@@ -42,7 +45,7 @@ typedef struct {
     uint32_t sprites, assembly, colors, palette;
     uint32_t menu[5],menu_gfx;
     uint16_t *ui_pixels;
-    uint8_t *file; uint32_t size; Mmx4Asset compressed; unsigned loaded,initialized;
+    uint8_t *file; uint32_t size; Mmx4Asset compressed,script,secondary_assembly; unsigned loaded,initialized;
 } CharacterAssets;
 typedef struct {
     uint8_t *file;uint32_t size;
@@ -82,6 +85,9 @@ static uint32_t saved_resources[9];
 static const unsigned resource_offsets[9]={0x14,0x1C,0x24,0x28,0x34,0x38,0x3C,0x44,0x48};
 static uint8_t saved_dirty;
 static uint8_t saved_cheat;
+static unsigned zero_buster;
+static uint32_t saved_zero_bank_size,saved_secondary_assembly;
+static uint8_t saved_zero_bank[0xA000],zero_bank_work[0xA000];
 static uint16_t previous_input;
 static unsigned counterpart;
 static unsigned projected;
@@ -244,7 +250,14 @@ static int prepare_character(unsigned character,int initialize_guest) {
     static const uint32_t limits[5]={0x1000,0x1000,0x1000,0x1000,0xA000};
     for(unsigned i=0;i<5;++i) {
         Mmx4Asset v;if(!mmx4_coop_arc_asset(a->file,a->size,members[i],&v) || v.size>limits[i])return 0;
+        if(i==4)a->script=v;
         if(initialize_guest)project(a->menu[i],v.data,v.size);
+    }
+    if(character==1 && zero_buster) {
+        if(!mmx4_coop_arc_asset(a->file,a->size,16,&a->secondary_assembly) ||
+           a->secondary_assembly.type!=0x10003u || a->secondary_assembly.size>0x8000u ||
+           a->script.type!=0x15u)return 0;
+        if(initialize_guest)project(a->sprites+0x58000u,a->secondary_assembly.data,a->secondary_assembly.size);
     }
     Mmx4Asset ui,gfx;
     if(!mmx4_coop_arc_asset(a->file,a->size,1,&ui) ||
@@ -281,9 +294,28 @@ static void enter_second(void) {
     CharacterAssets *a=&assets[counterpart];
     uint32_t values[9]={a->sprites,a->assembly,a->colors,a->palette,a->menu[0],a->menu[1],a->menu[2],a->menu[3],a->menu[4]};
     for(unsigned i=0;i<9;++i) {saved_resources[i]=psx_mod_read_word(SCRATCH+resource_offsets[i]);psx_mod_write_word(SCRATCH+resource_offsets[i],values[i]);}
+    saved_zero_bank_size=0;
+    if(zero_buster && counterpart==1) {
+        /* Preserve both characters' complete banks, including the patch's
+         * mutable controller state. The private bank is part of mod RAM and
+         * therefore follows normal snapshot/rollback capture. */
+        saved_zero_bank_size=a->script.size;
+        capture(ZERO_BUSTER_BANK,saved_zero_bank,saved_zero_bank_size);
+        capture(a->menu[4],zero_bank_work,saved_zero_bank_size);
+        project(ZERO_BUSTER_BANK,zero_bank_work,saved_zero_bank_size);
+        saved_secondary_assembly=psx_mod_read_word(SCRATCH+0x20);
+        psx_mod_write_word(SCRATCH+0x20,a->sprites+0x58000u);
+    }
     saved_dirty=psx_mod_read_byte(0x80166BB0);
 }
 static void leave_second(void) {
+    if(saved_zero_bank_size) {
+        capture(ZERO_BUSTER_BANK,zero_bank_work,saved_zero_bank_size);
+        project(assets[counterpart].menu[4],zero_bank_work,saved_zero_bank_size);
+        project(ZERO_BUSTER_BANK,saved_zero_bank,saved_zero_bank_size);
+        psx_mod_write_word(SCRATCH+0x20,saved_secondary_assembly);
+        saved_zero_bank_size=0;
+    }
     capture_player(&second);
     project(diagnostic+0x200,second.vehicle,sizeof second.vehicle);
     mmx4_coop_combat_project_end(diagnostic+0x200);
@@ -514,6 +546,8 @@ static int enroll(CPUState *cpu) {
     uint8_t camera_enabled[3]={psx_mod_read_byte(0x801419F4u),
         psx_mod_read_byte(0x80141A48u),psx_mod_read_byte(0x80141A9Cu)};
     uint32_t spawn_x=on_chaser && incoming?x-(32u<<16):x+(24u<<16);
+    if(zero_buster && counterpart==1)
+        project(assets[1].menu[4],assets[1].script.data,assets[1].script.size);
     enter_second();psx_mod_write_byte(PLAY+0x43,(uint8_t)counterpart);
     psx_mod_write_byte(PLAY+0x1E,0);
     guest(cpu,0x80035240,0,0);
@@ -1522,6 +1556,13 @@ static uint32_t state_digest(void) {
     hash=hash_word(hash,ultimate_armor_x);hash=hash_word(hash,black_zero);
     hash=hash_word(hash,mmx4_cheats_character_enabled(0));hash=hash_word(hash,mmx4_cheats_character_enabled(1));
     hash=hash_word(hash,x_variant);
+    hash=hash_word(hash,zero_buster);
+    if(zero_buster && assets[1].loaded) {
+        uint32_t bank=projected && counterpart==1?ZERO_BUSTER_BANK:assets[1].menu[4];
+        for(unsigned i=0;i<assets[1].script.size;++i) {
+            uint8_t byte=psx_mod_read_byte(bank+i);hash=hash_bytes(hash,&byte,1);
+        }
+    }
     hash=hash_word(hash,board_heroes[0]);hash=hash_word(hash,board_heroes[1]);
     hash=hash_word(hash,board_companions[0]);hash=hash_word(hash,board_companions[1]);
     hash=hash_word(hash,board_enabled);
@@ -1550,16 +1591,24 @@ typedef struct {
     uint32_t resources[9],world_packet_used;
     unsigned projected,rendering,hud_call,upload_guard,failed,menu_texture_owner;
     uint8_t dirty,cheat;
+    uint32_t zero_bank_size,secondary_assembly;
+    uint8_t zero_bank[0xA000];
 } LocalViewContext;
 static void local_context_save(LocalViewContext *context) {
-    *context=(LocalViewContext){first,second,{0},world_packet_used,
-        projected,rendering,hud_call,upload_guard,failed,menu_texture_owner,saved_dirty,saved_cheat};
+    context->first=first;context->second=second;context->world_packet_used=world_packet_used;
+    context->projected=projected;context->rendering=rendering;context->hud_call=hud_call;
+    context->upload_guard=upload_guard;context->failed=failed;context->menu_texture_owner=menu_texture_owner;
+    context->dirty=saved_dirty;context->cheat=saved_cheat;
     memcpy(context->resources,saved_resources,sizeof saved_resources);
+    context->zero_bank_size=saved_zero_bank_size;context->secondary_assembly=saved_secondary_assembly;
+    if(saved_zero_bank_size)memcpy(context->zero_bank,saved_zero_bank,saved_zero_bank_size);
     mmx4_coop_lifecycle_view_save();mmx4_widescreen_view_save();
 }
 static void local_context_restore(const LocalViewContext *context) {
     first=context->first;second=context->second;
     memcpy(saved_resources,context->resources,sizeof saved_resources);
+    saved_zero_bank_size=context->zero_bank_size;saved_secondary_assembly=context->secondary_assembly;
+    if(saved_zero_bank_size)memcpy(saved_zero_bank,context->zero_bank,saved_zero_bank_size);
     world_packet_used=context->world_packet_used;saved_dirty=context->dirty;saved_cheat=context->cheat;
     projected=context->projected;rendering=context->rendering;hud_call=context->hud_call;
     upload_guard=context->upload_guard;failed=context->failed;
@@ -1867,6 +1916,8 @@ static void snapshot_resources_restored(void) {
 }
 static void activate(void) {
     mmx4_diagnostics_reset();
+    zero_buster=psx_mod_feature_active("mmx4.community-patches","zero-buster")!=0;
+    saved_zero_bank_size=0;
     /* Immutable sprite/map banks can retain painter order in the shared
      * single-pass blend batch. Mask checking and subtractive draws keep
      * the conservative renderer path; Reference builds retain isolation. */
