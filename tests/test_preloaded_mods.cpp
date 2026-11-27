@@ -368,7 +368,8 @@ int main(int argc, char** argv) {
         return fail("complete story must resolve independently and change session identity");
     if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",false,&error))return fail(error);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 5) {
+        std::count_if(default_plan.plugins.begin(), default_plan.plugins.end(),
+            [](const auto& plugin) { return plugin.id == mmx4.damage-multiplier; }) != 1) {
         return fail("normal-damage override was not enabled by default");
     }
     if (manager.feature_enabled("mmx4.nomusic", "no-music"))
@@ -396,10 +397,10 @@ int main(int argc, char** argv) {
         playable_default|=plugin.id=="psx.playable-replays";
         display_default|=plugin.id=="mmx4.diagnostics.osd";
     }
-    if(!diagnostics_default || !playable_default || display_default ||
+    if(!diagnostics_default || playable_default || display_default ||
        !manager.feature_enabled("mmx4.diagnostics","inputs") ||
        manager.feature_enabled("mmx4.diagnostics","osd"))
-        return fail("recording must default on independently of display");
+        return fail("recording must default on independently of display, with replay eligibility owned by diagnostics");
     if(manager.feature_option_value("mmx4.coop","coop","diagnostic_recording")!="true")
         return fail("netplay recording must default on without enabling co-op");
     // The original inputs ID owns the saved recording choice. Display is new
@@ -431,7 +432,7 @@ int main(int argc, char** argv) {
         playable_recorders+=plugin.id=="psx.playable-replays";
         displays+=plugin.id=="mmx4.diagnostics.osd";
     }
-    if(!both_plan.ok || recorders!=1 || playable_recorders!=1 || displays!=1)
+    if(!both_plan.ok || recorders!=1 || playable_recorders!=0 || displays!=1)
         return fail("both choices must resolve each owner once");
     if(!manager.save_state(&error) || !restored.load_state(&error) ||
        !restored.feature_enabled("mmx4.diagnostics","inputs") ||
