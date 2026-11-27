@@ -97,6 +97,8 @@ psxrecomp_v4_add_runtime_target(psx-runtime
     EXCLUDE_BUILTIN_MODS
         psx.enhancement.cd-speed
         psx.enhancement.fast-loading
+        # Input Recording owns both support logs and playable replay output.
+        psx.integration.playable-replays
     EXTRAS_SOURCES ${GAME_GENERATED_EXTRAS} ${MMX4_MOD_PLUGIN_SOURCES}
 )
 # X4 recreates its guest arenas and texture registrations on session activation.

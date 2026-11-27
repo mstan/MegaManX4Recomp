@@ -255,7 +255,8 @@ int main(int argc, char** argv) {
              "mmx4.japanese-media", "mmx4.translation",
              "mmx4.japanese-fmvs", "mmx4.complete-story",
              "mmx4.community.zero-buster", "mmx4.community.transparent-hud",
-             "mmx4.community.hybrid-buster", "mmx4.community.plasma-boss-filter"}) {
+             "mmx4.community.hybrid-buster", "mmx4.community.plasma-boss-filter",
+             "psx.playable-replays"}) {
         if (!PSXRecompV4::mod_register_activation_plugin(id, no_op_plugin)) {
             return fail(std::string("could not register test plugin ") + id);
         }
@@ -367,7 +368,7 @@ int main(int argc, char** argv) {
         return fail("complete story must resolve independently and change session identity");
     if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",false,&error))return fail(error);
     if (!default_plan.ok || !default_plan.writes.empty() ||
-        default_plan.plugins.size() != 4) {
+        default_plan.plugins.size() != 5) {
         return fail("normal-damage override was not enabled by default");
     }
     if (manager.feature_enabled("mmx4.nomusic", "no-music"))
@@ -389,12 +390,13 @@ int main(int argc, char** argv) {
     if (!music_restored.ok || !music_restored.overlays.empty() ||
         music_restored.fingerprint != default_plan.fingerprint)
         return fail("disabling no-music must restore the default plan");
-    bool diagnostics_default=false,display_default=false;
+    bool diagnostics_default=false,display_default=false,playable_default=false;
     for(const auto& plugin:default_plan.plugins) {
         diagnostics_default|=plugin.id=="mmx4.diagnostics";
+        playable_default|=plugin.id=="psx.playable-replays";
         display_default|=plugin.id=="mmx4.diagnostics.osd";
     }
-    if(!diagnostics_default || display_default ||
+    if(!diagnostics_default || !playable_default || display_default ||
        !manager.feature_enabled("mmx4.diagnostics","inputs") ||
        manager.feature_enabled("mmx4.diagnostics","osd"))
         return fail("recording must default on independently of display");
@@ -415,7 +417,7 @@ int main(int argc, char** argv) {
     const auto display_plan=restored.resolve(kGameId,"",kDiscSha256);
     bool recording_plugin=false,display_plugin=false;
     for(const auto& plugin:display_plan.plugins) {
-        recording_plugin|=plugin.id=="mmx4.diagnostics";
+        recording_plugin|=plugin.id=="mmx4.diagnostics" || plugin.id=="psx.playable-replays";
         display_plugin|=plugin.id=="mmx4.diagnostics.osd";
     }
     if(!display_plan.ok || recording_plugin || !display_plugin)
@@ -423,12 +425,13 @@ int main(int argc, char** argv) {
     if(!manager.set_feature_enabled("mmx4.diagnostics","inputs",true,&error) ||
        !manager.set_feature_enabled("mmx4.diagnostics","osd",true,&error))return fail(error);
     const auto both_plan=manager.resolve(kGameId,"",kDiscSha256);
-    unsigned recorders=0,displays=0;
+    unsigned recorders=0,displays=0,playable_recorders=0;
     for(const auto& plugin:both_plan.plugins) {
         recorders+=plugin.id=="mmx4.diagnostics";
+        playable_recorders+=plugin.id=="psx.playable-replays";
         displays+=plugin.id=="mmx4.diagnostics.osd";
     }
-    if(!both_plan.ok || recorders!=1 || displays!=1)
+    if(!both_plan.ok || recorders!=1 || playable_recorders!=1 || displays!=1)
         return fail("both choices must resolve each owner once");
     if(!manager.save_state(&error) || !restored.load_state(&error) ||
        !restored.feature_enabled("mmx4.diagnostics","inputs") ||
