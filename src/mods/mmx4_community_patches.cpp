@@ -61,7 +61,7 @@ void activate(const char* resource) {
             tables.push_back({address+8,contract.first,Mmx4Language::u32(files[i].data())});
         }
         prepared=true;
-        std::fprintf(stderr,"mmx4.community: patches=%u; credits Flpstrike (patches); hasungkee (Z-Buster sprites); original image unchanged\n",flags);
+        std::fprintf(stderr,"mmx4.community: patches=%u; by: flpstrike (implementation) and hasungkee (sprites); original image unchanged\n",flags);
     } catch (const std::exception& error) {
         psx_fatal_halt((std::string("X4 community patches: ")+error.what()).c_str());
     }
