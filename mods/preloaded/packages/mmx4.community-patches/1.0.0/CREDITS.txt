@@ -1,6 +1,7 @@
 X4 Community Patches
 
-Patch design and artwork: flipstrike and hasungkee.
+Patches: Flpstrike.
+Z-Buster sprites: hasungkee.
 
 Includes Zero Buster (X5), HUD with Real Transparency, Hybrid Buster,
 and Plasma Ball Boss Filter. All four are built in. Players select their
