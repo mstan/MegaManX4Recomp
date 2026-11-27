@@ -369,7 +369,7 @@ int main(int argc, char** argv) {
     if(!manager.set_feature_enabled("mmx4.complete-story","complete-story",false,&error))return fail(error);
     if (!default_plan.ok || !default_plan.writes.empty() ||
         std::count_if(default_plan.plugins.begin(), default_plan.plugins.end(),
-            [](const auto& plugin) { return plugin.id == mmx4.damage-multiplier; }) != 1) {
+            [](const auto& plugin) { return plugin.id == "mmx4.damage-multiplier"; }) != 1) {
         return fail("normal-damage override was not enabled by default");
     }
     if (manager.feature_enabled("mmx4.nomusic", "no-music"))
