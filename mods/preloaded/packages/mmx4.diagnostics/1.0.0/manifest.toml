@@ -14,7 +14,7 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 [[feature]]
 id = "inputs"
 name = "Input Recording"
-description = "Records inputs as playable single-player replays and support logs with starting saves. Input Display is a separate choice below. For online play, use Netplay diagnostic recording under X + Zero Co-op."
+description = "Records P1/P2 support logs with starting saves. Single-player sessions also create playable replays. Input Display is a separate choice below. For online play, use Netplay diagnostic recording under X + Zero Co-op."
 group = "Diagnostics"
 default_enabled = true
 
@@ -28,10 +28,6 @@ default_enabled = false
 [[plugin]]
 feature = "inputs"
 id = "mmx4.diagnostics"
-
-[[plugin]]
-feature = "inputs"
-id = "psx.playable-replays"
 
 [[plugin]]
 feature = "osd"

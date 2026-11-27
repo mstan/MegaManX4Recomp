@@ -26,6 +26,8 @@ static std::map<std::string,unsigned> counters;
 static std::string save_root,shown[2];
 static std::string application_root;
 static bool online;
+static bool playable_replays_requested;
+extern "C" void replay_recording_request(int enabled) {playable_replays_requested=enabled!=0;}
 static unsigned native_calls;
 static bool coop_active=true,split_views_config;
 static std::map<std::string,std::string> coop_options{{"local_cameras","unified"},
@@ -137,6 +139,12 @@ int main(int argc,char **argv) {
     application_root=save_root;
     std::filesystem::create_directories(save_root);CPUState cpu{};env("");reset_session();activate();
     CHECK(recording_enabled && !display_enabled);
+    CHECK(!playable_replays_requested); // Co-op diagnostics remain on.
+    coop_active=false;activate();
+    CHECK(recording_enabled && playable_replays_requested);
+    reset_session();CHECK(!recording_enabled && !playable_replays_requested);
+    coop_active=true;activate();
+    CHECK(recording_enabled && !playable_replays_requested);
     CHECK(shown[0].empty() && shown[1].empty());
     activate_display();
     CHECK(!sources[0] && !sources[1]);

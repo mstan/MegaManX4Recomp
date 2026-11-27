@@ -1,5 +1,13 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.38-alpha.1 - Co-op stability qualification
+
+- Pin the shared engine rollback of the native BIOS executive while preserving other HLE providers.
+- Keep two-player support logging enabled without starting the single-player-only playable replay recorder in co-op.
+- Preserve the community-patch credits and Japanese-media composition changes for review.
+
+This is an alpha prerelease. v1.0.33 remains the stable release.
+
 ## v1.0.37 - Community patches with Japanese Voices
 
 - Fix startup when community gameplay patches and Japanese Voices are enabled together.
