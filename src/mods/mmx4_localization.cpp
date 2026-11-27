@@ -9,6 +9,7 @@
 #include "mmx4_resident_catalog.h"
 #include "mmx4_language_assets.h"
 #include "mmx4_fmv_pack.h"
+#include "mmx4_asset_tables.h"
 #include <array>
 #include <cstdio>
 #include <iterator>
@@ -22,12 +23,10 @@ constexpr const char* Package="mmx4.localization";
 constexpr const char* Media="mmx4.japanese-media";
 constexpr const char* Translation="mmx4.translation";
 constexpr const char* Movies="mmx4.japanese-fmvs";
-struct Patch {uint32_t address,original,value;};
-std::vector<Patch> patches;
-std::vector<std::pair<uint32_t,std::vector<uint8_t>>> guest_blobs;
+using Mmx4AssetTables::patch;
+using Mmx4AssetTables::mount_file;
 std::map<unsigned,std::vector<Member>> archives;
 std::map<unsigned,std::vector<uint8_t>> archive_headers;
-bool applied=false,exe_entered=false;
 bool fan_movies_active=false;
 
 void fail(const std::string& message) {psx_fatal_halt(("X4 language mod: "+message).c_str());}
@@ -47,23 +46,12 @@ std::vector<uint8_t> original_file(const char* path) {
     if(!psx_mod_read_disc_file(path,data.data(),size,&size))throw std::runtime_error("Cannot read effective X4 asset");
     return data;
 }
-void patch(uint32_t address,uint32_t original,uint32_t value) {
-    for(auto& p:patches)if(p.address==address) {p.value=value;return;}
-    patches.push_back({address,original,value});applied=false;
-}
 std::vector<Member>& archive(unsigned index) {
     const auto found=archives.find(index);
     if(found!=archives.end())return found->second;
     const auto data=original_file(MMX4Files[index].path);
     archive_headers[index]={data.begin(),data.begin()+2048};
     return archives.emplace(index,unpack(data)).first->second;
-}
-void mount_file(unsigned index,const std::vector<uint8_t>& data) {
-    uint32_t lba=0;
-    if(!psx_mod_replace_disc_file(MMX4Files[index].path,data.data(),uint32_t(data.size()),&lba))
-        throw std::runtime_error("Cannot mount derived X4 language archive");
-    const auto& c=MMX4FileContracts[index];const uint32_t table=0x800f0e18+index*12;
-    patch(table,c.lba,lba);patch(table+4,c.size,uint32_t(data.size()));patch(table+8,c.first,u32(data.data()));
 }
 void mount_archive(unsigned index) {
     mount_file(index,pack(archive(index),archive_headers.at(index)));
@@ -72,25 +60,7 @@ unsigned index_for(const char* name) {
     for(unsigned i=0;i<std::size(MMX4Files);++i)if(!std::strcmp(name,MMX4Files[i].path))return i;
     throw std::runtime_error("Missing native X4 archive contract");
 }
-void reset() {patches.clear();guest_blobs.clear();archives.clear();archive_headers.clear();applied=false;exe_entered=false;fan_movies_active=false;}
-void publish() {
-    if(!exe_entered || applied || patches.empty())return;
-    // Wait for the EXE. Validate the whole transaction before its first write.
-    if(psx_mod_read_word(0x800f0e18)!=MMX4FileContracts[0].lba)return;
-    for(const auto& p:patches)
-        if(psx_mod_read_word(p.address)!=p.original && psx_mod_read_word(p.address)!=p.value)
-        {
-            char detail[160];std::snprintf(detail,sizeof detail,
-                "Executable table at %08x: expected %08x, found %08x",p.address,p.original,psx_mod_read_word(p.address));
-            fail(detail);
-        }
-    for(const auto& p:patches)psx_mod_write_word(p.address,p.value);
-    for(const auto& blob:guest_blobs)
-        for(size_t i=0;i<blob.second.size();++i)psx_mod_write_byte(blob.first+uint32_t(i),blob.second[i]);
-    applied=true;psx_mod_counter_add("mmx4.language.tables_published",1);
-}
-void entry(CPUState*,uint32_t) {exe_entered=true;publish();}
-void restored() {applied=false;exe_entered=psx_mod_game_started()!=0;publish();}
+void reset() {Mmx4AssetTables::reset();archives.clear();archive_headers.clear();fan_movies_active=false;}
 
 std::string donor_name(const std::string& us,const ModMode2Disc& donor) {
     uint32_t lba=0,size=0;
@@ -246,7 +216,7 @@ void media_activate() {
                    uint64_t(end)-0x80010000+0x800>exe.size())throw std::runtime_error("Japanese XA cue table changed");
                 const uint32_t guest=psx_mod_alloc_guest_memory(end-pointer,4);
                 if(!guest)throw std::runtime_error("Cannot allocate native XA cue table");
-                guest_blobs.push_back({guest,{exe.begin()+pointer-0x80010000+0x800,exe.begin()+end-0x80010000+0x800}});
+                Mmx4AssetTables::guest_blob(guest,{exe.begin()+pointer-0x80010000+0x800,exe.begin()+end-0x80010000+0x800});
                 patch(0x800f19f4+i*4,expected[i],guest);
             }
             for(unsigned i=0;i<std::size(MMX4Files);++i) {
@@ -355,8 +325,8 @@ PSX_MOD_CONSTRUCTOR(mmx4_register_languages) {
     psx_mod_register_session_reset_plugin(Movies,reset);
     psx_mod_register_activation_plugin(Movies,movies_activate);
     for(const char* id:{Media,Translation,Movies}) {
-        psx_mod_register_function_entry_plugin(id,0x800dae8c,entry);
-        psx_mod_register_vblank_plugin(id,publish);
-        psx_mod_register_savestate_plugin(id,restored);
+        psx_mod_register_function_entry_plugin(id,0x800dae8c,Mmx4AssetTables::entry);
+        psx_mod_register_vblank_plugin(id,Mmx4AssetTables::publish);
+        psx_mod_register_savestate_plugin(id,Mmx4AssetTables::restored);
     }
 }

@@ -1,5 +1,14 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.37 - Community patches with Japanese Voices
+
+- Fix startup when community gameplay patches and Japanese Voices are enabled together.
+- Compose the final player archives before publishing one guarded file-table update, preserving both Japanese voice banks and community graphics.
+- Keep the individual Japanese title and movie selections independent.
+
+All netplay players need the same release and matching platform build. Native
+memory-card saves carry forward. Save states are specific to this build.
+
 ## v1.0.36 - Community patch credits
 
 - Correct the community patch credit to: flpstrike (implementation) and hasungkee (sprites).

@@ -15,7 +15,7 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 id = "zero-buster"
 name = "Zero Buster (X5)"
 author = "flpstrike (implementation) and hasungkee (sprites)"
-description = "Give Zero the X5-style Z-Buster with its shooting sprites. L2 fires it with default controls (keyboard E); it can be reassigned in the game. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
+description = "Give Zero the X5-style Z-Buster with its shooting sprites. L2 fires it with default controls (keyboard E); it can be reassigned in the game. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
 group = "Gameplay"
 default_enabled = false
 
@@ -277,7 +277,7 @@ replace = "e8a61b80"
 id = "transparent-hud"
 name = "HUD with Real Transparency"
 author = "flpstrike (implementation)"
-description = "Use genuine HUD transparency in place of the original stippled artwork. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
+description = "Use genuine HUD transparency in place of the original stippled artwork. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
 group = "Graphics"
 default_enabled = false
 
@@ -462,7 +462,7 @@ replace = "0000198e00000000801f0a3c48004a8d0000289300004b9501ff01250400201421504
 id = "hybrid-buster"
 name = "Hybrid Buster"
 author = "flpstrike (implementation)"
-description = "Combine X's stock and plasma busters: Square (keyboard Z) stocks up to four charged shots; Triangle (keyboard A) fires plasma. Swap their assignments using Stock Shot in Options > Button Config. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
+description = "Combine X's stock and plasma busters: Square (keyboard Z) stocks up to four charged shots; Triangle (keyboard A) fires plasma. Swap their assignments using Stock Shot in Options > Button Config. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
 group = "Gameplay"
 default_enabled = false
 
@@ -675,7 +675,7 @@ replace = "a008ff00e49f0e80e09b0e80"
 id = "plasma-boss-filter"
 name = "Plasma Ball Boss Filter"
 author = "flpstrike (implementation)"
-description = "The lingering plasma ball does not damage bosses. The charged projectile still hits; the patch's four enemy exceptions are preserved. Built in; no patch-file picker. Requires a fresh boot and original English gameplay assets."
+description = "The lingering plasma ball does not damage bosses. The charged projectile still hits; the patch's four enemy exceptions are preserved. Built in; no patch-file picker. Requires a fresh boot and your original USA disc. Compatible with Japanese Voices and Japanese Media."
 group = "Gameplay"
 default_enabled = false
 
