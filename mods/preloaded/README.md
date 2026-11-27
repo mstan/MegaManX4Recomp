@@ -25,6 +25,9 @@ A verified title loading implementation remains campaign work.
 Ultimate Armor X Code and Black Zero are separate optional mods, disabled by
 default. Both may be enabled together for local play. The X code retains the
 original capsule requirement; Black Zero uses the original black palette.
+Nightmare Zero Palette is a separate, disabled-by-default Appearance mod. It
+recolors Zero's body, saber, hit flash and the specified stage dash trails.
+Its supplied colors take priority over Black Zero without changing that code.
 The same codes are also options under X + Zero Co-op for local and online play.
 Select the co-op feature to configure its codes, boss doors and boss settings.
 For online co-op, the host chooses these settings for both peers.

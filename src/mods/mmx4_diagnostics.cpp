@@ -10,6 +10,7 @@
 #include "memcard.h"
 #include "savestate.h"
 #include "sio.h"
+#include "replay_frontend.h"
 extern "C" {
 #include "mmx4_coop_internal.h"
 }
@@ -439,12 +440,15 @@ void reset_recording() {
     host_osd_set_diagnostics(nullptr,nullptr);
 }
 void reset_session() {
+    replay_recording_request(0);
     recording_enabled=display_enabled=false;
     reset_recording();
 }
 void activate() {
     recording_enabled=true;
     reset_recording();
+    // The playable format contains P1 only. Co-op keeps both support-log streams.
+    replay_recording_request(!mod_runtime_snapshot_package_active("mmx4.coop"));
 }
 void activate_display() {display_enabled=true;}
 int display_inputs(CPUState *cpu,uint32_t address) {

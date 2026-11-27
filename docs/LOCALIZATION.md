@@ -25,6 +25,13 @@ into FMVs are separate surfaces and are not translated by this dialogue mod.
 Spanish voices are a future audio mod; this implementation supplies text and
 glyphs for that effort. Both language drafts still need native-speaker review.
 
+## Community gameplay patches
+
+Japanese Voices, the Japanese title screen and Japanese FMVs can be used
+with the built-in community gameplay patches. They share one guarded asset
+table update: community graphics are preserved while the voice banks come
+from the selected Japanese disc. Restart after changing these choices.
+
 ## Editing a translation
 
 Copy `mods/preloaded/packages/mmx4.localization/1.0.0/catalog/es.json` or

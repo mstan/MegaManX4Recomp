@@ -1,5 +1,50 @@
 # Mega Man X4 Recompiled release notes
 
+## v1.0.38-alpha.1 - Co-op stability qualification
+
+- Pin the shared engine rollback of the native BIOS executive while preserving other HLE providers.
+- Keep two-player support logging enabled without starting the single-player-only playable replay recorder in co-op.
+- Preserve Zero Buster's native controller bank and secondary assembly for Zero as Player 2, including current-build save/load and scoped restoration of Player 1's bank.
+- Keep community sound extensions when Japanese donor audio is unchanged, preserving Zero Buster's controller-code placement and added sounds.
+- Preserve the community-patch credits and Japanese-media composition changes for review.
+
+This is an alpha prerelease. v1.0.33 remains the stable release.
+
+## v1.0.37 - Community patches with Japanese Voices
+
+- Fix startup when community gameplay patches and Japanese Voices are enabled together.
+- Compose the final player archives before publishing one guarded file-table update, preserving both Japanese voice banks and community graphics.
+- Keep the individual Japanese title and movie selections independent.
+
+All netplay players need the same release and matching platform build. Native
+memory-card saves carry forward. Save states are specific to this build.
+
+## v1.0.36 - Community patch credits
+
+- Correct the community patch credit to: flpstrike (implementation) and hasungkee (sprites).
+- hasungkee's sprite contribution applies to Zero Buster (X5); flpstrike authored all four patches.
+
+## v1.0.35 - Community patches and simpler mod controls
+
+- Add optional Zero Buster (X5), HUD with Real Transparency, Hybrid Buster, and Plasma Ball Boss Filter mods. Each uses your original USA disc automatically; no separate patch files are needed.
+- Community patches by flpstrike; Z-Buster sprites by hasungkee.
+- Rename Custom Renderer to Widescreen, with Fit to screen for the adaptive setting.
+- Keep one Input Recording switch for support logs and playable single-player replays. Input Display is an independent dropdown below it. Recording defaults on and preserves saved choices.
+- Remove the launcher startup selection and place TCP Debug Server last in Mods.
+
+All netplay players need the same release and matching platform build. Native
+memory-card saves carry forward. Save states are specific to this build.
+
+## v1.0.34 - native co-op and charged Aiming Laser
+
+- Keep X's charged Aiming Laser scan lines attached to Player 2 in Zero's campaign, including their normal animation and expiration.
+- Use measured lobby latency and the effective synchronization mode for automatic input delay. Refresh input confirmation directly through the netplay core when a frame is waiting.
+- Add the optional Nightmare Zero palette in Mods. It defaults off and remains independent of the native Black Zero code.
+- Retain adaptive Custom Renderer defaults and saved display/control choices. Input Recording stays visible, enabled by default and remembers a saved off choice.
+
+All netplay players need the same release and matching platform build. Native
+memory-card saves carry forward. Save states are specific to this build.
+
 ## v1.0.33 - Text Translation in netplay
 
 - Apply the host's Text Translation choice to both players when co-op starts. The game checks that each player has the required local translation catalog.

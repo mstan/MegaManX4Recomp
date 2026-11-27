@@ -4,6 +4,8 @@
 #include "psx_sha256.h"
 #include "mmx4_language_assets.h"
 #include "mmx4_fmv_pack.h"
+#include "mmx4_community_assets.h"
+#include "mmx4_resident_catalog.h"
 #include <array>
 #include <filesystem>
 #include <fstream>
@@ -19,8 +21,12 @@ using Call=void(*)(void);
 static auto& activation() {static std::map<std::string,Call> c;return c;}
 static auto& resetters() {static std::map<std::string,Call> c;return c;}
 static auto& ticks() {static std::map<std::string,Call> c;return c;}
+static auto& restores() {static std::map<std::string,Call> c;return c;}
 static auto& entries() {static std::map<std::string,PSXModFunctionEntryCallback> c;return c;}
 static std::shared_ptr<const std::vector<uint8_t>> donor_bytes;
+static std::vector<uint8_t> community_payload;
+static unsigned community_mask;
+static std::map<std::string,uint32_t> replacement_lbas;
 static std::vector<uint8_t> catalog,ram(2*1024*1024),exe;
 static std::map<uint32_t,uint8_t> aperture;
 static std::map<std::string,std::vector<uint8_t>> replacements;
@@ -32,7 +38,13 @@ extern "C" {
 int psx_mod_register_activation_plugin(const char* id,Call cb) {activation()[id]=cb;return 1;}
 int psx_mod_register_session_reset_plugin(const char* id,Call cb) {resetters()[id]=cb;return 1;}
 int psx_mod_register_vblank_plugin(const char* id,Call cb) {ticks()[id]=cb;return 1;}
-int psx_mod_register_savestate_plugin(const char*,Call) {return 1;}
+int psx_mod_register_savestate_plugin(const char* id,Call cb) {restores()[id]=cb;return 1;}
+int psx_mod_feature_active(const char* package,const char* feature) {
+    if(std::strcmp(package,"mmx4.community-patches"))return 0;
+    const char* names[]={"zero-buster","transparent-hud","hybrid-buster","plasma-boss-filter"};
+    for(unsigned i=0;i<4;++i)if(!std::strcmp(feature,names[i]))return (community_mask&(1u<<i))!=0;
+    return 0;
+}
 int psx_mod_register_function_entry_plugin(const char* id,uint32_t,PSXModFunctionEntryCallback cb) {entries()[id]=cb;return 1;}
 int psx_mod_game_started() {return 1;}
 void psx_mod_counter_add(const char*,uint32_t) {}
@@ -45,6 +57,7 @@ int psx_mod_option_value(const char*,const char*,const char* id,char* out,uint32
 }
 int psx_mod_current_resource_path(const char*,char* out,uint32_t n) {std::snprintf(out,n,"%s",catalog_path.c_str());return 1;}
 int psx_mod_current_resource_bytes(const char* id,const uint8_t** out,uint64_t* size) {
+    if(!std::strncmp(id,"assets-",7)) {*out=community_payload.data();*size=community_payload.size();return 1;}
     if(!std::strcmp(id,language=="pt-br"?"catalog-pt-br":"catalog")) {*out=catalog.data();*size=catalog.size();return 1;}
     *out=donor_bytes->data();*size=donor_bytes->size();return 1;
 }
@@ -69,7 +82,7 @@ int psx_mod_append_disc_extent(const char*,uint64_t offset,uint32_t count,uint32
 }
 int psx_mod_replace_disc_file(const char* path,const void* data,uint32_t size,uint32_t* lba) {
     const auto* p=static_cast<const uint8_t*>(data);replacements[path]={p,p+size};
-    *lba=next_lba;next_lba+=(size+2047)/2048;return 1;
+    *lba=next_lba;replacement_lbas[path]=*lba;next_lba+=(size+2047)/2048;return 1;
 }
 uint32_t psx_mod_alloc_guest_memory(uint32_t size,uint32_t alignment) {
     next_guest=(next_guest+alignment-1)&~(alignment-1);const auto p=next_guest;next_guest+=size;return p;
@@ -87,8 +100,81 @@ static std::vector<uint8_t> read_file(const std::string& path) {
     uint32_t size=0;check(psx_mod_read_disc_file(path.c_str(),nullptr,0,&size),"file query "+path);
     std::vector<uint8_t> data(size);check(psx_mod_read_disc_file(path.c_str(),data.data(),size,&size),"file read "+path);return data;
 }
+
+static void community_with_japanese(const char* us_path,const char* jp_path,const char* payload_path) {
+    check(original.Open(us_path),"open original US disc");
+    std::string error;
+    check(load_mod_media(jp_path,"psx-mode2",589683488,
+        "829185314c9040d74f66c5babdb08a6fa58239d299afae11fd396f4c243874d7",donor_bytes,&error),error);
+    std::ifstream payload(payload_path,std::ios::binary);
+    community_payload={std::istreambuf_iterator<char>(payload),{}};
+    const auto recipes=Mmx4Community::recipes(community_payload.data(),community_payload.size());
+    const char* names[]={"ARC/PL00_U.ARC","ARC/PL01_U.ARC","ARC/PL02_U.ARC"};
+    Mmx4Community::Archives original_players;
+    for(unsigned i=0;i<3;++i)original_players[i]=unpack(read_file(names[i]));
+    exe=read_file("SLUS_005.61");std::copy(exe.begin()+2048,exe.end(),ram.begin()+0x10000);
+    const auto stock=ram;
+    const char* plugins[]={"mmx4.community.zero-buster","mmx4.community.transparent-hud",
+        "mmx4.community.hybrid-buster","mmx4.community.plasma-boss-filter"};
+    auto prepare=[&](unsigned mask,unsigned media) {
+        for(const auto& cb:resetters())cb.second();
+        community_mask=mask;options=media;ram=stock;aperture.clear();replacements.clear();replacement_lbas.clear();
+        next_lba=original.GetSectorCount();next_guest=0x8f100000;appended=0;
+        for(unsigned bit=0;bit<4;++bit)if(mask&(1u<<bit))activation().at(plugins[bit])();
+        if(media&1)activation().at("mmx4.japanese-fmvs")();
+        if(media&6)activation().at("mmx4.japanese-media")();
+        const auto before=ram;
+        for(const auto& cb:ticks())cb.second();
+        check(ram==before && before==stock,"no early publication before executable entry");
+        for(const auto& cb:entries())cb.second(nullptr,0x800dae8c);
+        for(const auto& cb:ticks())cb.second();
+        for(const auto& mounted:replacement_lbas) {
+            unsigned i=0;while(i<std::size(MMX4Files) && mounted.first!=MMX4Files[i].path)++i;
+            check(i<std::size(MMX4Files),"mounted path has a verified game file contract");
+            const uint32_t at=0x800f0e18+i*12;const auto& data=replacements.at(mounted.first);
+            check(psx_mod_read_word(at)==mounted.second && psx_mod_read_word(at+4)==data.size() &&
+                psx_mod_read_word(at+8)==u32(data.data()),"guest table names the final effective archive: "+mounted.first);
+        }
+    };
+    prepare(0,2);
+    Mmx4Community::Archives japanese_players;
+    for(unsigned i=0;i<3;++i)japanese_players[i]=unpack(read_file(names[i]));
+    for(unsigned mask:{2u,1u,8u,4u,3u,5u,6u,7u,9u,10u,11u,12u,13u,14u,15u}) {
+        prepare(mask,2);
+        const auto expected=Mmx4Community::compose(original_players,recipes,mask);
+        for(unsigned i=0;i<3;++i) {
+            const auto actual=unpack(read_file(names[i]));
+            check(actual.size()==expected[i].size(),"community sprite/text member inventory retained");
+            for(size_t n=0;n<actual.size();++n) {
+                const auto type=actual[n].type;
+                const bool audio=type>>16==2 || type==4 || type==6 || type==7 || type==8;
+                const bool donor_unchanged=audio && japanese_players[i].at(n).data==original_players[i].at(n).data;
+                const auto& wanted=audio && !donor_unchanged?japanese_players[i].at(n):expected[i].at(n);
+                check(type==wanted.type && actual[n].data==wanted.data,
+                    audio?"Japanese voices and community sound extensions preserved":"community graphics/text preserved");
+            }
+        }
+        if(mask&1u) {
+            const auto zero=unpack(read_file(names[1]));
+            check(zero[10].data.size()==3684 && zero[11].data.size()==103328,
+                "Zero Buster keeps its added program, samples and native RAM footprint");
+        }
+        const auto before=ram;const auto before_aperture=aperture;
+        for(const auto& cb:ticks())cb.second();check(ram==before,"publication remains idempotent");
+        ram=stock;aperture.clear();for(const auto& cb:restores())cb.second();
+        check(ram==before && aperture==before_aperture,"current-plan restore republishes final tables and cue data");
+        psx_mod_write_word(0x800f119c,0xdecafbad);const auto damaged=ram;const auto damaged_aperture=aperture;
+        bool rejected=false;try{restores().at(plugins[0])();}catch(const std::exception&){rejected=true;}
+        check(rejected && ram==damaged && aperture==damaged_aperture,"unexpected table values reject before any transaction write");
+        std::cout<<"PASS: Japanese Voices + community mask "<<mask<<" (assets/tables/restore/guard)\n";
+    }
+    prepare(15,6);std::cout<<"PASS: all community patches + Japanese Voices/title\n";
+    prepare(15,7);std::cout<<"PASS: all community patches + Japanese Voices/title/FMV\n";
+}
+
 int main(int argc,char** argv) {
     try {
+        if(argc==5 && !std::strcmp(argv[1],"--community")) {community_with_japanese(argv[2],argv[3],argv[4]);return 0;}
         std::vector<uint8_t> movie_fixture(11*2336);
         std::memcpy(movie_fixture.data(),"X4FMV001",8);put32(movie_fixture,8,10);put32(movie_fixture,12,2336);
         for(unsigned i=0;i<10;++i) {

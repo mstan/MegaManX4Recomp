@@ -1,0 +1,23 @@
+format_version = 5
+id = "mmx4.palette.nightmare-zero"
+version = "1.0.0"
+name = "Nightmare Zero Palette"
+author = "mstan (native integration); original palette-code author unverified"
+description = "Purple Zero with pale saber effects and Nightmare-colored dash trails. See CREDITS.md for the public color-code reference."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "SLUS-00561"
+disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
+
+[[feature]]
+id = "nightmare-zero"
+name = "Nightmare Zero Palette"
+description = "Recolors Zero's body, saber, hit flash and stage-specific dash trails. Nightmare colors take priority when Black Zero is also selected; its native code flag is unchanged. Requires a fresh boot."
+group = "Appearance"
+default_enabled = false
+
+[[plugin]]
+feature = "nightmare-zero"
+id = "mmx4.nightmare-zero"

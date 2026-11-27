@@ -1,9 +1,9 @@
 format_version = 5
 id = "mmx4.diagnostics"
 version = "1.0.0"
-name = "Playtest Diagnostics"
+name = "Input Recording"
 author = "mstan"
-description = "Records gameplay inputs with initial memory cards by default. The optional input display is independent."
+description = "Records gameplay inputs by default, with playable single-player replays and diagnostic logs."
 resolver = "declarative"
 save_compatibility = "shared"
 
@@ -14,7 +14,7 @@ disc_sha256 = "3ceab06ac99add4035f912188bcbf5b16c02056f46a33d38ff0c8dbce6cb613b"
 [[feature]]
 id = "inputs"
 name = "Input Recording"
-description = "Writes inputs.csv and starting card copies beneath saves/diagnostics. Recording is independent of Input Display. For online play, use Netplay diagnostic recording under X + Zero Co-op."
+description = "Records P1/P2 support logs with starting saves. Single-player sessions also create playable replays. Input Display is a separate choice below. For online play, use Netplay diagnostic recording under X + Zero Co-op."
 group = "Diagnostics"
 default_enabled = true
 

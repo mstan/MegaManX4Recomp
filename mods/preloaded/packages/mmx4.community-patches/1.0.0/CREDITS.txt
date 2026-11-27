@@ -1,0 +1,16 @@
+X4 Community Patches
+
+by: flpstrike (implementation) and hasungkee (sprites)
+
+hasungkee's sprite credit applies to Zero Buster (X5).
+
+Includes Zero Buster (X5), HUD with Real Transparency, Hybrid Buster,
+and Plasma Ball Boss Filter. All four are built in. Players select their
+original Mega Man X4 (USA) disc in the normal game-image picker; no IPS,
+BPS or Xdelta patch file is needed. The on-disk image is never modified.
+
+Enable each feature independently on the Mods page, then start a fresh
+session. The patches use your original USA disc and support Japanese Voices and
+Japanese Media. Save states
+are specific to the selected patch plan; native memory-card saves remain
+separate.
