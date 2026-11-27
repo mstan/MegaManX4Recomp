@@ -111,7 +111,9 @@ OPTIONAL COMMUNITY PATCHES
   In Mods, choose Zero Buster (X5), HUD with Real Transparency,
   Hybrid Buster, or Plasma Ball Boss Filter. Each defaults off and uses
   your original USA disc automatically. Restart after changing a patch.
-  No separate patch files are required. Credit: flipstrike and hasungkee.
+  No separate patch files are required.
+  by: flpstrike (implementation) and hasungkee (sprites)
+  hasungkee's sprite credit applies to Zero Buster (X5).
 
 OPTIONAL LANGUAGES
   In Mods -> Text Translation, choose Spanish or Brazilian Portuguese.
